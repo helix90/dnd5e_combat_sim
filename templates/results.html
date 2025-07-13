@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Simulation Results</h2>
+<div class="mb-3">
+  <h4 id="win-loss">{{ summary.win_loss or 'No result data' }}</h4>
+  <div>Party Status: {{ summary.party_status or 'No data' }}</div>
+</div>
+<div class="mb-3">
+  <button id="statsButton" class="btn btn-primary mb-2">Show Detailed Statistics</button>
+  <div id="statsContent" class="d-none">
+    <!-- Statistics table -->
+    {% if statistics and statistics|length > 0 %}
+    <table class="table table-striped">
+      <thead><tr><th>Character</th><th>Damage Dealt</th><th>Damage Taken</th><th>Spells Cast</th><th>Crits</th><th>Misses</th><th>Healing</th></tr></thead>
+      <tbody>
+      {% for stat in statistics %}
+        <tr>
+          <td>{{ stat.name }}</td>
+          <td>{{ stat.damage_dealt }}</td>
+          <td>{{ stat.damage_taken }}</td>
+          <td>{{ stat.spells_cast }}</td>
+          <td>{{ stat.crits }}</td>
+          <td>{{ stat.misses }}</td>
+          <td>{{ stat.healing }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div>No statistics available.</div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="mb-3">
+  <button id="logButton" class="btn btn-primary mb-2">Show Detailed Combat Log</button>
+  <div id="logContent" class="d-none">
+    <pre style="height: 300px; overflow-y: scroll;">{% for entry in log %}{{ entry }}
+{% endfor %}</pre>
+  </div>
+</div>
+<div class="mb-3">
+  <a href="{{ url_for('encounter_selection') }}" class="btn btn-primary">New Encounter</a>
+  <a href="{{ url_for('party') }}" class="btn btn-secondary">New Party</a>
+  <a href="{{ url_for('results_export', sim_id=sim_id) }}" class="btn btn-outline-success">Export Results</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const statsButton = document.getElementById('statsButton');
+  const logButton = document.getElementById('logButton');
+  const statsContent = document.getElementById('statsContent');
+  const logContent = document.getElementById('logContent');
+  
+  if (statsButton && statsContent) {
+    statsButton.addEventListener('click', function() {
+      if (statsContent.classList.contains('d-none')) {
+        statsContent.classList.remove('d-none');
+        statsButton.textContent = 'Hide Detailed Statistics';
+      } else {
+        statsContent.classList.add('d-none');
+        statsButton.textContent = 'Show Detailed Statistics';
+      }
+    });
+  }
+  
+  if (logButton && logContent) {
+    logButton.addEventListener('click', function() {
+      if (logContent.classList.contains('d-none')) {
+        logContent.classList.remove('d-none');
+        logButton.textContent = 'Hide Detailed Combat Log';
+      } else {
+        logContent.classList.add('d-none');
+        logButton.textContent = 'Show Detailed Combat Log';
+      }
+    });
+  }
+});
+</script>
+{% endblock %} 

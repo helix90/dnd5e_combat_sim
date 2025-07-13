@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Select Encounter</h2>
+<form method="post">
+  <div class="mb-3">
+    <label for="encounter_type" class="form-label">Encounter Type:</label>
+    <select class="form-select" id="encounter_type" name="encounter_type">
+      <option value="goblin">Goblin Ambush</option>
+      <option value="orc">Orc Raid</option>
+      <option value="dragon">Young Dragon</option>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-success">Simulate</button>
+</form>
+{% endblock %} 

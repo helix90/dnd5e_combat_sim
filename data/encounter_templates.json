@@ -1,0 +1,110 @@
+{
+  "encounters": [
+    {
+      "name": "Kobold Mob",
+      "level": 1,
+      "type": "mob",
+      "monsters": [
+        {"name": "Kobold", "count": 8}
+      ]
+    },
+    {
+      "name": "Goblin Ambush",
+      "level": 1,
+      "type": "mob",
+      "monsters": [
+        {"name": "Goblin", "count": 6}
+      ]
+    },
+    {
+      "name": "Wolf Pack",
+      "level": 1,
+      "type": "mixed",
+      "monsters": [
+        {"name": "Wolf", "count": 3},
+        {"name": "Kobold", "count": 2}
+      ]
+    },
+    {
+      "name": "Orc Raiders",
+      "level": 2,
+      "type": "mob",
+      "monsters": [
+        {"name": "Orc", "count": 4}
+      ]
+    },
+    {
+      "name": "Hobgoblin Patrol",
+      "level": 2,
+      "type": "elite",
+      "monsters": [
+        {"name": "Hobgoblin", "count": 3},
+        {"name": "Goblin", "count": 2}
+      ]
+    },
+    {
+      "name": "Bear Encounter",
+      "level": 3,
+      "type": "elite",
+      "monsters": [
+        {"name": "Brown Bear", "count": 1},
+        {"name": "Wolf", "count": 2}
+      ]
+    },
+    {
+      "name": "Owlbear Lair",
+      "level": 4,
+      "type": "elite",
+      "monsters": [
+        {"name": "Owlbear", "count": 1},
+        {"name": "Goblin", "count": 4}
+      ]
+    },
+    {
+      "name": "Troll Bridge",
+      "level": 5,
+      "type": "elite",
+      "monsters": [
+        {"name": "Troll", "count": 1},
+        {"name": "Orc", "count": 2}
+      ]
+    },
+    {
+      "name": "Minotaur Maze",
+      "level": 4,
+      "type": "elite",
+      "monsters": [
+        {"name": "Minotaur", "count": 1},
+        {"name": "Hobgoblin", "count": 2}
+      ]
+    },
+    {
+      "name": "Hill Giant Rampage",
+      "level": 6,
+      "type": "elite",
+      "monsters": [
+        {"name": "Hill Giant", "count": 1},
+        {"name": "Goblin", "count": 3}
+      ]
+    },
+    {
+      "name": "Young Dragon's Den",
+      "level": 6,
+      "type": "boss",
+      "monsters": [
+        {"name": "Young Dragon", "count": 1},
+        {"name": "Kobold", "count": 4}
+      ]
+    },
+    {
+      "name": "Mixed Marauders",
+      "level": 3,
+      "type": "mixed",
+      "monsters": [
+        {"name": "Orc", "count": 2},
+        {"name": "Goblin", "count": 2},
+        {"name": "Wolf", "count": 1}
+      ]
+    }
+  ]
+} 

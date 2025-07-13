@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Simulation History</h2>
+{% if simulations %}
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>ID</th><th>Party Level</th><th>Encounter</th><th>Result</th><th>Rounds</th><th>HP Remaining</th><th>Date</th><th>View</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for sim in simulations %}
+    <tr>
+      <td>{{ sim.id }}</td>
+      <td>{{ sim.party_level }}</td>
+      <td>{{ sim.encounter_type }}</td>
+      <td>{{ sim.result }}</td>
+      <td>{{ sim.rounds }}</td>
+      <td>{{ sim.party_hp_remaining }}</td>
+      <td>{{ sim.created_at }}</td>
+      <td><a href="/results?sim_id={{ sim.id }}" class="btn btn-sm btn-info">View</a></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No simulations found.</p>
+{% endif %}
+<a href="/" class="btn btn-secondary">Home</a>
+{% endblock %} 

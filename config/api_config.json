@@ -1,0 +1,9 @@
+{
+  "open5e_spell_endpoint": "https://api.open5e.com/spells/",
+  "open5e_monster_endpoint": "https://api.open5e.com/monsters/",
+  "timeout": 5,
+  "retry_attempts": 2,
+  "retry_delay": 1.0,
+  "cache_duration_seconds": 3600,
+  "fallback_behavior": "warn"
+} 

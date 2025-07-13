@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Select Your Party</h2>
+<form method="post">
+  <div class="mb-3">
+    <label for="party_id" class="form-label">Party:</label>
+    <select class="form-select" id="party_id" name="party_id" onchange="showPartyPreview()">
+      {% for party in parties %}
+        <option value="{{ party.id }}">{{ party.name }} - {{ party.description }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div id="party-preview" class="card mb-3" style="display:none;">
+    <div class="card-body">
+      <h5 class="card-title" id="preview-title"></h5>
+      <p class="card-text" id="preview-desc"></p>
+      <ul class="list-group" id="preview-characters"></ul>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-success">Continue</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+window.partyData = {{ parties|tojson }};
+function showPartyPreview() {
+  var select = document.getElementById('party_id');
+  var preview = document.getElementById('party-preview');
+  var title = document.getElementById('preview-title');
+  var desc = document.getElementById('preview-desc');
+  var chars = document.getElementById('preview-characters');
+  var party = window.partyData.find(function(p) { return p.id == select.value; });
+  if (party) {
+    preview.style.display = 'block';
+    title.textContent = party.name;
+    desc.textContent = party.description;
+    chars.innerHTML = '';
+    party.characters.forEach(function(c) {
+      var li = document.createElement('li');
+      li.className = 'list-group-item';
+      li.textContent = c.name + ' (Level ' + c.level + ' ' + c.class + ') - ' + c.summary;
+      chars.appendChild(li);
+    });
+  } else {
+    preview.style.display = 'none';
+  }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  showPartyPreview();
+});
+</script>
+{% endblock %} 

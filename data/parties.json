@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "name": "Classic Adventurers",
+    "description": "A balanced party of classic D&D archetypes.",
+    "characters": [
+      {"name": "Arannis", "class": "Wizard", "level": 5, "summary": "Elven wizard, master of arcane spells."},
+      {"name": "Borin", "class": "Fighter", "level": 5, "summary": "Dwarven fighter, tough and reliable frontliner."},
+      {"name": "Lia", "class": "Cleric", "level": 5, "summary": "Human cleric, healer and divine spellcaster."},
+      {"name": "Tess", "class": "Rogue", "level": 5, "summary": "Halfling rogue, expert in stealth and traps."}
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Arcane Strikeforce",
+    "description": "A party focused on spellcasting and magical prowess.",
+    "characters": [
+      {"name": "Mira", "class": "Sorcerer", "level": 5, "summary": "Wild magic sorcerer with unpredictable power."},
+      {"name": "Davos", "class": "Warlock", "level": 5, "summary": "Pact-bound warlock with eldritch secrets."},
+      {"name": "Seraphine", "class": "Bard", "level": 5, "summary": "Charismatic bard, master of inspiration."},
+      {"name": "Galen", "class": "Wizard", "level": 5, "summary": "Transmuter wizard, versatile spellcaster."}
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Divine Crusaders",
+    "description": "Holy warriors and divine casters united against evil.",
+    "characters": [
+      {"name": "Sir Cedric", "class": "Paladin", "level": 5, "summary": "Human paladin, sworn to justice."},
+      {"name": "Elowen", "class": "Cleric", "level": 5, "summary": "Half-elf cleric, radiant healer."},
+      {"name": "Thorn", "class": "Ranger", "level": 5, "summary": "Wood elf ranger, divine archer."},
+      {"name": "Milo", "class": "Druid", "level": 5, "summary": "Halfling druid, nature's ally."}
+    ]
+  },
+  {
+    "id": 4,
+    "name": "Stealth Specialists",
+    "description": "Experts in infiltration, traps, and ambushes.",
+    "characters": [
+      {"name": "Shade", "class": "Rogue", "level": 5, "summary": "Human rogue, master of shadows."},
+      {"name": "Vex", "class": "Ranger", "level": 5, "summary": "Half-elf ranger, skilled tracker."},
+      {"name": "Nyssa", "class": "Monk", "level": 5, "summary": "Tiefling monk, swift and silent."},
+      {"name": "Kara", "class": "Bard", "level": 5, "summary": "Gnome bard, illusionist and spy."}
+    ]
+  },
+  {
+    "id": 5,
+    "name": "Mighty Frontliners",
+    "description": "A party of tough melee combatants.",
+    "characters": [
+      {"name": "Grom", "class": "Barbarian", "level": 5, "summary": "Half-orc barbarian, unstoppable force."},
+      {"name": "Durgan", "class": "Fighter", "level": 5, "summary": "Mountain dwarf fighter, shield wall."},
+      {"name": "Rhea", "class": "Paladin", "level": 5, "summary": "Dragonborn paladin, radiant smiter."},
+      {"name": "Jax", "class": "Monk", "level": 5, "summary": "Human monk, martial artist."}
+    ]
+  },
+  {
+    "id": 6,
+    "name": "Wild Wanderers",
+    "description": "Adventurers attuned to nature and the wilds.",
+    "characters": [
+      {"name": "Willow", "class": "Druid", "level": 5, "summary": "Elf druid, shapechanger and healer."},
+      {"name": "Finn", "class": "Ranger", "level": 5, "summary": "Human ranger, beast master."},
+      {"name": "Bran", "class": "Barbarian", "level": 5, "summary": "Goliath barbarian, mountain of muscle."},
+      {"name": "Lira", "class": "Cleric", "level": 5, "summary": "Half-elf cleric, nature domain."}
+    ]
+  }
+] 

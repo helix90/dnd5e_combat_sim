@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <h2>Batch Combat Simulation</h2>
+  
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5>Configure Batch Simulation</h5>
+        </div>
+        <div class="card-body">
+          <form id="batchForm">
+            <div class="mb-3">
+              <label for="batchName" class="form-label">Batch Name</label>
+              <input type="text" class="form-control" id="batchName" name="batch_name" 
+                     placeholder="Enter a name for this batch (optional)" maxlength="100">
+            </div>
+            
+            <div class="mb-3">
+              <label for="numRuns" class="form-label">Number of Simulations</label>
+              <input type="number" class="form-control" id="numRuns" name="num_runs" 
+                     value="10" min="1" max="1000" required>
+              <div class="form-text">Enter a number between 1 and 1000. More runs provide better statistical accuracy but take longer.</div>
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Current Setup</label>
+              <div class="alert alert-info">
+                <strong>Party:</strong> <span id="currentParty">Loading...</span><br>
+                <strong>Encounter:</strong> <span id="currentEncounter">Loading...</span>
+              </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="startBatchBtn">
+              <i class="fas fa-play"></i> Start Batch Simulation
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h5>Batch History</h5>
+        </div>
+        <div class="card-body">
+          <div id="batchHistory">
+            <p class="text-muted">Loading batch history...</p>
+          </div>
+          <a href="{{ url_for('batch_simulation_history') }}" class="btn btn-outline-secondary btn-sm">
+            View All History
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Progress Modal -->
+  <div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Batch Simulation Progress</h5>
+        </div>
+        <div class="modal-body">
+          <div class="progress mb-3">
+            <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+          </div>
+          <div id="progressDetails">
+            <p>Starting batch simulation...</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <a href="#" class="btn btn-primary" id="viewResultsBtn" style="display: none;">View Results</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  loadCurrentSetup();
+  loadBatchHistory();
+  
+  const batchForm = document.getElementById('batchForm');
+  const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+  let currentBatchId = null;
+  
+  batchForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(batchForm);
+    const data = {
+      num_runs: parseInt(formData.get('num_runs')),
+      batch_name: formData.get('batch_name') || `Batch ${Date.now()}`
+    };
+    
+    // Disable form
+    document.getElementById('startBatchBtn').disabled = true;
+    document.getElementById('startBatchBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+    
+    // Start batch simulation
+    fetch('/batch/start', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Extract batch ID from response or use a placeholder
+        currentBatchId = data.batch_id || 1; // We'll need to modify the backend to return batch_id
+        progressModal.show();
+        startProgressPolling();
+      } else {
+        alert('Error: ' + data.error);
+        resetForm();
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error starting batch simulation');
+      resetForm();
+    });
+  });
+  
+  function startProgressPolling() {
+    if (!currentBatchId) return;
+    
+    const progressBar = document.getElementById('progressBar');
+    const progressDetails = document.getElementById('progressDetails');
+    
+    const pollProgress = () => {
+      fetch(`/batch/progress/${currentBatchId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            progressDetails.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+            return;
+          }
+          
+          const progress = data.progress || 0;
+          progressBar.style.width = progress + '%';
+          progressBar.textContent = progress + '%';
+          
+          progressDetails.innerHTML = `
+            <p><strong>Progress:</strong> ${data.completed_runs || 0} / ${data.total_runs || 0} runs completed</p>
+            <p><strong>Party Wins:</strong> ${data.party_wins || 0}</p>
+            <p><strong>Monster Wins:</strong> ${data.monster_wins || 0}</p>
+          `;
+          
+          if (data.done) {
+            document.getElementById('viewResultsBtn').style.display = 'inline-block';
+            document.getElementById('viewResultsBtn').href = `/batch/results/${currentBatchId}`;
+            progressDetails.innerHTML += '<p class="text-success"><strong>Batch simulation completed!</strong></p>';
+          } else {
+            setTimeout(pollProgress, 1000); // Poll every second
+          }
+        })
+        .catch(error => {
+          console.error('Error polling progress:', error);
+          progressDetails.innerHTML = '<p class="text-danger">Error checking progress</p>';
+        });
+    };
+    
+    pollProgress();
+  }
+  
+  function loadCurrentSetup() {
+    // Load current party
+    fetch('/api/party/current')
+      .then(response => response.json())
+      .then(data => {
+        const partyText = data.characters ? 
+          `${data.characters.length} characters (Level ${data.party_level})` : 
+          'No party selected';
+        document.getElementById('currentParty').textContent = partyText;
+      })
+      .catch(error => {
+        document.getElementById('currentParty').textContent = 'Error loading party';
+      });
+    
+    // Load current encounter
+    const encounterMonsters = JSON.parse('{{ session.get("encounter_monsters", []) | tojson | safe }}');
+    if (encounterMonsters && encounterMonsters.length > 0) {
+      const monsterNames = encounterMonsters.map(m => m.name).join(', ');
+      document.getElementById('currentEncounter').textContent = monsterNames;
+    } else {
+      document.getElementById('currentEncounter').textContent = 'No encounter selected';
+    }
+  }
+  
+  function loadBatchHistory() {
+    fetch('/api/batch/history')
+      .then(response => response.json())
+      .then(batches => {
+        if (batches && batches.length > 0) {
+          const historyHtml = batches.slice(0, 5).map(batch => {
+            const winRate = batch.total_runs > 0 ? Math.round((batch.party_wins / batch.total_runs) * 100) : 0;
+            const badgeClass = winRate >= 60 ? 'bg-success' : winRate >= 40 ? 'bg-warning' : 'bg-danger';
+            return `
+              <div class="mb-2">
+                <strong>${batch.batch_name}</strong><br>
+                <small class="text-muted">
+                  ${batch.total_runs} runs • 
+                  <span class="badge ${badgeClass}">${winRate}% win rate</span>
+                </small>
+              </div>
+            `;
+          }).join('');
+          document.getElementById('batchHistory').innerHTML = historyHtml;
+        } else {
+          document.getElementById('batchHistory').innerHTML = 
+            '<p class="text-muted">No batch simulations yet.</p>';
+        }
+      })
+      .catch(error => {
+        document.getElementById('batchHistory').innerHTML = 
+          '<p class="text-danger">Error loading history</p>';
+      });
+  }
+  
+  function resetForm() {
+    document.getElementById('startBatchBtn').disabled = false;
+    document.getElementById('startBatchBtn').innerHTML = '<i class="fas fa-play"></i> Start Batch Simulation';
+  }
+});
+</script>
+{% endblock %} 

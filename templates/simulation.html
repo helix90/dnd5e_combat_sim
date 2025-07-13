@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Combat Simulation</h2>
+<div id="simulation-status">
+  <div class="progress mb-3">
+    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;">0%</div>
+  </div>
+  <div id="status-message" class="mb-2">Starting simulation...</div>
+  <div id="error-message" class="alert alert-danger d-none"></div>
+  <div id="results-button" class="d-none">
+    <button class="btn btn-success" onclick="window.location.href='/simulate/results'">View Results Now</button>
+  </div>
+</div>
+<h5>Combat Log</h5>
+<pre id="combat-log" class="bg-light p-3" style="height: 300px; overflow-y: scroll;"></pre>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function pollStatus() {
+  fetch('/simulate/status').then(r => r.json()).then(data => {
+    if (data.error) {
+      document.getElementById('error-message').textContent = data.error;
+      document.getElementById('error-message').classList.remove('d-none');
+      document.getElementById('status-message').textContent = 'Simulation failed.';
+      return;
+    }
+    let progress = data.progress || 0;
+    let done = data.done;
+    let log = data.log || [];
+    document.getElementById('progress-bar').style.width = progress + '%';
+    document.getElementById('progress-bar').textContent = progress + '%';
+    document.getElementById('combat-log').textContent = log.join('\n');
+    if (done) {
+      document.getElementById('status-message').textContent = 'Simulation complete! Redirecting to results in 3 seconds...';
+      document.getElementById('results-button').classList.remove('d-none');
+      setTimeout(function() { window.location.href = '/simulate/results'; }, 3000);
+    } else {
+      setTimeout(pollStatus, 1000);
+    }
+  }).catch(e => {
+    document.getElementById('error-message').textContent = 'Error: ' + e;
+    document.getElementById('error-message').classList.remove('d-none');
+  });
+}
+document.addEventListener('DOMContentLoaded', pollStatus);
+</script>
+{% endblock %} 

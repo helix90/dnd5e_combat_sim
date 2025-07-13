@@ -1,0 +1,384 @@
+{
+  "cantrips": [
+    {
+      "name": "Fire Bolt",
+      "level": 0,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "1d10",
+      "damage_type": "fire",
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You hurl a mote of fire at a creature or object within range.",
+      "is_attack_spell": true,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Sacred Flame",
+      "level": 0,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "60 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "1d8",
+      "damage_type": "radiant",
+      "save_type": "dex",
+      "save_dc_bonus": 0,
+      "description": "Flame-like radiance descends on a creature that you can see within range.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Eldritch Blast",
+      "level": 0,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "1d10",
+      "damage_type": "force",
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A beam of crackling energy streaks toward a creature within range.",
+      "is_attack_spell": true,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    }
+  ],
+  "level_1": [
+    {
+      "name": "Magic Missile",
+      "level": 1,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "1d4+1",
+      "damage_type": "force",
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You create three glowing darts of magical force.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Cure Wounds",
+      "level": 1,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "Touch",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "1d8",
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier.",
+      "is_attack_spell": false,
+      "healing": true,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Guiding Bolt",
+      "level": 1,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "1 round",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "4d6",
+      "damage_type": "radiant",
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A flash of light streaks toward a creature of your choice within range.",
+      "is_attack_spell": true,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Bless",
+      "level": 1,
+      "school": "Enchantment",
+      "casting_time": "1 action",
+      "range": "30 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You bless up to three creatures of your choice within range.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true
+    },
+    {
+      "name": "Shield",
+      "level": 1,
+      "school": "Abjuration",
+      "casting_time": "1 reaction",
+      "range": "Self",
+      "duration": "1 round",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "An invisible barrier of magical force appears and protects you.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Spare the Dying",
+      "level": 1,
+      "school": "Necromancy",
+      "casting_time": "1 action",
+      "range": "Touch",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You touch a living creature that has 0 hit points.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    }
+  ],
+  "level_2": [
+    {
+      "name": "Scorching Ray",
+      "level": 2,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "2d6",
+      "damage_type": "fire",
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You make three ranged spell attacks.",
+      "is_attack_spell": true,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Healing Word",
+      "level": 2,
+      "school": "Evocation",
+      "casting_time": "1 bonus action",
+      "range": "60 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": false,
+        "material": false
+      },
+      "damage_dice": "1d4",
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A creature of your choice that you can see within range regains hit points equal to 1d4 + your spellcasting ability modifier.",
+      "is_attack_spell": false,
+      "healing": true,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Spiritual Weapon",
+      "level": 2,
+      "school": "Evocation",
+      "casting_time": "1 bonus action",
+      "range": "60 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "1d8",
+      "damage_type": "force",
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You create a floating, spectral weapon within range that lasts for the duration.",
+      "is_attack_spell": true,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true
+    },
+    {
+      "name": "Lesser Restoration",
+      "level": 2,
+      "school": "Abjuration",
+      "casting_time": "1 action",
+      "range": "Touch",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You touch a creature and can end either one disease or one condition afflicting it.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Web",
+      "level": 2,
+      "school": "Conjuration",
+      "casting_time": "1 action",
+      "range": "60 feet",
+      "duration": "1 hour",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": "dex",
+      "save_dc_bonus": 0,
+      "description": "You conjure a mass of thick, sticky webbing at a point of your choice within range.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": true
+    }
+  ],
+  "level_3": [
+    {
+      "name": "Fireball",
+      "level": 3,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "150 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true
+      },
+      "damage_dice": "8d6",
+      "damage_type": "fire",
+      "save_type": "dex",
+      "save_dc_bonus": 0,
+      "description": "A bright streak flashes from your pointing finger to a point you choose within range.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": false
+    },
+    {
+      "name": "Heal",
+      "level": 3,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "60 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "70",
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Choose a creature that you can see within range.",
+      "is_attack_spell": false,
+      "healing": true,
+      "area_effect": false,
+      "concentration": false
+    },
+    {
+      "name": "Counterspell",
+      "level": 3,
+      "school": "Abjuration",
+      "casting_time": "1 reaction",
+      "range": "60 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You attempt to interrupt a creature in the process of casting a spell.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false
+    }
+  ]
+} 

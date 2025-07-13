@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: dnd5e-combat-sim-dev
+    command: flask run --host=0.0.0.0 --port=5000 --reload
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=sqlite:////app/data/app.db
+      - SECRET_KEY=dev-secret-key
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - .:/app
+    restart: unless-stopped 

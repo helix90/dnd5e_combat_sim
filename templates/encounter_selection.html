@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Select Encounter</h2>
+<ul class="nav nav-tabs" id="encounterTab" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if tab != 'prebuilt' %}active{% endif %}" id="custom-tab" data-bs-toggle="tab" data-bs-target="#custom" type="button" role="tab">Custom Encounter</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link {% if tab == 'prebuilt' %}active{% endif %}" id="prebuilt-tab" data-bs-toggle="tab" data-bs-target="#prebuilt" type="button" role="tab">Pre-built Encounter</button>
+  </li>
+</ul>
+<div class="tab-content mt-3" id="encounterTabContent">
+  <div class="tab-pane fade {% if tab != 'prebuilt' %}show active{% endif %}" id="custom" role="tabpanel">
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label for="cr-filter" class="form-label">Filter by CR:</label>
+        <select class="form-select" id="cr-filter">
+          <option value="">All</option>
+          <!-- JS will populate CR options -->
+        </select>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">Add Monsters:</label>
+        <div id="monster-selector" class="d-flex flex-wrap gap-2">
+          <!-- JS will populate monster buttons -->
+        </div>
+      </div>
+    </div>
+    <h5>Selected Monsters</h5>
+    <ul id="selected-monsters" class="list-group mb-3">
+      <!-- JS will populate selected monsters -->
+    </ul>
+    <div id="balance-warning" class="alert alert-warning d-none"></div>
+    <button id="custom-continue" class="btn btn-success" disabled>Continue</button>
+  </div>
+  <div class="tab-pane fade {% if tab == 'prebuilt' %}show active{% endif %}" id="prebuilt" role="tabpanel">
+    <div class="row" id="prebuilt-encounters">
+      <!-- JS will populate pre-built encounter cards -->
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentParty = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Load current party info first
+  fetch('/api/party/current')
+    .then(response => response.json())
+    .then(party => {
+      currentParty = party;
+    })
+    .catch(error => {
+      console.error('Error loading party info:', error);
+      currentParty = { party_level: 1, party_size: 4 };
+    });
+
+  // Load prebuilt encounters
+  fetch('/api/encounters/prebuilt')
+    .then(response => response.json())
+    .then(encounters => {
+      const container = document.getElementById('prebuilt-encounters');
+      if (!container) return;
+      container.innerHTML = '';
+      encounters.forEach(enc => {
+        const card = document.createElement('div');
+        card.className = 'card mb-2';
+        card.innerHTML = `
+          <div class="card-body">
+            <h5 class="card-title">${enc.name}</h5>
+            <p class="card-text">Level: ${enc.level} | Type: ${enc.type}</p>
+            <p class="card-text">Monsters: ${enc.monsters.map(m => m.count + 'x ' + m.name).join(', ')}</p>
+            <button class="btn btn-primary btn-sm" onclick="selectPrebuiltEncounter('${enc.name.replace(/'/g, "\\'")}')">Select</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    });
+});
+
+function selectPrebuiltEncounter(name) {
+  if (!currentParty) {
+    alert('Party information not loaded. Please refresh the page.');
+    return;
+  }
+
+  const data = {
+    template_name: name,
+    party_level: currentParty.party_level,
+    party_size: currentParty.party_size
+  };
+
+  fetch('/encounter/prebuilt', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  })
+  .then(result => {
+    console.log('Encounter selection result:', result);
+    if (result.error) {
+      alert('Error: ' + result.error);
+      return;
+    } else {
+      // Clear any existing alerts and info
+      const existingAlerts = document.querySelectorAll('#prebuilt .alert');
+      existingAlerts.forEach(alert => alert.remove());
+      
+      // Show success message in the prebuilt tab
+      const notification = document.createElement('div');
+      notification.className = 'alert alert-success alert-dismissible fade show';
+      notification.innerHTML = `
+        <strong>Encounter Selected!</strong> ${name} has been loaded.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.getElementById('prebuilt').insertBefore(notification, document.getElementById('prebuilt').firstChild);
+      
+      // Enable continue button
+      const continueBtn = document.getElementById('custom-continue');
+      if (continueBtn) {
+        continueBtn.disabled = false;
+        continueBtn.onclick = function() {
+          window.location.href = '/simulate';
+        };
+      }
+      
+      // Add clear selection button (remove existing ones first)
+      const existingClearBtns = document.querySelectorAll('#prebuilt .clear-selection-btn');
+      existingClearBtns.forEach(btn => btn.remove());
+      
+      const clearBtn = document.createElement('button');
+      clearBtn.className = 'btn btn-outline-secondary btn-sm ms-2 clear-selection-btn';
+      clearBtn.textContent = 'Clear Selection';
+      clearBtn.onclick = function() {
+        // Clear session data via API call
+        fetch('/encounter/clear', { method: 'POST' })
+          .then(() => {
+            // Clear UI elements
+            const existingAlerts = document.querySelectorAll('#prebuilt .alert');
+            existingAlerts.forEach(alert => alert.remove());
+            const existingLists = document.querySelectorAll('#prebuilt .monster-list');
+            existingLists.forEach(list => list.remove());
+            const existingClearBtns = document.querySelectorAll('#prebuilt .clear-selection-btn');
+            existingClearBtns.forEach(btn => btn.remove());
+            // Disable continue button
+            if (continueBtn) {
+              continueBtn.disabled = true;
+            }
+          })
+          .catch(error => {
+            console.error('Error clearing selection:', error);
+          });
+      };
+      document.getElementById('prebuilt').appendChild(clearBtn);
+      
+      // Show balance info if available
+      if (result.balance) {
+        const balanceInfo = document.createElement('div');
+        balanceInfo.className = 'alert alert-info mt-3';
+        balanceInfo.innerHTML = `<strong>Encounter Balance:</strong> ${result.balance}`;
+        document.getElementById('prebuilt').appendChild(balanceInfo);
+      }
+      
+      // Show warnings if any
+      if (result.warnings) {
+        const warningInfo = document.createElement('div');
+        warningInfo.className = 'alert alert-warning mt-3';
+        if (Array.isArray(result.warnings)) {
+          warningInfo.innerHTML = `<strong>Warnings:</strong> ${result.warnings.join(', ')}`;
+        } else {
+          warningInfo.innerHTML = `<strong>Warnings:</strong> ${result.warnings}`;
+        }
+        document.getElementById('prebuilt').appendChild(warningInfo);
+      }
+      
+      // Show monster count and list
+      if (result.monsters && result.monsters.length > 0) {
+        const monsterInfo = document.createElement('div');
+        monsterInfo.className = 'alert alert-success mt-3';
+        monsterInfo.innerHTML = `<strong>Encounter Created:</strong> ${result.monsters.length} monsters loaded`;
+        document.getElementById('prebuilt').appendChild(monsterInfo);
+        
+              // Clear any existing monster lists first
+      const existingLists = document.querySelectorAll('#prebuilt .monster-list');
+      existingLists.forEach(list => list.remove());
+      
+      // Create monster list
+      const monsterList = document.createElement('div');
+      monsterList.className = 'mt-3 monster-list';
+      monsterList.innerHTML = '<h6>Selected Monsters:</h6><ul class="list-group">';
+      
+      // Group monsters by name and count them
+      const monsterCounts = {};
+      result.monsters.forEach(monster => {
+        monsterCounts[monster.name] = (monsterCounts[monster.name] || 0) + 1;
+      });
+      
+      Object.entries(monsterCounts).forEach(([name, count]) => {
+        monsterList.innerHTML += `<li class="list-group-item">${count}x ${name}</li>`;
+      });
+      
+      monsterList.innerHTML += '</ul>';
+      document.getElementById('prebuilt').appendChild(monsterList);
+      }
+    }
+  })
+  .catch(error => {
+    console.error('Error selecting encounter:', error);
+    alert('Failed to select encounter: ' + error.message);
+  });
+}
+</script>
+{% endblock %} 
