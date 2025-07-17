@@ -4,10 +4,10 @@
     "name": "Classic Adventurers",
     "description": "A balanced party of classic D&D archetypes.",
     "characters": [
-      {"name": "Arannis", "class": "Wizard", "level": 5, "summary": "Elven wizard, master of arcane spells."},
-      {"name": "Borin", "class": "Fighter", "level": 5, "summary": "Dwarven fighter, tough and reliable frontliner."},
-      {"name": "Lia", "class": "Cleric", "level": 5, "summary": "Human cleric, healer and divine spellcaster."},
-      {"name": "Tess", "class": "Rogue", "level": 5, "summary": "Halfling rogue, expert in stealth and traps."}
+      {"name": "Aldric", "class": "Fighter", "level": 5, "summary": "Human fighter, tough and reliable frontliner."},
+      {"name": "Branwen", "class": "Cleric", "level": 5, "summary": "Dwarven cleric, healer and divine spellcaster."},
+      {"name": "Calyra", "class": "Wizard", "level": 5, "summary": "Elven wizard, master of arcane spells."},
+      {"name": "Dax", "class": "Rogue", "level": 5, "summary": "Halfling rogue, expert in stealth and traps."}
     ]
   },
   {

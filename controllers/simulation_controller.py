@@ -38,26 +38,38 @@ class SimulationController:
                 ))
         return actions
 
-    def execute_simulation(self, party, monsters, session_id=None):
+    def execute_simulation(self, party, monsters, session_id=None, party_level=None):
         """
         Execute a combat simulation in a background thread.
         """
         if session_id is None:
             session_id = session.get('session_id', 'default')
-        
+        if party_level is None:
+            party_level = session.get('selected_party_level', 5)
         def run():
+            log = []
             try:
                 # Convert party dictionaries to Character objects
                 character_objects = []
                 if party:
                     for char_data in party:
                         if isinstance(char_data, dict):
+                            # Override level with selected party level
+                            char_data = char_data.copy()
+                            char_data['level'] = party_level
+                            # Ensure both 'class' and 'character_class' are set for lookup
+                            if 'class' in char_data:
+                                char_data['character_class'] = char_data['class']
+                            elif 'character_class' in char_data:
+                                char_data['class'] = char_data['character_class']
                             # Load full character data from characters.json
                             full_char_data = self._load_full_character_data(char_data)
                             if full_char_data:
+                                # Determine the actual level of the matched data
+                                actual_level = full_char_data.get('level', party_level)
                                 char = Character(
                                     name=full_char_data.get('name', char_data.get('name', 'Unknown')),
-                                    level=full_char_data.get('level', char_data.get('level', 1)),
+                                    level=party_level,  # Still instantiate at requested level for mechanics
                                     character_class=full_char_data.get('character_class', char_data.get('class', 'Fighter')),
                                     race=full_char_data.get('race', 'Human'),
                                     ability_scores=full_char_data.get('ability_scores', {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}),
@@ -65,7 +77,15 @@ class SimulationController:
                                     ac=full_char_data.get('ac', 10),
                                     proficiency_bonus=full_char_data.get('proficiency_bonus', 2),
                                     spell_slots=full_char_data.get('spell_slots', {}),
-                                    spell_list=full_char_data.get('spell_list', [])
+                                    spell_list=full_char_data.get('spell_list', []),
+                                    features=full_char_data.get('features', []),
+                                    items=full_char_data.get('items', []),
+                                    spells=full_char_data.get('spells', {}),
+                                    actions=full_char_data.get('actions', []),
+                                    reactions=full_char_data.get('reactions', []),
+                                    bonus_actions=full_char_data.get('bonus_actions', []),
+                                    initiative_bonus=full_char_data.get('initiative_bonus', 0),
+                                    notes=full_char_data.get('notes', ''),
                                 )
                                 # Add spells to character
                                 for spell_name in full_char_data.get('spell_list', []):
@@ -73,6 +93,9 @@ class SimulationController:
                                     if spell:
                                         char.add_spell(spell)
                                 character_objects.append(char)
+                                import logging
+                                logging.info(f"CHARACTER INSTANTIATED (full data): Name={char.name}, Class={char.character_class}, Level={actual_level}, AC={char.ac}, HP={char.hp}")
+                                log.append(f"CHARACTER INSTANTIATED: Name={char.name}, Class={char.character_class}, Level={actual_level}")
                             else:
                                 # Fallback to basic character creation
                                 char = Character(
@@ -86,6 +109,9 @@ class SimulationController:
                                     proficiency_bonus=char_data.get('proficiency_bonus', 2)
                                 )
                                 character_objects.append(char)
+                                import logging
+                                logging.warning(f"CHARACTER INSTANTIATED (FALLBACK): Name={char.name}, Class={char.character_class}, Level={char.level}, AC={char.ac}, HP={char.hp}")
+                                log.append(f"CHARACTER INSTANTIATED: Name={char.name}, Class={char.character_class}, Level={char.level}")
                         elif isinstance(char_data, Character):
                             character_objects.append(char_data)
                 
@@ -119,10 +145,16 @@ class SimulationController:
                 for m in monster_objects:
                     logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}")
                 combat = Combat(character_objects + monster_objects)
-                log = []
                 def progress_callback(state):
+                    # Merge our log with the combat log for the test
+                    merged_log = log + state.get('log', [])
+                    state['log'] = merged_log
                     self.simulation_states[session_id] = state
+                self.simulation_states[session_id] = {'progress': 0, 'log': log, 'done': False}
                 result = combat.run(progress_callback=progress_callback)
+                # After combat, merge logs for final state
+                final_log = log + result.get('log', [])
+                self.simulation_states[session_id]['log'] = final_log
                 self.save_simulation_results(result, session_id)
                 self.simulation_states[session_id]['done'] = True
             except Exception as e:
@@ -173,24 +205,41 @@ class SimulationController:
     def _load_full_character_data(self, char_data):
         """
         Load full character data from characters.json based on name and class.
+        Updated: Find the highest available level <= requested, or fallback to lowest available.
         """
         try:
+            import logging
             with open('data/characters.json', 'r') as f:
                 characters_data = json.load(f)
-            
-            char_name = char_data.get('name', '')
-            char_class = char_data.get('class', '')
+            char_name = char_data.get('name', '').strip().lower()
+            char_class = (char_data.get('class') or char_data.get('character_class') or '').strip().lower()
             char_level = char_data.get('level', 1)
-            
-            # Find matching character data
+            logging.debug(f"LOOKUP: Looking for name='{char_name}', class='{char_class}', level={char_level}")
+            # Gather all matching entries for this name/class
+            matches = []
             for level_data in characters_data:
-                if level_data.get('level') == char_level:
-                    for char in level_data.get('party', []):
-                        if (char.get('name') == char_name and 
-                            char.get('character_class') == char_class):
-                            return char
-            
-            return None
+                for char in level_data.get('party', []):
+                    target_class = (char.get('class') or char.get('character_class') or '').strip().lower()
+                    target_name = char.get('name', '').strip().lower()
+                    if target_name == char_name and target_class == char_class:
+                        matches.append((level_data.get('level'), char))
+            if not matches:
+                logging.warning(f"NO MATCH for name='{char_name}', class='{char_class}' at any level")
+                return None
+            # Find the highest level <= requested
+            best = None
+            best_level = -1
+            for lvl, char in matches:
+                if lvl is not None and lvl <= char_level and lvl > best_level:
+                    best = char
+                    best_level = lvl
+            if best:
+                logging.debug(f"  BEST MATCH for {char_name} at level {best_level}")
+                return best
+            # Fallback: return the lowest available level
+            min_level, min_char = min(matches, key=lambda x: x[0] if x[0] is not None else 999)
+            logging.debug(f"  FALLBACK MATCH for {char_name} at level {min_level}")
+            return min_char
         except Exception as e:
             log_exception(e)
             return None 

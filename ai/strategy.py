@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, List
+import logging
+logger = logging.getLogger()
+from models.spells import SpellAction
 
 class AIStrategy(ABC):
     """
@@ -56,7 +59,8 @@ class PartyAIStrategy(AIStrategy):
                 # Pick the most injured ally
                 target = min(low_hp_allies, key=lambda a: a.hp / a.max_hp if hasattr(a, 'max_hp') else a.hp)
                 spell = healing_spells[0]  # TODO: pick best spell
-                return {'type': 'cast_spell', 'spell': spell, 'target': target}
+                spell_action = SpellAction(spell)
+                return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
         # 2. Focus fire on most dangerous enemy
         enemies = [c for c in combat_state['enemies'] if c.is_alive()]
         if enemies:
@@ -64,10 +68,20 @@ class PartyAIStrategy(AIStrategy):
             # Prefer attack or damaging spell
             attack_actions = [a for a in getattr(combatant, 'actions', []) if hasattr(a, 'action_type') and a.action_type == 'attack']
             if attack_actions:
-                return {'type': 'attack', 'action': attack_actions[0], 'target': dangerous}
+                # Pick the attack action with the highest hit bonus
+                best_action = max(
+                    attack_actions,
+                    key=lambda a: a.hit_bonus(combatant)
+                )
+                best_bonus = best_action.hit_bonus(combatant)
+                logger.info(f"[AI] {combatant.name} chooses attack: {best_action.name} (bonus {best_bonus}) vs {dangerous.name}")
+                return {'type': 'attack', 'action': best_action, 'target': dangerous}
             damaging_spells = [s for s in getattr(combatant, 'spells', {}).values() if hasattr(s, 'damage_dice') and s.damage_dice]
             if damaging_spells:
-                return {'type': 'cast_spell', 'spell': damaging_spells[0], 'target': dangerous}
+                spell = damaging_spells[0]
+                spell_action = SpellAction(spell)
+                logger.info(f"[AI] {combatant.name} chooses spell: {spell.name} vs {dangerous.name}")
+                return {'type': 'cast_spell', 'spell': spell_action, 'target': dangerous}
         # 3. Default: Dodge or defend
         return {'type': 'defend'}
 

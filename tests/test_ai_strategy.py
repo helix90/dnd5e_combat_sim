@@ -17,13 +17,17 @@ class DummyAction:
     def __init__(self, action_type):
         self.action_type = action_type
         self.level = 0
+        self.name = action_type
+    def hit_bonus(self, combatant=None):
+        return 0
 
 class DummySpell:
-    def __init__(self, name, healing=False, damage_dice=None, level=0):
+    def __init__(self, name, healing=False, damage_dice=None, level=0, description="A spell"):
         self.name = name
         self.healing = healing
         self.damage_dice = damage_dice
         self.level = level
+        self.description = description
 
 @pytest.fixture
 def party_ai():

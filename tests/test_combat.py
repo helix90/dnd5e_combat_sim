@@ -230,3 +230,51 @@ def test_combat_damage_and_end(monkeypatch):
     assert not goblin.is_alive()
     # Combat should be over
     assert combat.is_combat_over() 
+
+def test_no_double_ability_modifier_for_monster_attacks(monkeypatch):
+    """Test that monster attacks with a dice string modifier do not double-count the ability modifier."""
+    from models.character import Character
+    from models.monster import Monster
+    from models.actions import AttackAction
+
+    # Patch random.randint to always return max value for predictability
+    monkeypatch.setattr('random.randint', lambda a, b: b)
+
+    # Kobold: DEX 15 (+2), attack is '1d4+2' (should NOT add DEX mod again)
+    kobold = Monster(
+        name="Kobold",
+        challenge_rating="1/8",
+        hp=5,
+        ac=12,
+        ability_scores={"str": 7, "dex": 15, "con": 9, "int": 8, "wis": 7, "cha": 8},
+        actions=[AttackAction(name="Dagger", description="Stab", weapon_name="Dagger", damage_dice="1d4+2", damage_type="piercing")]
+    )
+    dummy_target = Character(
+        name="Dummy",
+        level=1,
+        character_class="Fighter",
+        race="Human",
+        ability_scores={"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
+        hp=20,
+        ac=10,
+        proficiency_bonus=2
+    )
+    # Should be 1d4 (4) + 2 = 6, not 8
+    result = kobold.actions[0].execute(kobold, dummy_target)
+    assert result['damage'] == 6, f"Expected 6, got {result['damage']} (should not double-count DEX mod)"
+
+    # Fighter: STR 16 (+3), attack is '1d8' (should add STR mod)
+    fighter = Character(
+        name="Fighter",
+        level=1,
+        character_class="Fighter",
+        race="Human",
+        ability_scores={"str": 16, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
+        hp=20,
+        ac=16,
+        proficiency_bonus=2
+    )
+    sword_attack = AttackAction(name="Sword Attack", description="Slash", weapon_name="Longsword", damage_dice="1d8", damage_type="slashing")
+    # Should be 1d8 (8) + 3 = 11
+    result2 = sword_attack.execute(fighter, dummy_target)
+    assert result2['damage'] == 11, f"Expected 11, got {result2['damage']} (should add STR mod)" 

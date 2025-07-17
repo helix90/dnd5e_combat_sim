@@ -116,13 +116,16 @@ def party():
     if request.method == 'POST':
         # Validate party selection
         try:
-            party_data = validate_input(request.form.to_dict(), allowed_fields=['party_id'])
+            party_data = validate_input(request.form.to_dict(), allowed_fields=['party_id', 'party_level'])
             selected_party_id = int(party_data.get('party_id', 1))
+            selected_party_level = int(party_data.get('party_level', 5))
         except (TypeError, ValueError):
             selected_party_id = 1
+            selected_party_level = 5
         if not PartyLoader.get_party_by_id(selected_party_id):
             selected_party_id = 1
         session['selected_party_id'] = selected_party_id
+        session['selected_party_level'] = selected_party_level
         db.create_session(session['session_id'], selected_party_id=selected_party_id)
         return redirect(url_for('encounter_selection'))
     return render_template('party.html', parties=parties)
@@ -226,16 +229,23 @@ def api_prebuilt_encounters():
 def api_current_party():
     try:
         selected_party_id = session.get('selected_party_id', 1)
+        selected_party_level = session.get('selected_party_level', 5)
         party = PartyLoader.get_party_by_id(selected_party_id)
         if party:
             characters = party.get('characters', [])
-            party_level = max([char.get('level', 1) for char in characters]) if characters else 1
+            # Override all character levels with selected_party_level for display
+            display_characters = []
+            for char in characters:
+                char_copy = char.copy()
+                char_copy['level'] = selected_party_level
+                display_characters.append(char_copy)
+            party_level = selected_party_level
             party_size = len(characters)
             return jsonify({
                 'party_id': selected_party_id,
                 'party_level': party_level,
                 'party_size': party_size,
-                'characters': characters
+                'characters': display_characters
             })
         else:
             return jsonify({
@@ -265,9 +275,10 @@ def simulate():
     if not simulation_controller.simulation_states.get(session_id):
         # Load party and monsters from session
         selected_party_id = session.get('selected_party_id', 1)
-        party = PartyLoader.get_party_by_id(selected_party_id)
-        if party:
-            party = party.get('characters', [])
+        selected_party_level = session.get('selected_party_level', 5)
+        party_obj = PartyLoader.get_party_with_level(selected_party_id, selected_party_level)
+        if party_obj:
+            party = party_obj.get('characters', [])
         else:
             party = []
         monsters = session.get('encounter_monsters', [])
@@ -275,7 +286,7 @@ def simulate():
         logging.info('/simulate: Monsters loaded from session:')
         for m in monsters:
             logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}, Data: {m}")
-        simulation_controller.execute_simulation(party, monsters, session_id)
+        simulation_controller.execute_simulation(party, monsters, session_id, party_level=selected_party_level)
     return render_template('simulation.html')
 
 @app.route('/simulate/status', methods=['GET'])

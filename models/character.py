@@ -46,7 +46,14 @@ class Character:
         spell_slots: Optional[Dict[int, int]] = None,
         class_features: Optional[List[str]] = None,
         spell_list: Optional[List[str]] = None,
-        saving_throw_proficiencies: Optional[List[str]] = None
+        saving_throw_proficiencies: Optional[List[str]] = None,
+        features: Optional[List[str]] = None,
+        items: Optional[List[str]] = None,
+        spells: Optional[Dict[str, Any]] = None,
+        reactions: Optional[List[Any]] = None,
+        bonus_actions: Optional[List[Any]] = None,
+        initiative_bonus: int = 0,
+        notes: str = ""
     ) -> None:
         """
         Initialize a new Character instance.
@@ -90,6 +97,12 @@ class Character:
         self.saving_throw_proficiencies = saving_throw_proficiencies or []
         self.spells = {}  # Dictionary to store Spell objects by name
         self.spell_slots_remaining = spell_slots.copy() if spell_slots else {}
+        self.features = features or []
+        self.items = items or []
+        self.reactions = reactions or []
+        self.bonus_actions = bonus_actions or []
+        self.initiative_bonus = initiative_bonus
+        self.notes = notes
         
         # Add default actions if not provided
         if actions is not None:

@@ -83,7 +83,7 @@ class AttackAction(Action):
 
     def damage_roll(self, attacker: Any) -> int:
         """
-        Roll the weapon's damage dice and add attacker's relevant modifier.
+        Roll the weapon's damage dice and add attacker's relevant modifier if not already included in the dice string.
         Args:
             attacker: The acting character or monster
         Returns:
@@ -91,9 +91,9 @@ class AttackAction(Action):
         """
         num, die, dice_mod = self.parse_dice(self.damage_dice)
         rolls = [random.randint(1, die) for _ in range(num)]
-        # Add ability modifier if attacker has one
+        # Only add ability modifier if dice_mod is zero (i.e., not already included in dice string)
         mod = 0
-        if hasattr(attacker, 'ability_modifier'):
+        if hasattr(attacker, 'ability_modifier') and dice_mod == 0:
             # For melee, use STR; for ranged, use DEX; for finesse, use higher
             if 'bow' in self.weapon_name.lower() or 'crossbow' in self.weapon_name.lower():
                 mod = attacker.ability_modifier('dex')

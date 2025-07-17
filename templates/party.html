@@ -6,7 +6,15 @@
     <label for="party_id" class="form-label">Party:</label>
     <select class="form-select" id="party_id" name="party_id" onchange="showPartyPreview()">
       {% for party in parties %}
-        <option value="{{ party.id }}">{{ party.name }} - {{ party.description }}</option>
+        <option value="{{ party.id }}">{{ party.name }} (Level 5) - {{ party.description }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label for="party_level" class="form-label">Party Level:</label>
+    <select class="form-select" id="party_level" name="party_level">
+      {% for lvl in range(1, 21) %}
+        <option value="{{ lvl }}" {% if lvl == 5 %}selected{% endif %}>Level {{ lvl }}</option>
       {% endfor %}
     </select>
   </div>
@@ -24,6 +32,24 @@
 {% block scripts %}
 <script type="text/javascript">
 window.partyData = {{ parties|tojson }};
+
+function getSelectedPartyLevel() {
+  var levelSelect = document.getElementById('party_level');
+  return parseInt(levelSelect.value, 10);
+}
+
+function updatePartyDropdownLevels() {
+  var level = getSelectedPartyLevel();
+  var select = document.getElementById('party_id');
+  // Update each option's label to show the selected level
+  for (var i = 0; i < select.options.length; i++) {
+    var party = window.partyData[i];
+    if (party) {
+      select.options[i].text = party.name + ' (Level ' + level + ') - ' + party.description;
+    }
+  }
+}
+
 function showPartyPreview() {
   var select = document.getElementById('party_id');
   var preview = document.getElementById('party-preview');
@@ -31,23 +57,33 @@ function showPartyPreview() {
   var desc = document.getElementById('preview-desc');
   var chars = document.getElementById('preview-characters');
   var party = window.partyData.find(function(p) { return p.id == select.value; });
+  var level = getSelectedPartyLevel();
   if (party) {
     preview.style.display = 'block';
-    title.textContent = party.name;
+    title.textContent = party.name + ' (Level ' + level + ')';
     desc.textContent = party.description;
     chars.innerHTML = '';
     party.characters.forEach(function(c) {
       var li = document.createElement('li');
       li.className = 'list-group-item';
-      li.textContent = c.name + ' (Level ' + c.level + ' ' + c.class + ') - ' + c.summary;
+      li.textContent = c.name + ' (Level ' + level + ' ' + c.class + ') - ' + c.summary;
       chars.appendChild(li);
     });
   } else {
     preview.style.display = 'none';
   }
 }
+
 document.addEventListener('DOMContentLoaded', function() {
   showPartyPreview();
+  updatePartyDropdownLevels();
+  document.getElementById('party_level').addEventListener('change', function() {
+    updatePartyDropdownLevels();
+    showPartyPreview();
+  });
+  document.getElementById('party_id').addEventListener('change', function() {
+    showPartyPreview();
+  });
 });
 </script>
 {% endblock %} 
