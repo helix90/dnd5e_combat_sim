@@ -15,7 +15,11 @@
         "spell_slots": {},
         "class_features": ["Second Wind"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["str", "con"]
+        "saving_throw_proficiencies": ["str", "con"],
+        "actions": [
+          {"name": "Longsword", "type": "attack", "damage_dice": "1d8+3", "damage_type": "slashing"},
+          {"name": "Light Crossbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing"}
+        ]
       },
       {
         "name": "Branwen",
@@ -30,7 +34,11 @@
         "spell_slots": {"1": 2},
         "class_features": ["Channel Divinity (0)", "Divine Domain: Life"],
         "spell_list": ["Cure Wounds", "Guiding Bolt", "Bless", "Sacred Flame", "Spare the Dying"],
-        "saving_throw_proficiencies": ["wis", "cha"]
+        "saving_throw_proficiencies": ["wis", "cha"],
+        "actions": [
+          {"name": "Warhammer", "type": "attack", "damage_dice": "1d8+2", "damage_type": "bludgeoning"},
+          {"name": "Sacred Flame", "type": "attack", "damage_dice": "1d8", "damage_type": "radiant"}
+        ]
       },
       {
         "name": "Calyra",
@@ -45,7 +53,11 @@
         "spell_slots": {"1": 2},
         "class_features": ["Arcane Recovery"],
         "spell_list": ["Magic Missile", "Mage Armor", "Sleep", "Fire Bolt", "Prestidigitation"],
-        "saving_throw_proficiencies": ["int", "wis"]
+        "saving_throw_proficiencies": ["int", "wis"],
+        "actions": [
+          {"name": "Quarterstaff", "type": "attack", "damage_dice": "1d6", "damage_type": "bludgeoning"},
+          {"name": "Fire Bolt", "type": "attack", "damage_dice": "1d10", "damage_type": "fire"}
+        ]
       },
       {
         "name": "Dax",
@@ -60,7 +72,11 @@
         "spell_slots": {},
         "class_features": ["Sneak Attack (1d6)", "Thieves' Cant"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["dex", "int"]
+        "saving_throw_proficiencies": ["dex", "int"],
+        "actions": [
+          {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"},
+          {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"}
+        ]
       }
     ]
   },
@@ -80,7 +96,11 @@
         "spell_slots": {},
         "class_features": ["Second Wind", "Action Surge (1)"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["str", "con"]
+        "saving_throw_proficiencies": ["str", "con"],
+        "actions": [
+          {"name": "Longsword", "type": "attack", "damage_dice": "1d8+3", "damage_type": "slashing"},
+          {"name": "Light Crossbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing"}
+        ]
       },
       {
         "name": "Branwen",
@@ -95,7 +115,11 @@
         "spell_slots": {"1": 3},
         "class_features": ["Channel Divinity (1)", "Divine Domain: Life"],
         "spell_list": ["Cure Wounds", "Guiding Bolt", "Bless", "Sacred Flame", "Spare the Dying"],
-        "saving_throw_proficiencies": ["wis", "cha"]
+        "saving_throw_proficiencies": ["wis", "cha"],
+        "actions": [
+          {"name": "Warhammer", "type": "attack", "damage_dice": "1d8+2", "damage_type": "bludgeoning"},
+          {"name": "Sacred Flame", "type": "attack", "damage_dice": "1d8", "damage_type": "radiant"}
+        ]
       },
       {
         "name": "Calyra",
@@ -110,7 +134,11 @@
         "spell_slots": {"1": 3},
         "class_features": ["Arcane Recovery"],
         "spell_list": ["Magic Missile", "Mage Armor", "Sleep", "Fire Bolt", "Prestidigitation"],
-        "saving_throw_proficiencies": ["int", "wis"]
+        "saving_throw_proficiencies": ["int", "wis"],
+        "actions": [
+          {"name": "Quarterstaff", "type": "attack", "damage_dice": "1d6", "damage_type": "bludgeoning"},
+          {"name": "Fire Bolt", "type": "attack", "damage_dice": "1d10", "damage_type": "fire"}
+        ]
       },
       {
         "name": "Dax",
@@ -125,7 +153,11 @@
         "spell_slots": {},
         "class_features": ["Sneak Attack (1d6)", "Cunning Action", "Thieves' Cant"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["dex", "int"]
+        "saving_throw_proficiencies": ["dex", "int"],
+        "actions": [
+          {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"},
+          {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"}
+        ]
       }
     ]
   },
@@ -145,7 +177,11 @@
         "spell_slots": {},
         "class_features": ["Second Wind", "Action Surge (1)", "Martial Archetype: Champion"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["str", "con"]
+        "saving_throw_proficiencies": ["str", "con"],
+        "actions": [
+          {"name": "Longsword", "type": "attack", "damage_dice": "1d8+3", "damage_type": "slashing"},
+          {"name": "Light Crossbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing"}
+        ]
       },
       {
         "name": "Branwen",
@@ -160,7 +196,11 @@
         "spell_slots": {"1": 4, "2": 2},
         "class_features": ["Channel Divinity (1)", "Divine Domain: Life", "Domain Spell: Lesser Restoration"],
         "spell_list": ["Cure Wounds", "Guiding Bolt", "Bless", "Lesser Restoration", "Spiritual Weapon", "Sacred Flame", "Spare the Dying"],
-        "saving_throw_proficiencies": ["wis", "cha"]
+        "saving_throw_proficiencies": ["wis", "cha"],
+        "actions": [
+          {"name": "Warhammer", "type": "attack", "damage_dice": "1d8+2", "damage_type": "bludgeoning"},
+          {"name": "Sacred Flame", "type": "attack", "damage_dice": "1d8", "damage_type": "radiant"}
+        ]
       },
       {
         "name": "Calyra",
@@ -175,7 +215,11 @@
         "spell_slots": {"1": 4, "2": 2},
         "class_features": ["Arcane Recovery", "Arcane Tradition: Evocation"],
         "spell_list": ["Magic Missile", "Mage Armor", "Sleep", "Scorching Ray", "Fire Bolt", "Prestidigitation"],
-        "saving_throw_proficiencies": ["int", "wis"]
+        "saving_throw_proficiencies": ["int", "wis"],
+        "actions": [
+          {"name": "Quarterstaff", "type": "attack", "damage_dice": "1d6", "damage_type": "bludgeoning"},
+          {"name": "Fire Bolt", "type": "attack", "damage_dice": "1d10", "damage_type": "fire"}
+        ]
       },
       {
         "name": "Dax",
@@ -190,7 +234,11 @@
         "spell_slots": {},
         "class_features": ["Sneak Attack (2d6)", "Cunning Action", "Roguish Archetype: Thief", "Thieves' Cant"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["dex", "int"]
+        "saving_throw_proficiencies": ["dex", "int"],
+        "actions": [
+          {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"},
+          {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"}
+        ]
       }
     ]
   },
@@ -210,7 +258,11 @@
         "spell_slots": {},
         "class_features": ["Second Wind", "Action Surge (1)", "Martial Archetype: Champion", "Ability Score Improvement"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["str", "con"]
+        "saving_throw_proficiencies": ["str", "con"],
+        "actions": [
+          {"name": "Longsword", "type": "attack", "damage_dice": "1d8+3", "damage_type": "slashing"},
+          {"name": "Light Crossbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing"}
+        ]
       },
       {
         "name": "Branwen",
@@ -225,7 +277,11 @@
         "spell_slots": {"1": 4, "2": 3},
         "class_features": ["Channel Divinity (1)", "Divine Domain: Life", "Domain Spell: Lesser Restoration", "Ability Score Improvement"],
         "spell_list": ["Cure Wounds", "Guiding Bolt", "Bless", "Lesser Restoration", "Spiritual Weapon", "Prayer of Healing", "Sacred Flame", "Spare the Dying"],
-        "saving_throw_proficiencies": ["wis", "cha"]
+        "saving_throw_proficiencies": ["wis", "cha"],
+        "actions": [
+          {"name": "Warhammer", "type": "attack", "damage_dice": "1d8+2", "damage_type": "bludgeoning"},
+          {"name": "Sacred Flame", "type": "attack", "damage_dice": "1d8", "damage_type": "radiant"}
+        ]
       },
       {
         "name": "Calyra",
@@ -240,7 +296,11 @@
         "spell_slots": {"1": 4, "2": 3},
         "class_features": ["Arcane Recovery", "Arcane Tradition: Evocation", "Ability Score Improvement"],
         "spell_list": ["Magic Missile", "Mage Armor", "Sleep", "Scorching Ray", "Mirror Image", "Fire Bolt", "Prestidigitation"],
-        "saving_throw_proficiencies": ["int", "wis"]
+        "saving_throw_proficiencies": ["int", "wis"],
+        "actions": [
+          {"name": "Quarterstaff", "type": "attack", "damage_dice": "1d6", "damage_type": "bludgeoning"},
+          {"name": "Fire Bolt", "type": "attack", "damage_dice": "1d10", "damage_type": "fire"}
+        ]
       },
       {
         "name": "Dax",
@@ -255,7 +315,11 @@
         "spell_slots": {},
         "class_features": ["Sneak Attack (2d6)", "Cunning Action", "Roguish Archetype: Thief", "Ability Score Improvement", "Thieves' Cant"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["dex", "int"]
+        "saving_throw_proficiencies": ["dex", "int"],
+        "actions": [
+          {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"},
+          {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"}
+        ]
       }
     ]
   },
@@ -275,7 +339,11 @@
         "spell_slots": {},
         "class_features": ["Second Wind", "Action Surge (1)", "Extra Attack", "Martial Archetype: Champion", "Ability Score Improvement"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["str", "con"]
+        "saving_throw_proficiencies": ["str", "con"],
+        "actions": [
+          {"name": "Longsword", "type": "attack", "damage_dice": "1d8+3", "damage_type": "slashing"},
+          {"name": "Light Crossbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing"}
+        ]
       },
       {
         "name": "Branwen",
@@ -290,7 +358,11 @@
         "spell_slots": {"1": 4, "2": 3, "3": 2},
         "class_features": ["Channel Divinity (1)", "Divine Domain: Life", "Domain Spell: Revivify", "Ability Score Improvement"],
         "spell_list": ["Cure Wounds", "Guiding Bolt", "Bless", "Lesser Restoration", "Spiritual Weapon", "Prayer of Healing", "Revivify", "Sacred Flame", "Spare the Dying"],
-        "saving_throw_proficiencies": ["wis", "cha"]
+        "saving_throw_proficiencies": ["wis", "cha"],
+        "actions": [
+          {"name": "Warhammer", "type": "attack", "damage_dice": "1d8+2", "damage_type": "bludgeoning"},
+          {"name": "Sacred Flame", "type": "attack", "damage_dice": "1d8", "damage_type": "radiant"}
+        ]
       },
       {
         "name": "Calyra",
@@ -305,7 +377,11 @@
         "spell_slots": {"1": 4, "2": 3, "3": 2},
         "class_features": ["Arcane Recovery", "Arcane Tradition: Evocation", "Ability Score Improvement"],
         "spell_list": ["Magic Missile", "Mage Armor", "Sleep", "Scorching Ray", "Fireball", "Mirror Image", "Fire Bolt", "Prestidigitation"],
-        "saving_throw_proficiencies": ["int", "wis"]
+        "saving_throw_proficiencies": ["int", "wis"],
+        "actions": [
+          {"name": "Quarterstaff", "type": "attack", "damage_dice": "1d6", "damage_type": "bludgeoning"},
+          {"name": "Fire Bolt", "type": "attack", "damage_dice": "1d10", "damage_type": "fire"}
+        ]
       },
       {
         "name": "Dax",
@@ -320,7 +396,11 @@
         "spell_slots": {},
         "class_features": ["Sneak Attack (3d6)", "Cunning Action", "Uncanny Dodge", "Roguish Archetype: Thief", "Ability Score Improvement", "Thieves' Cant"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["dex", "int"]
+        "saving_throw_proficiencies": ["dex", "int"],
+        "actions": [
+          {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"},
+          {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"}
+        ]
       },
       {
         "name": "Grom",
@@ -400,7 +480,11 @@
         "spell_slots": {},
         "class_features": ["Second Wind", "Action Surge (1)", "Extra Attack", "Martial Archetype: Champion", "Ability Score Improvement", "Indomitable (1)"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["str", "con"]
+        "saving_throw_proficiencies": ["str", "con"],
+        "actions": [
+          {"name": "Longsword", "type": "attack", "damage_dice": "1d8+3", "damage_type": "slashing"},
+          {"name": "Light Crossbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing"}
+        ]
       },
       {
         "name": "Branwen",
@@ -415,7 +499,11 @@
         "spell_slots": {"1": 4, "2": 3, "3": 3},
         "class_features": ["Channel Divinity (1)", "Divine Domain: Life", "Domain Spell: Revivify", "Ability Score Improvement"],
         "spell_list": ["Cure Wounds", "Guiding Bolt", "Bless", "Lesser Restoration", "Spiritual Weapon", "Prayer of Healing", "Revivify", "Sacred Flame", "Spare the Dying"],
-        "saving_throw_proficiencies": ["wis", "cha"]
+        "saving_throw_proficiencies": ["wis", "cha"],
+        "actions": [
+          {"name": "Warhammer", "type": "attack", "damage_dice": "1d8+2", "damage_type": "bludgeoning"},
+          {"name": "Sacred Flame", "type": "attack", "damage_dice": "1d8", "damage_type": "radiant"}
+        ]
       },
       {
         "name": "Calyra",
@@ -430,7 +518,11 @@
         "spell_slots": {"1": 4, "2": 3, "3": 3},
         "class_features": ["Arcane Recovery", "Arcane Tradition: Evocation", "Ability Score Improvement"],
         "spell_list": ["Magic Missile", "Mage Armor", "Sleep", "Scorching Ray", "Fireball", "Mirror Image", "Dispel Magic", "Fire Bolt", "Prestidigitation"],
-        "saving_throw_proficiencies": ["int", "wis"]
+        "saving_throw_proficiencies": ["int", "wis"],
+        "actions": [
+          {"name": "Quarterstaff", "type": "attack", "damage_dice": "1d6", "damage_type": "bludgeoning"},
+          {"name": "Fire Bolt", "type": "attack", "damage_dice": "1d10", "damage_type": "fire"}
+        ]
       },
       {
         "name": "Dax",
@@ -445,7 +537,11 @@
         "spell_slots": {},
         "class_features": ["Sneak Attack (3d6)", "Cunning Action", "Uncanny Dodge", "Evasion", "Roguish Archetype: Thief", "Ability Score Improvement", "Thieves' Cant"],
         "spell_list": [],
-        "saving_throw_proficiencies": ["dex", "int"]
+        "saving_throw_proficiencies": ["dex", "int"],
+        "actions": [
+          {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"},
+          {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing"}
+        ]
       }
     ]
   }

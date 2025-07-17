@@ -278,3 +278,63 @@ def test_no_double_ability_modifier_for_monster_attacks(monkeypatch):
     # Should be 1d8 (8) + 3 = 11
     result2 = sword_attack.execute(fighter, dummy_target)
     assert result2['damage'] == 11, f"Expected 11, got {result2['damage']} (should add STR mod)" 
+
+def test_combat_log_includes_spell_name(monkeypatch):
+    """Test that the combat log includes the actual spell name when a spell is cast."""
+    from models.character import Character
+    from models.monster import Monster
+    from models.combat import Combat
+    from models.spells import Spell, SpellAction
+
+    # Create a simple healing spell
+    spell = Spell(
+        name="Cure Wounds",
+        level=1,
+        school="Evocation",
+        casting_time="1 action",
+        range="Touch",
+        duration="Instantaneous",
+        components={"verbal": True, "somatic": True, "material": False},
+        damage_dice="1d8",
+        description="A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier.",
+        healing=True
+    )
+    cleric = Character(
+        name="Branwen",
+        level=3,
+        character_class="Cleric",
+        race="Dwarf",
+        ability_scores={"str": 14, "dex": 10, "con": 16, "int": 10, "wis": 16, "cha": 8},
+        hp=20,
+        ac=18,
+        proficiency_bonus=2,
+        actions=[],
+        spell_list=["Cure Wounds"],
+        spell_slots={1: 2}
+    )
+    cleric.add_spell(spell)
+    wizard = Character(
+        name="Calyra",
+        level=3,
+        character_class="Wizard",
+        race="Elf",
+        ability_scores={"str": 8, "dex": 14, "con": 14, "int": 16, "wis": 12, "cha": 10},
+        hp=10,
+        ac=12,
+        proficiency_bonus=2,
+        actions=[]
+    )
+    # Patch AI to always cast Cure Wounds on wizard
+    class AlwaysHealStrategy:
+        def choose_action(self, combatant, combat_state):
+            return {'type': 'cast_spell', 'spell': SpellAction(spell), 'target': wizard}
+        def evaluate_targets(self, *a, **k): return []
+        def threat_assessment(self, *a, **k): return 0
+        def opportunity_cost_analysis(self, *a, **k): return 0
+    combat = Combat([cleric, wizard])
+    combat.ai_strategy_map[cleric] = AlwaysHealStrategy()
+    # Run one turn
+    combat.roll_initiative()
+    combat.next_turn()
+    log_lines = combat.format_log_for_web()
+    assert any("casts Cure Wounds on" in line for line in log_lines), f"Expected spell name in log, got: {log_lines}" 

@@ -65,10 +65,17 @@ class PartyAIStrategy(AIStrategy):
         enemies = [c for c in combat_state['enemies'] if c.is_alive()]
         if enemies:
             dangerous = max(enemies, key=lambda e: self.threat_assessment(e, combat_state))
-            # Prefer attack or damaging spell
+            # Prefer spell attack if available for spellcasters
+            spellcaster_classes = ['Wizard', 'Cleric']
+            if getattr(combatant, 'character_class', None) in spellcaster_classes:
+                spell_attacks = [a for a in getattr(combatant, 'actions', []) if hasattr(a, 'name') and a.name in ["Fire Bolt", "Sacred Flame"]]
+                if spell_attacks:
+                    best_spell = max(spell_attacks, key=lambda a: a.hit_bonus(combatant))
+                    logger.info(f"[AI] {combatant.name} chooses spell attack: {best_spell.name} vs {dangerous.name}")
+                    return {'type': 'attack', 'action': best_spell, 'target': dangerous}
+            # Otherwise, prefer attack or damaging spell
             attack_actions = [a for a in getattr(combatant, 'actions', []) if hasattr(a, 'action_type') and a.action_type == 'attack']
             if attack_actions:
-                # Pick the attack action with the highest hit bonus
                 best_action = max(
                     attack_actions,
                     key=lambda a: a.hit_bonus(combatant)

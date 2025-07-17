@@ -67,6 +67,8 @@ class SimulationController:
                             if full_char_data:
                                 # Determine the actual level of the matched data
                                 actual_level = full_char_data.get('level', party_level)
+                                # Convert actions from dicts to Action/AttackAction objects
+                                actions = self._build_actions_from_dicts(full_char_data.get('actions', []))
                                 char = Character(
                                     name=full_char_data.get('name', char_data.get('name', 'Unknown')),
                                     level=party_level,  # Still instantiate at requested level for mechanics
@@ -81,7 +83,7 @@ class SimulationController:
                                     features=full_char_data.get('features', []),
                                     items=full_char_data.get('items', []),
                                     spells=full_char_data.get('spells', {}),
-                                    actions=full_char_data.get('actions', []),
+                                    actions=actions,
                                     reactions=full_char_data.get('reactions', []),
                                     bonus_actions=full_char_data.get('bonus_actions', []),
                                     initiative_bonus=full_char_data.get('initiative_bonus', 0),

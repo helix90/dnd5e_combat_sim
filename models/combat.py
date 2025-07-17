@@ -276,6 +276,12 @@ class Combat:
                 # Safety check for infinite loops
                 if self.current_round > max_rounds:
                     break
+                
+                # DEBUG: Print monster HP after each round
+                if self.current_turn == 0:  # End of round
+                    import logging
+                    monster_status = [f"{getattr(m, 'name', str(m))}: HP={getattr(m, 'hp', 'N/A')}" for m in self._original_monsters]
+                    logging.info(f"[DEBUG] End of round {self.current_round-1}: Monster HP: {monster_status}")
             
             # Final callback
             if progress_callback:
@@ -335,7 +341,16 @@ class Combat:
                 result = entry['result']
                 if 'action' in result:
                     action = result['action']
-                    if 'damage' in result:
+                    # Log spell name if present
+                    if 'spell' in result:
+                        spell_name = result['spell']
+                        if 'healing' in result and result['healing'] > 0:
+                            lines.append(f"{actor} casts {spell_name} on {result.get('target', '')}: heals {result['healing']} HP.")
+                        elif 'damage' in result:
+                            lines.append(f"{actor} casts {spell_name} on {result.get('target', '')}: {result['damage']} damage.")
+                        else:
+                            lines.append(f"{actor} casts {spell_name} on {result.get('target', '')}.")
+                    elif 'damage' in result:
                         lines.append(f"{actor} uses {action} on {result.get('target', '')}: {result['damage']} damage.")
                     elif 'healing' in result:
                         lines.append(f"{actor} uses {action} on {result.get('target', '')}: heals {result['healing']} HP.")
