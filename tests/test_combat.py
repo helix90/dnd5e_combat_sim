@@ -333,8 +333,19 @@ def test_combat_log_includes_spell_name(monkeypatch):
         def opportunity_cost_analysis(self, *a, **k): return 0
     combat = Combat([cleric, wizard])
     combat.ai_strategy_map[cleric] = AlwaysHealStrategy()
-    # Run one turn
+    # Patch initiative so cleric always goes first
+    def fake_randint(a, b):
+        # First call: cleric, second: wizard
+        return 20 if fake_randint.calls == 0 else 1
+    fake_randint.calls = 0
+    def fake_randint_wrapper(a, b):
+        val = fake_randint(a, b)
+        fake_randint.calls += 1
+        return val
+    monkeypatch.setattr('random.randint', fake_randint_wrapper)
+    # Run more turns to ensure spell is cast and logged
     combat.roll_initiative()
-    combat.next_turn()
+    for _ in range(4):
+        combat.next_turn()
     log_lines = combat.format_log_for_web()
     assert any("casts Cure Wounds on" in line for line in log_lines), f"Expected spell name in log, got: {log_lines}" 
