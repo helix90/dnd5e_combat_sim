@@ -268,6 +268,7 @@ def api_current_party():
 def simulate():
     # Start simulation if not already started
     session_id = session['session_id']
+    sim_id = session.get('simulation_id') + 1 if session.get('simulation_id') else 1
     
     # Ensure session exists in database before starting simulation
     db.create_session(session_id, selected_party_id=session.get('selected_party_id'))
@@ -287,6 +288,7 @@ def simulate():
         for m in monsters:
             logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}, Data: {m}")
         simulation_controller.execute_simulation(party, monsters, session_id, party_level=selected_party_level)
+    session['simulation_id'] = sim_id  # Store current simulation ID in session
     return render_template('simulation.html')
 
 @app.route('/simulate/status', methods=['GET'])
@@ -379,14 +381,17 @@ def api_batch_history():
 
 @app.route('/results')
 def results():
-    sim_id = request.args.get('sim_id', type=int)
+    sim_id = session.get('simulation_id')
     if sim_id and sim_id < 0:
         raise ValidationError("Invalid simulation ID")
     
     # If no sim_id provided, use the last simulation from the session or database
     if not sim_id:
-        sim_id = session.get('last_simulation_id')
+        # Throw an error here
+        logging.info(f'/sim_id: sim_id missing')
+        sim_id = session.get('simulation_id')
         if not sim_id:
+            logging.info(f'/sim_id: sim_id missing from Session, trying to get from database')
             # Try to get the last simulation ID from the database
             session_id = session['session_id']
             sim_id = db.get_last_simulation_id(session_id)
@@ -407,7 +412,7 @@ def results():
 @app.route('/results/detailed')
 @limiter.limit("50 per minute")
 def results_detailed():
-    sim_id = request.args.get('sim_id', type=int)
+    sim_id = session.get('simulation_id')
     if sim_id and sim_id < 0:
         raise ValidationError("Invalid simulation ID")
     
@@ -417,7 +422,7 @@ def results_detailed():
 @app.route('/results/statistics')
 @limiter.limit("50 per minute")
 def results_statistics():
-    sim_id = request.args.get('sim_id', type=int)
+    sim_id = session.get('simulation_id')
     if sim_id and sim_id < 0:
         raise ValidationError("Invalid simulation ID")
     
@@ -427,7 +432,7 @@ def results_statistics():
 @app.route('/results/export')
 @limiter.limit("20 per minute")
 def results_export():
-    sim_id = request.args.get('sim_id', type=int)
+    sim_id = session.get('simulation_id')
     if sim_id and sim_id < 0:
         raise ValidationError("Invalid simulation ID")
     
