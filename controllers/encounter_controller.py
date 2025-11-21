@@ -1,6 +1,7 @@
 from models.encounter_builder import EncounterBuilder
 from flask import session
 import json
+import logging
 from utils.exceptions import ValidationError, APIError
 from utils.logging import log_exception
 
@@ -11,14 +12,15 @@ class EncounterController:
 
     def handle_custom_encounter(self, monster_list, party_level, party_size):
         try:
+            # Clear any existing simulation-related session data
+            session.pop('simulation_id', None)
+            session.pop('last_simulation_id', None)
+            
             balance = self.validate_encounter_balance(monster_list, party_level, party_size)
             warnings = self.generate_encounter_warnings(monster_list, party_level, party_size)
+            
             session['encounter_monsters'] = monster_list
-            import logging
-            logging.info(f'handle_custom_encounter: session_id={session.get("session_id")}')
-            logging.info('handle_custom_encounter: Saving monsters to session:')
-            for m in monster_list:
-                logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}, Data: {m}")
+            
             return {"balance": balance, "warnings": warnings, "monsters": monster_list}
         except Exception as e:
             log_exception(e)
@@ -30,21 +32,24 @@ class EncounterController:
             session.pop('encounter_monsters', None)
             session.pop('selected_encounter', None)
             
+            # Also clear any simulation-related session data
+            session.pop('simulation_id', None)
+            session.pop('last_simulation_id', None)
+            
             with open(self.templates_file) as f:
                 templates = json.load(f)["encounters"]
             template = next((t for t in templates if t["name"] == template_name), None)
             if not template:
                 raise ValidationError(f"Template '{template_name}' not found")
+            
             monsters = self.builder.create_encounter_from_template(template)
+            
             balance = self.validate_encounter_balance(monsters, party_level, party_size)
             warnings = self.generate_encounter_warnings(monsters, party_level, party_size)
+            
             session['encounter_monsters'] = monsters
             session['selected_encounter'] = template_name
-            import logging
-            logging.info(f'handle_prebuilt_encounter: session_id={session.get("session_id")}')
-            logging.info('handle_prebuilt_encounter: Saving monsters to session:')
-            for m in monsters:
-                logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}, Data: {m}")
+            
             return {"balance": balance, "warnings": warnings, "monsters": monsters, "template": template}
         except FileNotFoundError as e:
             log_exception(e)
@@ -58,6 +63,12 @@ class EncounterController:
         except Exception as e:
             log_exception(e)
             raise ValidationError(f"Failed to handle prebuilt encounter: {e}")
+
+    def get_current_encounter_monsters(self):
+        """
+        Get the current encounter monsters from the session for debugging.
+        """
+        return session.get('encounter_monsters', [])
 
     def validate_encounter_balance(self, monsters, party_level, party_size):
         try:

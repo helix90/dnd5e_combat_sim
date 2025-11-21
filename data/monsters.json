@@ -17,6 +17,39 @@
       ]
     },
     {
+      "name": "Skeleton",
+      "cr": "1/4",
+      "type": "undead",
+      "hp": 13,
+      "ac": 13,
+      "ability_scores": {"str": 10, "dex": 14, "con": 15, "int": 6, "wis": 8, "cha": 5},
+      "special_abilities": ["Undead Fortitude"],
+      "legendary_actions": [],
+      "damage_resistances": ["poison"],
+      "damage_immunities": ["poison"],
+      "multiattack": false,
+      "actions": [
+        {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing"},
+        {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing"}
+      ]
+    },
+    {
+      "name": "Zombie",
+      "cr": "1/4",
+      "type": "undead",
+      "hp": 22,
+      "ac": 8,
+      "ability_scores": {"str": 13, "dex": 6, "con": 16, "int": 3, "wis": 6, "cha": 5},
+      "special_abilities": ["Undead Fortitude"],
+      "legendary_actions": [],
+      "damage_resistances": ["poison"],
+      "damage_immunities": ["poison"],
+      "multiattack": false,
+      "actions": [
+        {"name": "Slam", "type": "attack", "damage_dice": "1d6+1", "damage_type": "bludgeoning"}
+      ]
+    },
+    {
       "name": "Goblin",
       "cr": "1/4",
       "type": "humanoid",
@@ -47,6 +80,23 @@
       "multiattack": false,
       "actions": [
         {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."}
+      ]
+    },
+    {
+      "name": "Ghoul",
+      "cr": "1",
+      "type": "undead",
+      "hp": 22,
+      "ac": 12,
+      "ability_scores": {"str": 13, "dex": 15, "con": 10, "int": 7, "wis": 10, "cha": 6},
+      "special_abilities": ["Undead Fortitude"],
+      "legendary_actions": [],
+      "damage_resistances": ["cold", "necrotic"],
+      "damage_immunities": ["poison"],
+      "multiattack": false,
+      "actions": [
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+1", "damage_type": "piercing", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute."},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d4+1", "damage_type": "slashing", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute."}
       ]
     },
     {
@@ -102,6 +152,24 @@
       ]
     },
     {
+      "name": "Wight",
+      "cr": "3",
+      "type": "undead",
+      "hp": 45,
+      "ac": 14,
+      "ability_scores": {"str": 15, "dex": 14, "con": 16, "int": 10, "wis": 13, "cha": 15},
+      "special_abilities": ["Sunlight Sensitivity", "Undead Fortitude"],
+      "legendary_actions": [],
+      "damage_resistances": ["necrotic", "poison"],
+      "damage_immunities": ["poison"],
+      "multiattack": true,
+      "actions": [
+        {"name": "Multiattack", "type": "special", "description": "The wight makes two longsword attacks or two longbow attacks."},
+        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+2", "damage_type": "slashing", "special": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken."},
+        {"name": "Longbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing"}
+      ]
+    },
+    {
       "name": "Owlbear",
       "cr": "3",
       "type": "monstrosity",
@@ -120,6 +188,39 @@
       ]
     },
     {
+      "name": "Minotaur",
+      "cr": "3",
+      "type": "monstrosity",
+      "hp": 76,
+      "ac": 14,
+      "ability_scores": {"str": 18, "dex": 11, "con": 16, "int": 6, "wis": 16, "cha": 9},
+      "special_abilities": ["Charge", "Labyrinthine Recall"],
+      "legendary_actions": [],
+      "damage_resistances": [],
+      "damage_immunities": [],
+      "multiattack": false,
+      "actions": [
+        {"name": "Greataxe", "type": "attack", "damage_dice": "2d12+4", "damage_type": "slashing"},
+        {"name": "Gore", "type": "attack", "damage_dice": "2d8+4", "damage_type": "piercing"}
+      ]
+    },
+    {
+      "name": "Wraith",
+      "cr": "5",
+      "type": "undead",
+      "hp": 67,
+      "ac": 13,
+      "ability_scores": {"str": 6, "dex": 16, "con": 16, "int": 12, "wis": 14, "cha": 15},
+      "special_abilities": ["Incorporeal Movement", "Sunlight Sensitivity"],
+      "legendary_actions": [],
+      "damage_resistances": ["acid", "cold", "fire", "lightning", "thunder", "bludgeoning", "piercing", "slashing"],
+      "damage_immunities": ["necrotic", "poison"],
+      "multiattack": false,
+      "actions": [
+        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken."}
+      ]
+    },
+    {
       "name": "Troll",
       "cr": "5",
       "type": "giant",
@@ -135,23 +236,6 @@
         {"name": "Multiattack", "type": "special", "description": "The troll makes three attacks: one with its bite and two with its claws."},
         {"name": "Bite", "type": "attack", "damage_dice": "1d6+4", "damage_type": "piercing"},
         {"name": "Claw", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing"}
-      ]
-    },
-    {
-      "name": "Minotaur",
-      "cr": "3",
-      "type": "monstrosity",
-      "hp": 76,
-      "ac": 14,
-      "ability_scores": {"str": 18, "dex": 11, "con": 16, "int": 6, "wis": 16, "cha": 9},
-      "special_abilities": ["Charge", "Labyrinthine Recall"],
-      "legendary_actions": [],
-      "damage_resistances": [],
-      "damage_immunities": [],
-      "multiattack": false,
-      "actions": [
-        {"name": "Greataxe", "type": "attack", "damage_dice": "2d12+4", "damage_type": "slashing"},
-        {"name": "Gore", "type": "attack", "damage_dice": "2d8+4", "damage_type": "piercing"}
       ]
     },
     {
@@ -190,6 +274,40 @@
         {"name": "Claw", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing"},
         {"name": "Tail", "type": "attack", "damage_dice": "2d8+4", "damage_type": "bludgeoning"},
         {"name": "Fire Breath", "type": "special", "description": "The dragon exhales fire in a 30-foot cone. Each creature in that area must make a DC 17 Dexterity saving throw, taking 56 (16d6) fire damage on a failed save, or half as much on a successful one."}
+      ]
+    },
+    {
+      "name": "Vampire Spawn",
+      "cr": "5",
+      "type": "undead",
+      "hp": 82,
+      "ac": 15,
+      "ability_scores": {"str": 16, "dex": 16, "con": 16, "int": 11, "wis": 10, "cha": 12},
+      "special_abilities": ["Regeneration", "Spider Climb", "Vampire Weaknesses"],
+      "legendary_actions": [],
+      "damage_resistances": ["necrotic", "bludgeoning", "piercing", "slashing"],
+      "damage_immunities": ["poison"],
+      "multiattack": true,
+      "actions": [
+        {"name": "Multiattack", "type": "special", "description": "The vampire spawn makes two attacks, only one of which can be a bite attack."},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d4+3", "damage_type": "slashing"},
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "special": "The target's hit point maximum is reduced by an amount equal to the damage taken, and the vampire spawn regains hit points equal to that amount."}
+      ]
+    },
+    {
+      "name": "Mummy",
+      "cr": "3",
+      "type": "undead",
+      "hp": 58,
+      "ac": 11,
+      "ability_scores": {"str": 16, "dex": 8, "con": 15, "int": 6, "wis": 10, "cha": 12},
+      "special_abilities": ["Mummy Rot"],
+      "legendary_actions": [],
+      "damage_resistances": ["bludgeoning", "piercing", "slashing"],
+      "damage_immunities": ["necrotic", "poison"],
+      "multiattack": false,
+      "actions": [
+        {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot."}
       ]
     }
   ]

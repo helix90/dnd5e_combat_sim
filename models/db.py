@@ -146,7 +146,7 @@ class DatabaseManager:
         except Exception as e:
             log_exception(e)
             raise DatabaseError(f"Failed to get last simulation ID: {e}")
-    
+
     def _convert_combat_log_format(self, logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Convert combat log from simulation format to database format."""
         converted_logs = []

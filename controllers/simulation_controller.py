@@ -38,18 +38,19 @@ class SimulationController:
                 ))
         return actions
 
-    def execute_simulation(self, party, monsters, session_id=None, party_level=None):
+    def execute_simulation(self, party, monsters, session_id, party_level=5):
         """
         Execute a combat simulation in a background thread.
         """
-        if session_id is None:
-            session_id = session.get('session_id', 'default')
-        if party_level is None:
-            party_level = session.get('selected_party_level', 5)
+        # Clear any existing simulation state and thread for this session
+        if session_id in self.simulation_states:
+            del self.simulation_states[session_id]
+        if session_id in self.simulation_threads:
+            del self.simulation_threads[session_id]
+        
         def run():
-            log = []
             try:
-                # Convert party dictionaries to Character objects
+                # Convert character dictionaries to Character objects
                 character_objects = []
                 if party:
                     for char_data in party:
@@ -95,9 +96,6 @@ class SimulationController:
                                     if spell:
                                         char.add_spell(spell)
                                 character_objects.append(char)
-                                import logging
-                                logging.info(f"CHARACTER INSTANTIATED (full data): Name={char.name}, Class={char.character_class}, Level={actual_level}, AC={char.ac}, HP={char.hp}")
-                                log.append(f"CHARACTER INSTANTIATED: Name={char.name}, Class={char.character_class}, Level={actual_level}")
                             else:
                                 # Fallback to basic character creation
                                 char = Character(
@@ -111,16 +109,13 @@ class SimulationController:
                                     proficiency_bonus=char_data.get('proficiency_bonus', 2)
                                 )
                                 character_objects.append(char)
-                                import logging
-                                logging.warning(f"CHARACTER INSTANTIATED (FALLBACK): Name={char.name}, Class={char.character_class}, Level={char.level}, AC={char.ac}, HP={char.hp}")
-                                log.append(f"CHARACTER INSTANTIATED: Name={char.name}, Class={char.character_class}, Level={char.level}")
                         elif isinstance(char_data, Character):
                             character_objects.append(char_data)
                 
                 # Convert monster dictionaries to Monster objects
                 monster_objects = []
                 if monsters:
-                    for monster_data in monsters:
+                    for i, monster_data in enumerate(monsters):
                         if isinstance(monster_data, dict):
                             actions = self._build_actions_from_dicts(monster_data.get('actions', []))
                             monster = Monster(
@@ -136,26 +131,20 @@ class SimulationController:
                                 multiattack=monster_data.get('multiattack', False),
                                 actions=actions
                             )
-                            import logging
-                            logging.info(f"INSTANTIATED MONSTER: {repr(monster)}")
                             monster_objects.append(monster)
                         elif isinstance(monster_data, Monster):
                             monster_objects.append(monster_data)
+                        else:
+                            logging.warning(f"execute_simulation: Monster {i+1} has unexpected type: {type(monster_data)}")
                 
                 # Create combat with proper objects
-                logging.info('MONSTER OBJECTS FOR ENCOUNTER:')
-                for m in monster_objects:
-                    logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}")
                 combat = Combat(character_objects + monster_objects)
                 def progress_callback(state):
-                    # Merge our log with the combat log for the test
-                    merged_log = log + state.get('log', [])
-                    state['log'] = merged_log
                     self.simulation_states[session_id] = state
-                self.simulation_states[session_id] = {'progress': 0, 'log': log, 'done': False}
+                self.simulation_states[session_id] = {'progress': 0, 'log': [], 'done': False}
                 result = combat.run(progress_callback=progress_callback)
                 # After combat, merge logs for final state
-                final_log = log + result.get('log', [])
+                final_log = result.get('log', [])
                 self.simulation_states[session_id]['log'] = final_log
                 self.save_simulation_results(result, session_id)
                 self.simulation_states[session_id]['done'] = True
@@ -163,10 +152,19 @@ class SimulationController:
                 log_exception(e)
                 self.simulation_states[session_id] = {'error': str(e), 'done': True}
                 raise SimulationError(f"Simulation execution failed: {e}")
+        
         t = threading.Thread(target=run)
         t.start()
         self.simulation_threads[session_id] = t
         self.simulation_states[session_id] = {'progress': 0, 'log': [], 'done': False}
+
+    def get_simulation_id(self, session_id):
+        """
+        Get the simulation ID for a given session from the simulation state.
+        """
+        if session_id in self.simulation_states:
+            return self.simulation_states[session_id].get('simulation_id')
+        return None
 
     def handle_simulation_progress(self):
         """
@@ -191,9 +189,14 @@ class SimulationController:
             
             sim_id = self.db.save_simulation_result(session_id, result)
             
+            # Store the simulation ID in the session state for easy access
+            if session_id in self.simulation_states:
+                self.simulation_states[session_id]['simulation_id'] = sim_id
+            
             # Store the simulation ID in the session for easy access (only if in request context)
             try:
                 session['last_simulation_id'] = sim_id
+                session['simulation_id'] = sim_id  # Also update the main simulation_id
             except RuntimeError:
                 # Working outside of request context, skip session storage
                 # The results page will get the simulation ID from the database

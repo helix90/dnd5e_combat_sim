@@ -184,6 +184,86 @@ def encounter_clear():
         log_exception(e)
         return jsonify({'error': 'Failed to clear encounter selection'}), 500
 
+@app.route('/api/session/clear', methods=['POST'])
+def api_session_clear():
+    """Clear all session data for troubleshooting."""
+    try:
+        # Keep only the session_id
+        session_id = session.get('session_id')
+        
+        # Clear all other session data
+        session.clear()
+        
+        # Restore the session_id
+        session['session_id'] = session_id
+        
+        # Create a fresh session in the database
+        db.create_session(session_id)
+        
+        return jsonify({'success': True, 'message': 'Session cleared successfully'})
+    except Exception as e:
+        log_exception(e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/simulation/debug', methods=['GET'])
+def api_simulation_debug():
+    """Debug endpoint to show current simulation state."""
+    try:
+        session_id = session['session_id']
+        sim_state = simulation_controller.simulation_states.get(session_id, {})
+        sim_id = simulation_controller.get_simulation_id(session_id)
+        
+        debug_info = {
+            'session_id': session_id,
+            'simulation_id': sim_id,
+            'simulation_state': sim_state,
+            'session_simulation_id': session.get('simulation_id'),
+            'session_last_simulation_id': session.get('last_simulation_id')
+        }
+        
+        return jsonify(debug_info)
+    except Exception as e:
+        log_exception(e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/encounter/debug', methods=['GET'])
+def api_encounter_debug():
+    """Debug endpoint to show current encounter monsters in session."""
+    try:
+        monsters = session.get('encounter_monsters', [])
+        selected_encounter = session.get('selected_encounter', None)
+        
+        debug_info = {
+            'selected_encounter': selected_encounter,
+            'monster_count': len(monsters),
+            'monsters': []
+        }
+        
+        for i, monster in enumerate(monsters):
+            if isinstance(monster, dict):
+                debug_info['monsters'].append({
+                    'index': i,
+                    'type': 'dict',
+                    'name': monster.get('name', 'Unknown'),
+                    'cr': monster.get('cr', 'Unknown'),
+                    'hp': monster.get('hp', 'Unknown'),
+                    'ac': monster.get('ac', 'Unknown')
+                })
+            else:
+                debug_info['monsters'].append({
+                    'index': i,
+                    'type': str(type(monster)),
+                    'name': getattr(monster, 'name', 'Unknown'),
+                    'cr': getattr(monster, 'challenge_rating', 'Unknown'),
+                    'hp': getattr(monster, 'hp', 'Unknown'),
+                    'ac': getattr(monster, 'ac', 'Unknown')
+                })
+        
+        return jsonify(debug_info)
+    except Exception as e:
+        log_exception(e)
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/monsters', methods=['GET'])
 @limiter.limit("100 per minute")
 def api_monsters():
@@ -268,7 +348,6 @@ def api_current_party():
 def simulate():
     # Start simulation if not already started
     session_id = session['session_id']
-    sim_id = session.get('simulation_id') + 1 if session.get('simulation_id') else 1
     
     # Ensure session exists in database before starting simulation
     db.create_session(session_id, selected_party_id=session.get('selected_party_id'))
@@ -283,12 +362,10 @@ def simulate():
         else:
             party = []
         monsters = session.get('encounter_monsters', [])
-        logging.info(f'/simulate: session_id={session.get("session_id")})')
-        logging.info('/simulate: Monsters loaded from session:')
-        for m in monsters:
-            logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}, Data: {m}")
+        
         simulation_controller.execute_simulation(party, monsters, session_id, party_level=selected_party_level)
-    session['simulation_id'] = sim_id  # Store current simulation ID in session
+    
+    # Don't manually set simulation_id here - let the database generate it
     return render_template('simulation.html')
 
 @app.route('/simulate/status', methods=['GET'])
@@ -298,9 +375,23 @@ def simulate_status():
 
 @app.route('/simulate/results', methods=['GET'])
 def simulate_results():
-    # Redirect to results page (reuse existing logic)
-    # You may want to pass sim_id or use last simulation for this session
-    return redirect(url_for('results'))
+    # Get the simulation ID from the session or simulation controller
+    sim_id = session.get('simulation_id')
+    if not sim_id:
+        # Try to get from simulation controller state
+        session_id = session['session_id']
+        sim_id = simulation_controller.get_simulation_id(session_id)
+        
+        # If still no sim_id, try database
+        if not sim_id:
+            sim_id = db.get_last_simulation_id(session_id)
+    
+    if sim_id:
+        # Redirect to results with the specific simulation ID
+        return redirect(url_for('results', sim_id=sim_id))
+    else:
+        # No simulation found, redirect to results page which will handle the error
+        return redirect(url_for('results'))
 
 @app.route('/batch', methods=['GET'])
 def batch_simulation():
@@ -381,32 +472,40 @@ def api_batch_history():
 
 @app.route('/results')
 def results():
-    sim_id = session.get('simulation_id')
+    # Prefer explicit sim_id from query string when provided; fall back to session
+    sim_id = request.args.get('sim_id', type=int) or session.get('simulation_id')
     if sim_id and sim_id < 0:
         raise ValidationError("Invalid simulation ID")
-    
-    # If no sim_id provided, use the last simulation from the session or database
+
+    # If no sim_id provided, use the last simulation from the database for this session
     if not sim_id:
-        # Throw an error here
-        logging.info(f'/sim_id: sim_id missing')
-        sim_id = session.get('simulation_id')
+        logging.info(f'/results: sim_id missing from query params and session')
+        logging.info(f'/results: trying to get from simulation controller')
+        session_id = session['session_id']
+        
+        # First try to get from simulation controller state
+        sim_id = simulation_controller.get_simulation_id(session_id)
+        
+        # If still no sim_id, try database
         if not sim_id:
-            logging.info(f'/sim_id: sim_id missing from Session, trying to get from database')
-            # Try to get the last simulation ID from the database
-            session_id = session['session_id']
+            logging.info(f'/results: trying to get from database')
             sim_id = db.get_last_simulation_id(session_id)
+            
         if not sim_id:
             # No simulation found, return empty results
-            return render_template('results.html', 
-                                 summary={'win_loss': 'No simulation found', 'party_status': 'No data'}, 
-                                 statistics=[], 
-                                 log=[], 
-                                 sim_id=None)
-    
+            return render_template(
+                'results.html',
+                summary={'win_loss': 'No simulation found', 'party_status': 'No data'},
+                statistics=[],
+                log=[],
+                sim_id=None
+            )
+
+    # Build page data (these may raise DatabaseError which is handled by error handlers)
     summary = results_controller.format_simulation_results(sim_id)
     statistics = results_controller.generate_combat_statistics(sim_id)
     log = [sanitize_html(str(entry)) for entry in summary['logs']]
-    
+
     return render_template('results.html', summary=summary.get('simulation', {}), statistics=statistics, log=log, sim_id=sim_id)
 
 @app.route('/results/detailed')

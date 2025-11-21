@@ -61,14 +61,6 @@ class Combat:
         from models.monster import Monster
         self._original_characters = [p for p in participants if isinstance(p, Character)]
         self._original_monsters = [p for p in participants if isinstance(p, Monster)]
-        # Debug output for participants and monsters (commented out to reduce log noise)
-        # import logging
-        # logging.info('COMBAT PARTICIPANTS:')
-        # for p in participants:
-        #     logging.info(f"Type: {type(p)}, Name: {getattr(p, 'name', None)}")
-        # logging.info('ORIGINAL MONSTERS:')
-        # for m in self._original_monsters:
-        #     logging.info(f"Type: {type(m)}, Name: {getattr(m, 'name', None)}")
         # Pre-allocate AI strategies
         self.ai_strategy_map = {}
         for p in participants:
@@ -87,7 +79,6 @@ class Combat:
         if self._alive_participants_cache is None or self._last_alive_check != self.current_round:
             self._alive_participants_cache = [p for p in self.participants if p.is_alive()]
             self._last_alive_check = self.current_round
-            # Removed debug: print alive participants
         return self._alive_participants_cache
 
     def roll_initiative(self) -> None:
@@ -125,31 +116,21 @@ class Combat:
         n = len(self.initiative_order)
         alive_participants = self._get_alive_participants()
         alive_set = set(alive_participants)
+        
         for i in range(n):
             idx = (start + i) % n
             participant = self.initiative_order[idx]
             if participant in alive_set:
-                logger.info(f"[COMBAT] Turn start: {participant.name} (type: {getattr(participant, 'type', 'party')})")
                 self.current_turn = (idx + 1) % n
                 if self.current_turn == 0:
                     self.current_round += 1
                     self.logger.log_round_start(self.current_round)
                     self._alive_participants_cache = None
                 ai = self.ai_strategy_map.get(participant)
-                logger.info(f"[COMBAT] Using AI strategy: {type(ai).__name__}")
                 if ai:
                     combat_state = self._build_combat_state(participant)
                     action_plan = ai.choose_action(participant, combat_state)
-                    logger.info(f"[COMBAT] {participant.name} chose action: {action_plan}")
-                    # Extra debug for party members
-                    if hasattr(participant, 'character_class'):
-                        logger.debug(f"[DEBUG] {participant.name} action_plan type: {type(action_plan)}")
-                        if isinstance(action_plan, dict):
-                            logger.debug(f"[DEBUG] {participant.name} action dict keys: {list(action_plan.keys())}")
-                            if 'action' in action_plan:
-                                logger.debug(f"[DEBUG] {participant.name} action object type: {type(action_plan['action'])}")
                     result = self._execute_action(participant, action_plan)
-                    logger.info(f"[COMBAT] {participant.name} executed action: {getattr(action_plan, 'name', str(action_plan)) if hasattr(action_plan, 'name') else action_plan}")
                     self.logger.log_action(participant, result)
                     if self.is_combat_over():
                         return participant
@@ -177,15 +158,10 @@ class Combat:
         if action_type == 'attack':
             action = action_plan['action']
             target = action_plan['target']
-            # Extra debug for attack actions
-            logger.debug(f"[DEBUG] {participant.name} attacking {getattr(target, 'name', str(target))} with {getattr(action, 'name', str(action))} (type: {type(action)})")
             result = action.execute(participant, target)
-            logger.debug(f"[DEBUG] Attack roll: {result.get('attack_roll')}, hit bonus: {result.get('hit_bonus')}, total: {result.get('total_attack')}, target AC: {result.get('target_ac')}, hit: {result.get('hit')}, damage: {result.get('damage')}")
             # Clear alive cache after damage-dealing action
             if result.get('damage', 0) > 0:
                 self._alive_participants_cache = None
-                # Debug: print target HP after damage
-                logger.debug(f"[DEBUG] After attack: {getattr(target, 'name', str(target))} HP = {getattr(target, 'hp', 'N/A')}")
             return result
         elif action_type == 'cast_spell':
             spell = action_plan['spell']
@@ -194,24 +170,18 @@ class Combat:
             # Clear alive cache after spell action
             if result.get('damage', 0) > 0 or result.get('healing', 0) > 0:
                 self._alive_participants_cache = None
-                # Debug: print target HP after spell
-                logger.debug(f"[DEBUG] After spell: {getattr(target, 'name', str(target))} HP = {getattr(target, 'hp', 'N/A')}")
             return result
         elif action_type == 'special':
-            action = action_plan['action']
-            target = action_plan['target']
-            target_name = getattr(target, 'name', str(target))
-            return {
-                'action': action.name,
-                'type': 'special',
-                'target': target_name,
-                'description': getattr(action, 'description', '')
-            }
+            # Handle special actions
+            action_name = action_plan.get('action', 'Unknown Action')
+            target = action_plan.get('target')
+            result = {'action': action_name, 'target': target, 'type': 'special'}
+            return result
         elif action_type == 'defend':
             return {
                 'action': 'Defend',
                 'type': 'defend',
-                'description': 'Takes the defensive stance'
+                'description': 'Takes defensive stance'
             }
         elif action_type == 'wait':
             return {
@@ -220,16 +190,17 @@ class Combat:
                 'description': 'Takes no action'
             }
         else:
-            return {'action': action_type}
+            # Default action
+            result = {'action': 'Unknown Action', 'type': 'unknown'}
+            return result
 
     def is_combat_over(self) -> bool:
         """
-        Optimized combat end detection with caching.
+        Check if combat is over efficiently.
         """
         # Use cached alive participants
         alive_participants = self._get_alive_participants()
         alive_set = set(alive_participants)
-        # Removed debug logging for combat end checks
         all_characters_down = all(p not in alive_set for p in self._original_characters)
         all_monsters_down = all(p not in alive_set for p in self._original_monsters)
         return all_characters_down or all_monsters_down
@@ -276,12 +247,6 @@ class Combat:
                 # Safety check for infinite loops
                 if self.current_round > max_rounds:
                     break
-                
-                # DEBUG: Print monster HP after each round
-                if self.current_turn == 0:  # End of round
-                    import logging
-                    monster_status = [f"{getattr(m, 'name', str(m))}: HP={getattr(m, 'hp', 'N/A')}" for m in self._original_monsters]
-                    logging.info(f"[DEBUG] End of round {self.current_round-1}: Monster HP: {monster_status}")
             
             # Final callback
             if progress_callback:

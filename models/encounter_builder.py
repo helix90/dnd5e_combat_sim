@@ -93,9 +93,14 @@ class EncounterBuilder:
         encounter = []
         missing_monsters = []
         for entry in template.get("monsters", []):
+            # Support both exact name matches and base-name matching for numbered instances
             name = entry["name"]
             count = entry.get("count", 1)
-            matches = [m for m in self.monster_data if m["name"] == name]
+            matches = [m for m in self.monster_data if m.get("name") == name]
+            if not matches:
+                # Try base-name match (e.g., template says "Skeleton" and DB has "Skeleton" entries)
+                base_name = name.replace("\u00a0", " ").strip()
+                matches = [m for m in self.monster_data if (m.get("name") or "").strip() == base_name]
             if not matches:
                 missing_monsters.append(name)
                 continue

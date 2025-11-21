@@ -3,14 +3,14 @@
 <h2>Select Encounter</h2>
 <ul class="nav nav-tabs" id="encounterTab" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link {% if tab != 'prebuilt' %}active{% endif %}" id="custom-tab" data-bs-toggle="tab" data-bs-target="#custom" type="button" role="tab">Custom Encounter</button>
+    <button class="nav-link active" id="custom-tab" data-bs-toggle="tab" data-bs-target="#custom" type="button" role="tab">Custom Encounter</button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link {% if tab == 'prebuilt' %}active{% endif %}" id="prebuilt-tab" data-bs-toggle="tab" data-bs-target="#prebuilt" type="button" role="tab">Pre-built Encounter</button>
+    <button class="nav-link" id="prebuilt-tab" data-bs-toggle="tab" data-bs-target="#prebuilt" type="button" role="tab">Pre-built Encounter</button>
   </li>
 </ul>
 <div class="tab-content mt-3" id="encounterTabContent">
-  <div class="tab-pane fade {% if tab != 'prebuilt' %}show active{% endif %}" id="custom" role="tabpanel">
+  <div class="tab-pane fade show active" id="custom" role="tabpanel">
     <div class="row mb-3">
       <div class="col-md-4">
         <label for="cr-filter" class="form-label">Filter by CR:</label>
@@ -33,7 +33,7 @@
     <div id="balance-warning" class="alert alert-warning d-none"></div>
     <button id="custom-continue" class="btn btn-success" disabled>Continue</button>
   </div>
-  <div class="tab-pane fade {% if tab == 'prebuilt' %}show active{% endif %}" id="prebuilt" role="tabpanel">
+  <div class="tab-pane fade" id="prebuilt" role="tabpanel">
     <div class="row" id="prebuilt-encounters">
       <!-- JS will populate pre-built encounter cards -->
     </div>
@@ -77,7 +77,17 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         container.appendChild(card);
       });
+    })
+    .catch(error => {
+      console.error('Error loading prebuilt encounters:', error);
+      const container = document.getElementById('prebuilt-encounters');
+      if (container) {
+        container.innerHTML = '<div class="alert alert-danger">Failed to load prebuilt encounters</div>';
+      }
     });
+
+  // Load monsters for custom encounter
+  loadMonsters();
 });
 
 function selectPrebuiltEncounter(name) {
@@ -106,7 +116,6 @@ function selectPrebuiltEncounter(name) {
     return response.json();
   })
   .then(result => {
-    console.log('Encounter selection result:', result);
     if (result.error) {
       alert('Error: ' + result.error);
       return;
@@ -189,27 +198,26 @@ function selectPrebuiltEncounter(name) {
         monsterInfo.innerHTML = `<strong>Encounter Created:</strong> ${result.monsters.length} monsters loaded`;
         document.getElementById('prebuilt').appendChild(monsterInfo);
         
-              // Clear any existing monster lists first
-      const existingLists = document.querySelectorAll('#prebuilt .monster-list');
-      existingLists.forEach(list => list.remove());
-      
-      // Create monster list
-      const monsterList = document.createElement('div');
-      monsterList.className = 'mt-3 monster-list';
-      monsterList.innerHTML = '<h6>Selected Monsters:</h6><ul class="list-group">';
-      
-      // Group monsters by name and count them
-      const monsterCounts = {};
-      result.monsters.forEach(monster => {
-        monsterCounts[monster.name] = (monsterCounts[monster.name] || 0) + 1;
-      });
-      
-      Object.entries(monsterCounts).forEach(([name, count]) => {
-        monsterList.innerHTML += `<li class="list-group-item">${count}x ${name}</li>`;
-      });
-      
-      monsterList.innerHTML += '</ul>';
-      document.getElementById('prebuilt').appendChild(monsterList);
+        // Clear any existing monster lists first
+        const existingLists = document.querySelectorAll('#prebuilt .monster-list');
+        existingLists.forEach(list => list.remove());
+        
+        // Create monster list showing actual instances
+        const monsterList = document.createElement('div');
+        monsterList.className = 'mt-3 monster-list';
+        monsterList.innerHTML = '<h6>Selected Monsters:</h6><ul class="list-group">';
+        
+        // Show each monster instance individually to match the combat log
+        result.monsters.forEach(monster => {
+          const monsterName = monster.name || 'Unknown Monster';
+          const monsterCR = monster.cr || 'Unknown CR';
+          const monsterHP = monster.hp || 'Unknown HP';
+          const monsterAC = monster.ac || 'Unknown AC';
+          monsterList.innerHTML += `<li class="list-group-item">${monsterName} (CR: ${monsterCR}, HP: ${monsterHP}, AC: ${monsterAC})</li>`;
+        });
+        
+        monsterList.innerHTML += '</ul>';
+        document.getElementById('prebuilt').appendChild(monsterList);
       }
     }
   })
@@ -218,5 +226,157 @@ function selectPrebuiltEncounter(name) {
     alert('Failed to select encounter: ' + error.message);
   });
 }
+
+// Custom encounter functions
+function getSelectedMonsters() {
+  const selectedMonsters = [];
+  const monsterButtons = document.querySelectorAll('#monster-selector .btn-success');
+  monsterButtons.forEach(btn => {
+    const monsterData = JSON.parse(btn.dataset.monster);
+    selectedMonsters.push(monsterData);
+  });
+  return selectedMonsters;
+}
+
+function addMonster(monsterData) {
+  const monsterSelector = document.getElementById('monster-selector');
+  const monsterButton = document.createElement('button');
+  monsterButton.className = 'btn btn-success btn-sm';
+  monsterButton.dataset.monster = JSON.stringify(monsterData);
+  monsterButton.textContent = monsterData.name;
+  monsterButton.onclick = function() {
+    this.remove();
+    updateSelectedMonsters();
+  };
+  monsterSelector.appendChild(monsterButton);
+  updateSelectedMonsters();
+}
+
+function updateSelectedMonsters() {
+  const selectedMonsters = getSelectedMonsters();
+  const selectedList = document.getElementById('selected-monsters');
+  const continueBtn = document.getElementById('custom-continue');
+  
+  selectedList.innerHTML = '';
+  selectedMonsters.forEach(monster => {
+    const li = document.createElement('li');
+    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+    li.innerHTML = `
+      ${monster.name} (CR: ${monster.cr}, HP: ${monster.hp}, AC: ${monster.ac})
+      <span class="badge bg-primary rounded-pill">${monster.count || 1}</span>
+    `;
+    selectedList.appendChild(li);
+  });
+  
+  // Enable/disable continue button
+  if (continueBtn) {
+    continueBtn.disabled = selectedMonsters.length === 0;
+    if (selectedMonsters.length > 0) {
+      continueBtn.onclick = function() {
+        // Send selected monsters to backend
+        fetch('/encounter/custom', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            monsters: selectedMonsters,
+            party_level: currentParty ? currentParty.party_level : 1,
+            party_size: currentParty ? currentParty.party_size : 4
+          })
+        })
+        .then(response => response.json())
+        .then(result => {
+          if (result.error) {
+            alert('Error: ' + result.error);
+          } else {
+            window.location.href = '/simulate';
+          }
+        })
+        .catch(error => {
+          console.error('Error creating custom encounter:', error);
+          alert('Failed to create custom encounter: ' + error.message);
+        });
+      };
+    }
+  }
+  
+  // Show balance warning if available
+  if (currentParty && selectedMonsters.length > 0) {
+    fetch('/api/encounter/balance', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        monsters: selectedMonsters,
+        party_level: currentParty.party_level,
+        party_size: currentParty.party_size
+      })
+    })
+    .then(response => response.json())
+    .then(result => {
+      const warningDiv = document.getElementById('balance-warning');
+      if (result.balance && result.balance !== 'balanced') {
+        warningDiv.textContent = `Encounter Balance: ${result.balance}`;
+        warningDiv.classList.remove('d-none');
+      } else {
+        warningDiv.classList.add('d-none');
+      }
+    })
+    .catch(error => {
+      console.error('Error checking balance:', error);
+    });
+  }
+}
+
+// Load monsters for custom encounter
+function loadMonsters() {
+  fetch('/api/monsters')
+    .then(response => response.json())
+    .then(monsters => {
+      const monsterSelector = document.getElementById('monster-selector');
+      const crFilter = document.getElementById('cr-filter');
+      
+      // Populate CR filter
+      const crs = [...new Set(monsters.map(m => m.cr))].sort();
+      crs.forEach(cr => {
+        const option = document.createElement('option');
+        option.value = cr;
+        option.textContent = `CR ${cr}`;
+        crFilter.appendChild(option);
+      });
+      
+      // Populate monster buttons
+      monsters.forEach(monster => {
+        const monsterButton = document.createElement('button');
+        monsterButton.className = 'btn btn-outline-primary btn-sm';
+        monsterButton.textContent = monster.name;
+        monsterButton.onclick = function() {
+          addMonster(monster);
+        };
+        monsterSelector.appendChild(monsterButton);
+      });
+      
+      // Add CR filter functionality
+      crFilter.onchange = function() {
+        const selectedCR = this.value;
+        const monsterButtons = monsterSelector.querySelectorAll('.btn');
+        monsterButtons.forEach(btn => {
+          if (!selectedCR || btn.dataset.monster) {
+            btn.style.display = 'block';
+          } else {
+            const monsterData = JSON.parse(btn.dataset.monster);
+            btn.style.display = monsterData.cr === selectedCR ? 'block' : 'none';
+          }
+        });
+      };
+    })
+    .catch(error => {
+      console.error('Error loading monsters:', error);
+    });
+}
+
+
 </script>
 {% endblock %} 

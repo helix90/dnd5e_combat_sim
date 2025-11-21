@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Simulation Results</h2>
+{% if sim_id %}
+<div class="alert alert-info">
+  <strong>Simulation ID:</strong> {{ sim_id }}
+</div>
+{% endif %}
 <div class="mb-3">
   <h4 id="win-loss">{{ summary.win_loss or 'No result data' }}</h4>
   <div>Party Status: {{ summary.party_status or 'No data' }}</div>

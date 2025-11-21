@@ -17,6 +17,22 @@
       ]
     },
     {
+      "name": "Skeleton Horde",
+      "level": 1,
+      "type": "mob",
+      "monsters": [
+        {"name": "Skeleton", "count": 6}
+      ]
+    },
+    {
+      "name": "Zombie Shamblers",
+      "level": 1,
+      "type": "mob",
+      "monsters": [
+        {"name": "Zombie", "count": 4}
+      ]
+    },
+    {
       "name": "Wolf Pack",
       "level": 1,
       "type": "mixed",
@@ -31,6 +47,23 @@
       "type": "mob",
       "monsters": [
         {"name": "Orc", "count": 4}
+      ]
+    },
+    {
+      "name": "Ghoul Pack",
+      "level": 2,
+      "type": "mob",
+      "monsters": [
+        {"name": "Ghoul", "count": 3}
+      ]
+    },
+    {
+      "name": "Undead Ambush",
+      "level": 2,
+      "type": "mixed",
+      "monsters": [
+        {"name": "Skeleton", "count": 3},
+        {"name": "Zombie", "count": 2}
       ]
     },
     {
@@ -52,12 +85,48 @@
       ]
     },
     {
+      "name": "Mummy's Tomb",
+      "level": 3,
+      "type": "elite",
+      "monsters": [
+        {"name": "Mummy", "count": 1},
+        {"name": "Skeleton", "count": 4}
+      ]
+    },
+    {
+      "name": "Wight Commander",
+      "level": 3,
+      "type": "elite",
+      "monsters": [
+        {"name": "Wight", "count": 1},
+        {"name": "Skeleton", "count": 3}
+      ]
+    },
+    {
       "name": "Owlbear Lair",
       "level": 4,
       "type": "elite",
       "monsters": [
         {"name": "Owlbear", "count": 1},
         {"name": "Goblin", "count": 4}
+      ]
+    },
+    {
+      "name": "Undead Legion",
+      "level": 4,
+      "type": "mob",
+      "monsters": [
+        {"name": "Skeleton", "count": 8},
+        {"name": "Zombie", "count": 4}
+      ]
+    },
+    {
+      "name": "Ghoul Nest",
+      "level": 4,
+      "type": "mixed",
+      "monsters": [
+        {"name": "Ghoul", "count": 4},
+        {"name": "Zombie", "count": 3}
       ]
     },
     {
@@ -70,6 +139,24 @@
       ]
     },
     {
+      "name": "Wraith's Haunt",
+      "level": 5,
+      "type": "elite",
+      "monsters": [
+        {"name": "Wraith", "count": 1},
+        {"name": "Skeleton", "count": 6}
+      ]
+    },
+    {
+      "name": "Vampire Spawn Pack",
+      "level": 5,
+      "type": "mixed",
+      "monsters": [
+        {"name": "Vampire Spawn", "count": 2},
+        {"name": "Ghoul", "count": 3}
+      ]
+    },
+    {
       "name": "Minotaur Maze",
       "level": 4,
       "type": "elite",
@@ -79,12 +166,32 @@
       ]
     },
     {
+      "name": "Undead Crypt",
+      "level": 4,
+      "type": "mixed",
+      "monsters": [
+        {"name": "Wight", "count": 2},
+        {"name": "Skeleton", "count": 4},
+        {"name": "Zombie", "count": 2}
+      ]
+    },
+    {
       "name": "Hill Giant Rampage",
       "level": 6,
       "type": "elite",
       "monsters": [
         {"name": "Hill Giant", "count": 1},
         {"name": "Goblin", "count": 3}
+      ]
+    },
+    {
+      "name": "Vampire's Lair",
+      "level": 6,
+      "type": "boss",
+      "monsters": [
+        {"name": "Vampire Spawn", "count": 3},
+        {"name": "Wight", "count": 1},
+        {"name": "Skeleton", "count": 4}
       ]
     },
     {
@@ -104,6 +211,37 @@
         {"name": "Orc", "count": 2},
         {"name": "Goblin", "count": 2},
         {"name": "Wolf", "count": 1}
+      ]
+    },
+    {
+      "name": "Necromancer's Army",
+      "level": 5,
+      "type": "boss",
+      "monsters": [
+        {"name": "Mummy", "count": 1},
+        {"name": "Wight", "count": 1},
+        {"name": "Skeleton", "count": 6},
+        {"name": "Zombie", "count": 4}
+      ]
+    },
+    {
+      "name": "Graveyard Shift",
+      "level": 2,
+      "type": "mixed",
+      "monsters": [
+        {"name": "Skeleton", "count": 4},
+        {"name": "Zombie", "count": 2},
+        {"name": "Ghoul", "count": 1}
+      ]
+    },
+    {
+      "name": "Wraith's Domain",
+      "level": 6,
+      "type": "boss",
+      "monsters": [
+        {"name": "Wraith", "count": 2},
+        {"name": "Vampire Spawn", "count": 1},
+        {"name": "Skeleton", "count": 8}
       ]
     }
   ]

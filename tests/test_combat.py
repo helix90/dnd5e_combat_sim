@@ -313,29 +313,34 @@ def test_combat_log_includes_spell_name(monkeypatch):
         spell_slots={1: 2}
     )
     cleric.add_spell(spell)
-    wizard = Character(
-        name="Calyra",
-        level=3,
-        character_class="Wizard",
-        race="Elf",
-        ability_scores={"str": 8, "dex": 14, "con": 14, "int": 16, "wis": 12, "cha": 10},
-        hp=10,
-        ac=12,
-        proficiency_bonus=2,
-        actions=[]
+    
+    # Create a monster to make this a proper character vs monster encounter
+    goblin = Monster(
+        name="Goblin",
+        challenge_rating="1/4",
+        hp=7,
+        ac=15,
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
+        special_abilities=[],
+        legendary_actions=[],
+        damage_resistances=[],
+        damage_immunities=[],
+        multiattack=False,
+        actions=[{"name": "Scimitar", "type": "attack", "damage_dice": "1d6+2", "damage_type": "slashing"}]
     )
-    # Patch AI to always cast Cure Wounds on wizard
+    
+    # Patch AI to always cast Cure Wounds on cleric (healing herself)
     class AlwaysHealStrategy:
         def choose_action(self, combatant, combat_state):
-            return {'type': 'cast_spell', 'spell': SpellAction(spell), 'target': wizard}
+            return {'type': 'cast_spell', 'spell': SpellAction(spell), 'target': cleric}
         def evaluate_targets(self, *a, **k): return []
         def threat_assessment(self, *a, **k): return 0
         def opportunity_cost_analysis(self, *a, **k): return 0
-    combat = Combat([cleric, wizard])
+    combat = Combat([cleric, goblin])
     combat.ai_strategy_map[cleric] = AlwaysHealStrategy()
     # Patch initiative so cleric always goes first
     def fake_randint(a, b):
-        # First call: cleric, second: wizard
+        # First call: cleric, second: goblin
         return 20 if fake_randint.calls == 0 else 1
     fake_randint.calls = 0
     def fake_randint_wrapper(a, b):
