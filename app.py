@@ -5,7 +5,7 @@ A Flask-based web application for simulating D&D 5e combat encounters
 between characters and monsters.
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -348,10 +348,10 @@ def api_current_party():
 def simulate():
     # Start simulation if not already started
     session_id = session['session_id']
-    
+
     # Ensure session exists in database before starting simulation
     db.create_session(session_id, selected_party_id=session.get('selected_party_id'))
-    
+
     if not simulation_controller.simulation_states.get(session_id):
         # Load party and monsters from session
         selected_party_id = session.get('selected_party_id', 1)
@@ -362,9 +362,13 @@ def simulate():
         else:
             party = []
         monsters = session.get('encounter_monsters', [])
-        
-        simulation_controller.execute_simulation(party, monsters, session_id, party_level=selected_party_level)
-    
+
+        try:
+            simulation_controller.execute_simulation(party, monsters, session_id, party_level=selected_party_level)
+        except ValidationError as e:
+            flash(f'Validation error: {str(e)}', 'danger')
+            return redirect(url_for('encounter_selection'))
+
     # Don't manually set simulation_id here - let the database generate it
     return render_template('simulation.html')
 
