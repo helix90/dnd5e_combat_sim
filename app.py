@@ -114,11 +114,16 @@ def configure_app(app: Flask) -> None:
 
 configure_app(app)
 
-# Initialize CSRF protection (respects WTF_CSRF_ENABLED config)
-csrf = CSRFProtect(app)
+# Initialize CSRF protection (only if enabled)
+csrf = None
 if app.config.get('WTF_CSRF_ENABLED', False):
+    csrf = CSRFProtect(app)
     logger.info("CSRF protection ENABLED")
 else:
+    # Provide a dummy csrf_token() function for templates when CSRF is disabled
+    @app.context_processor
+    def inject_csrf_token():
+        return dict(csrf_token=lambda: '')
     logger.warning("CSRF protection DISABLED (development mode)")
 
 # Initialize rate limiting
