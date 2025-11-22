@@ -2,6 +2,7 @@
 {% block content %}
 <h2>Select Your Party</h2>
 <form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <div class="mb-3">
     <label for="party_id" class="form-label">Party:</label>
     <select class="form-select" id="party_id" name="party_id" onchange="showPartyPreview()">
