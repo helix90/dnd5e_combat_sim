@@ -94,12 +94,14 @@ def configure_app(app: Flask) -> None:
             logger.warning("Using default development secret key - DO NOT use in production!")
 
     # Session Security
-    app.config['SESSION_COOKIE_SECURE'] = not app.debug and not app.config.get('TESTING', False)  # HTTPS only in production
+    # Disable SECURE cookie for local development (allows HTTP access from LAN)
+    # In production, set FLASK_SESSION_COOKIE_SECURE=true environment variable
+    app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_SESSION_COOKIE_SECURE', 'false').lower() == 'true'
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=SESSION_LIFETIME_HOURS)
 
-    logger.info(f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}")
+    logger.info(f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}, session_cookie_secure={app.config['SESSION_COOKIE_SECURE']}")
 
 configure_app(app)
 
@@ -287,6 +289,11 @@ def index() -> str:
         Rendered HTML template
     """
     return render_template('index.html')
+
+@app.route('/favicon.ico')
+def favicon() -> Response:
+    """Return 204 No Content for favicon requests to prevent 404 errors."""
+    return Response(status=204)
 
 @app.route('/party', methods=['GET', 'POST'])
 def party() -> str:
