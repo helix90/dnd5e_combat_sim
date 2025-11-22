@@ -372,7 +372,7 @@ def encounter_custom() -> Any:
             for monster in monsters:
                 validate_input(
                     monster,
-                    allowed_fields=['name', 'hp', 'ac', 'cr', 'ability_scores']
+                    allowed_fields=['name', 'hp', 'ac', 'cr', 'ability_scores', 'actions', 'level', 'type', 'description']
                 )
 
             result = encounter_controller.handle_custom_encounter(
