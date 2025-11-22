@@ -368,12 +368,9 @@ def encounter_custom() -> Any:
             party_level = int(data.get('party_level', 3))
             party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
 
-            # Validate monster data
+            # Validate monster data (no field restriction - monsters have many varied fields)
             for monster in monsters:
-                validate_input(
-                    monster,
-                    allowed_fields=['name', 'hp', 'ac', 'cr', 'ability_scores', 'actions', 'level', 'type', 'description']
-                )
+                validate_input(monster, max_length=MAX_INPUT_LENGTH_JSON)
 
             result = encounter_controller.handle_custom_encounter(
                 monsters, party_level, party_size
@@ -587,12 +584,9 @@ def api_encounter_balance() -> Any:
         party_level = int(data.get('party_level', 3))
         party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
 
-        # Validate monster data
+        # Validate monster data (no field restriction - monsters have many varied fields)
         for monster in monsters:
-            validate_input(
-                monster,
-                allowed_fields=['name', 'hp', 'ac', 'cr', 'ability_scores']
-            )
+            validate_input(monster, max_length=MAX_INPUT_LENGTH_JSON)
 
         balance = encounter_controller.validate_encounter_balance(
             monsters, party_level, party_size
