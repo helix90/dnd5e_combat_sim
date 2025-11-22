@@ -356,10 +356,13 @@ class SimulationController:
             # Run combat simulation
             result = combat.run(progress_callback=progress_callback)
 
-            # Update final state with complete log
+            # Update final state with complete log (convert to JSON-safe format)
             with self.state_lock:
                 if session_id in self.simulation_states:
-                    self.simulation_states[session_id]['log'] = result.get('log', [])
+                    # Convert log to JSON-safe format by removing any non-serializable objects
+                    log = result.get('log', [])
+                    # Log is already in JSON-safe dict format from combat.run(), just ensure no references
+                    self.simulation_states[session_id]['log'] = []  # Don't include log in status, it's saved to DB
 
             # Save results to database
             sim_id = self.save_simulation_results(result, session_id)

@@ -694,7 +694,10 @@ def simulate() -> Any:
         logger.error(f"Failed to create database session: {e}")
         log_exception(e)
 
-    if not simulation_controller.simulation_states.get(session_id):
+    # Check if we need to start a new simulation
+    # (either no state exists, or the previous simulation is done)
+    existing_state = simulation_controller.simulation_states.get(session_id)
+    if not existing_state or existing_state.get('done', False):
         # Load party and monsters from session
         party, party_level = load_party_from_session()
         monsters = load_monsters_from_session()
