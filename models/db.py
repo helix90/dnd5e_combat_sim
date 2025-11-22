@@ -66,8 +66,8 @@ class DatabaseManager:
     
     def _log_slow_query(self, query: str, execution_time: float):
         """Log queries that take longer than 100ms."""
-        if execution_time > 0.1:  # 100ms threshold
-            log_exception(f"Slow query detected ({execution_time:.3f}s): {query}")
+        # Disabled - slow query logging was too noisy
+        pass
     
     def create_session(self, session_id: str, selected_party_id: Optional[int] = None) -> bool:
         """Create a new session with optimized query."""
