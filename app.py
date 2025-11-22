@@ -114,8 +114,13 @@ def configure_app(app: Flask) -> None:
 
 configure_app(app)
 
-# Initialize CSRF protection
-csrf = CSRFProtect(app)
+# Initialize CSRF protection (only if enabled)
+csrf = None
+if app.config.get('WTF_CSRF_ENABLED', False):
+    csrf = CSRFProtect(app)
+    logger.info("CSRF protection initialized")
+else:
+    logger.warning("CSRF protection NOT initialized (disabled for development)")
 
 # Initialize rate limiting
 limiter = Limiter(
