@@ -1049,7 +1049,15 @@ def handle_app_error(error: AppError) -> Tuple[Any, int]:
     """
     log_exception(error)
 
-    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+    # Check if this is a JSON request (from fetch/AJAX)
+    is_json_request = (
+        request.is_json or
+        request.content_type == 'application/json' or
+        request.headers.get('Content-Type') == 'application/json' or
+        (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html)
+    )
+
+    if is_json_request:
         response = jsonify({
             'error': str(error),
             'type': error.__class__.__name__
@@ -1071,7 +1079,15 @@ def handle_unexpected_error(error: Exception) -> Tuple[Any, int]:
     """
     log_exception(error)
 
-    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+    # Check if this is a JSON request (from fetch/AJAX)
+    is_json_request = (
+        request.is_json or
+        request.content_type == 'application/json' or
+        request.headers.get('Content-Type') == 'application/json' or
+        (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html)
+    )
+
+    if is_json_request:
         response = jsonify({
             'error': 'An unexpected error occurred.',
             'type': error.__class__.__name__
