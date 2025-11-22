@@ -8,7 +8,7 @@
   <div id="status-message" class="mb-2">Starting simulation...</div>
   <div id="error-message" class="alert alert-danger d-none"></div>
   <div id="results-button" class="d-none">
-    <button class="btn btn-success" onclick="window.location.href='/simulate/results'">View Results Now</button>
+    <button class="btn btn-success" id="view-results-btn">View Results Now</button>
   </div>
 </div>
 <h5>Combat Log</h5>
@@ -28,13 +28,18 @@ function pollStatus() {
     let progress = data.progress || 0;
     let done = data.done;
     let log = data.log || [];
+    let simId = data.simulation_id;
     document.getElementById('progress-bar').style.width = progress + '%';
     document.getElementById('progress-bar').textContent = progress + '%';
     document.getElementById('combat-log').textContent = log.join('\n');
     if (done) {
       document.getElementById('status-message').textContent = 'Simulation complete! Redirecting to results in 3 seconds...';
-      document.getElementById('results-button').classList.remove('d-none');
-      setTimeout(function() { window.location.href = '/simulate/results'; }, 3000);
+      let resultsUrl = simId ? '/results?sim_id=' + simId : '/simulate/results';
+      let resultsButton = document.getElementById('results-button');
+      let viewResultsBtn = document.getElementById('view-results-btn');
+      resultsButton.classList.remove('d-none');
+      viewResultsBtn.onclick = function() { window.location.href = resultsUrl; };
+      setTimeout(function() { window.location.href = resultsUrl; }, 3000);
     } else {
       setTimeout(pollStatus, 1000);
     }
