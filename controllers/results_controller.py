@@ -60,9 +60,9 @@ class ResultsController:
                 damage = log['damage'] or 0
                 round_num = log['round_number']
                 
-                # Group monsters by base name (e.g., "Kobold 1", "Kobold 2" -> "Kobold")
-                actor_key = self._get_base_name(actor)
-                target_key = self._get_base_name(target) if target else None
+                # Keep individual monsters separate (e.g., "Kobold 1", "Kobold 2" stay distinct)
+                actor_key = actor
+                target_key = target if target else None
                 
                 # Set name
                 stats[actor_key]['name'] = actor_key
