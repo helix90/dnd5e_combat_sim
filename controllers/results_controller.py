@@ -74,6 +74,7 @@ class ResultsController:
                 
                 # Damage taken
                 if target_key and damage > 0:
+                    stats[target_key]['name'] = target_key  # Set target name
                     stats[target_key]['damage_taken'] += damage
                     stats[target_key]['rounds'][round_num]['damage_taken'] = stats[target_key]['rounds'][round_num].get('damage_taken', 0) + damage
                 
