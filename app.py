@@ -712,7 +712,7 @@ def simulate_status() -> Any:
     Returns:
         JSON response with simulation status
     """
-    return simulation_controller.handle_simulation_progress()
+    return jsonify(simulation_controller.handle_simulation_progress())
 
 @app.route('/simulate/results', methods=['GET'])
 def simulate_results() -> Response:
