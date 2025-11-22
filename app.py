@@ -22,7 +22,6 @@ from flask import (
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFProtect
 
 # Local imports
 from controllers.batch_simulation_controller import BatchSimulationController
@@ -38,7 +37,6 @@ from utils.party_loader import PartyLoader
 
 # Constants - Application Configuration
 DEFAULT_SECRET_KEY = 'dev-secret-key'
-CSRF_TIMEOUT_SECONDS = 3600  # 1 hour
 SESSION_LIFETIME_HOURS = 24
 
 # Constants - Rate Limiting
@@ -95,36 +93,15 @@ def configure_app(app: Flask) -> None:
         else:
             logger.warning("Using default development secret key - DO NOT use in production!")
 
-    # CSRF Protection - disabled for development/testing
-    # Enable in production by setting WTF_CSRF_ENABLED environment variable
-    csrf_enabled_env = os.environ.get('WTF_CSRF_ENABLED', 'false').lower() == 'true'
-    app.config['WTF_CSRF_ENABLED'] = csrf_enabled_env
-    app.config['WTF_CSRF_TIME_LIMIT'] = CSRF_TIMEOUT_SECONDS
-
-    if not csrf_enabled_env:
-        logger.warning("CSRF protection is DISABLED - enable in production with WTF_CSRF_ENABLED=true")
-
     # Session Security
     app.config['SESSION_COOKIE_SECURE'] = not app.debug and not app.config.get('TESTING', False)  # HTTPS only in production
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=SESSION_LIFETIME_HOURS)
 
-    logger.info(f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}, csrf_enabled={app.config['WTF_CSRF_ENABLED']}")
+    logger.info(f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}")
 
 configure_app(app)
-
-# Initialize CSRF protection (only if enabled)
-csrf = None
-if app.config.get('WTF_CSRF_ENABLED', False):
-    csrf = CSRFProtect(app)
-    logger.info("CSRF protection ENABLED")
-else:
-    # Provide a dummy csrf_token() function for templates when CSRF is disabled
-    @app.context_processor
-    def inject_csrf_token():
-        return dict(csrf_token=lambda: '')
-    logger.warning("CSRF protection DISABLED (development mode)")
 
 # Initialize rate limiting
 limiter = Limiter(
