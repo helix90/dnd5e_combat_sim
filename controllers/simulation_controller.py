@@ -369,6 +369,9 @@ class SimulationController:
             with self.state_lock:
                 if session_id in self.simulation_states:
                     self.simulation_states[session_id]['done'] = True
+                    logger.info(f"Marked simulation as done for session {session_id}. Final state: {self.simulation_states[session_id]}")
+                else:
+                    logger.warning(f"Cannot mark as done - session {session_id} not in simulation_states")
 
         except Exception as e:
             log_exception(e)
@@ -460,11 +463,14 @@ class SimulationController:
         """
         session_id = session['session_id']
         with self.state_lock:
-            return self.simulation_states.get(session_id, {
+            logger.info(f"handle_simulation_progress: session_id={session_id}, available_sessions={list(self.simulation_states.keys())}")
+            state = self.simulation_states.get(session_id, {
                 'progress': 0,
                 'log': [],
                 'done': False
-            }).copy()  # Return copy to prevent external modifications
+            })
+            logger.info(f"handle_simulation_progress: returning state={state}")
+            return state.copy()  # Return copy to prevent external modifications
 
     def save_simulation_results(self, result: Dict[str, Any], session_id: str) -> int:
         """

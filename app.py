@@ -265,13 +265,16 @@ def ensure_session() -> None:
     Creates a new session ID and database session if one doesn't exist.
     """
     if 'session_id' not in session:
+        session.permanent = True  # Make session persistent across requests
         session['session_id'] = str(uuid4())
         try:
             db.create_session(session['session_id'])
-            logger.debug(f"Created new session: {session['session_id']}")
+            logger.info(f"Created new session: {session['session_id']}")
         except Exception as e:
             logger.error(f"Failed to create database session: {e}")
             log_exception(e)
+    else:
+        session.permanent = True  # Ensure existing sessions are also permanent
 
 # Main Routes
 
@@ -712,7 +715,11 @@ def simulate_status() -> Any:
     Returns:
         JSON response with simulation status
     """
-    return jsonify(simulation_controller.handle_simulation_progress())
+    session_id = session.get('session_id', 'NO_SESSION_ID')
+    logger.info(f"Status endpoint called for session_id: {session_id}")
+    status = simulation_controller.handle_simulation_progress()
+    logger.info(f"Status endpoint returning: {status}")
+    return jsonify(status)
 
 @app.route('/simulate/results', methods=['GET'])
 def simulate_results() -> Response:
