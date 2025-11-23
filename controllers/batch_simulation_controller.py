@@ -39,22 +39,24 @@ class BatchSimulationController:
         party_level = max([char.get('level', 1) for char in party]) if party else 1
         encounter_type = 'custom'  # Could be enhanced to detect prebuilt encounters
         batch_id = self.db.create_batch_simulation(session_id, batch_name, party_level, encounter_type)
-        
+
+        # Initialize state BEFORE starting thread so it's immediately available for progress polling
+        with self.state_lock:
+            self.batch_states[batch_id] = {
+                'progress': 0,
+                'completed_runs': 0,
+                'failed_runs': 0,
+                'total_runs': num_runs,
+                'party_wins': 0,
+                'monster_wins': 0,
+                'total_rounds': 0,
+                'total_party_hp_remaining': 0,
+                'done': False,
+                'error': None
+            }
+
         def run():
             try:
-                with self.state_lock:
-                    self.batch_states[batch_id] = {
-                        'progress': 0,
-                        'completed_runs': 0,
-                        'failed_runs': 0,
-                        'total_runs': num_runs,
-                        'party_wins': 0,
-                        'monster_wins': 0,
-                        'total_rounds': 0,
-                        'total_party_hp_remaining': 0,
-                        'done': False,
-                        'error': None
-                    }
                 
                 # Run simulations
                 for run_number in range(1, num_runs + 1):

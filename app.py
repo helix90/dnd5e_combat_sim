@@ -806,6 +806,7 @@ def batch_simulation_start() -> Tuple[Any, int]:
             )
 
         # Start batch simulation
+        logger.info(f"Starting batch simulation: {num_runs} runs, {len(party)} party members, {len(monsters)} monsters")
         batch_id = batch_simulation_controller.execute_batch_simulation(
             party, monsters, num_runs, batch_name, session_id
         )
@@ -833,6 +834,7 @@ def batch_simulation_progress(batch_id: int) -> Tuple[Any, int]:
     """
     try:
         progress = batch_simulation_controller.get_batch_progress(batch_id)
+        logger.debug(f"Batch {batch_id} progress: {progress.get('completed_runs', 0)}/{progress.get('total_runs', 0)} runs, {progress.get('progress', 0):.1f}% complete")
         return jsonify(progress), 200
     except Exception as e:
         log_exception(e)
