@@ -84,28 +84,36 @@
 
 {% block scripts %}
 <script>
+console.log('Batch simulation script loaded');
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOMContentLoaded event fired');
   loadCurrentSetup();
   loadBatchHistory();
-  
+
   const batchForm = document.getElementById('batchForm');
+  console.log('batchForm element:', batchForm);
   const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
+  console.log('progressModal created');
   let currentBatchId = null;
   
   batchForm.addEventListener('submit', function(e) {
+    console.log('Form submit event triggered');
     e.preventDefault();
-    
+
     const formData = new FormData(batchForm);
     const data = {
       num_runs: parseInt(formData.get('num_runs')),
       batch_name: formData.get('batch_name') || `Batch ${Date.now()}`
     };
-    
+
+    console.log('Batch simulation data:', data);
+
     // Disable form
     document.getElementById('startBatchBtn').disabled = true;
     document.getElementById('startBatchBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
-    
+
     // Start batch simulation
+    console.log('Making POST request to /batch/start');
     fetch('/batch/start', {
       method: 'POST',
       headers: {
@@ -113,21 +121,27 @@ document.addEventListener('DOMContentLoaded', function() {
       },
       body: JSON.stringify(data)
     })
-    .then(response => response.json())
+    .then(response => {
+      console.log('Response received:', response.status, response.statusText);
+      return response.json();
+    })
     .then(data => {
+      console.log('Response data:', data);
       if (data.success) {
         // Extract batch ID from response or use a placeholder
-        currentBatchId = data.batch_id || 1; // We'll need to modify the backend to return batch_id
+        currentBatchId = data.batch_id || 1;
+        console.log('Batch started with ID:', currentBatchId);
         progressModal.show();
         startProgressPolling();
       } else {
+        console.error('Batch start failed:', data.error);
         alert('Error: ' + data.error);
         resetForm();
       }
     })
     .catch(error => {
-      console.error('Error:', error);
-      alert('Error starting batch simulation');
+      console.error('Fetch error:', error);
+      alert('Error starting batch simulation: ' + error.message);
       resetForm();
     });
   });
