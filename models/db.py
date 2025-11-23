@@ -173,15 +173,23 @@ class DatabaseManager:
                 # Determine action type and damage
                 if 'action' in result:
                     action_name = result.get('action', '')
-                    
+
+                    # Convert Action object to string if needed
+                    if hasattr(action_name, 'name'):
+                        # It's an Action object, use its name attribute
+                        action_name_str = action_name.name
+                    else:
+                        # It's already a string
+                        action_name_str = str(action_name) if action_name else ''
+
                     # Determine action type based on action name or other indicators
-                    if 'attack' in action_name.lower() or result.get('hit') is not None:
+                    if 'attack' in action_name_str.lower() or result.get('hit') is not None:
                         action_type = 'attack'
-                    elif 'spell' in result or 'cast' in action_name.lower():
+                    elif 'spell' in result or 'cast' in action_name_str.lower():
                         action_type = 'spell'
-                    elif 'defend' in action_name.lower() or 'dodge' in action_name.lower():
+                    elif 'defend' in action_name_str.lower() or 'dodge' in action_name_str.lower():
                         action_type = 'defend'
-                    elif 'wait' in action_name.lower():
+                    elif 'wait' in action_name_str.lower():
                         action_type = 'wait'
                     else:
                         action_type = 'special'
@@ -212,7 +220,7 @@ class DatabaseManager:
                     elif action_type == 'wait':
                         result_text = "Takes no action"
                     else:
-                        result_text = f"{action_name} on {target}"
+                        result_text = f"{action_name_str} on {target}"
                         if damage > 0:
                             result_text += f": {damage} damage"
                 
