@@ -699,6 +699,11 @@ def simulate() -> Any:
     # (either no state exists, or the previous simulation is done)
     existing_state = simulation_controller.simulation_states.get(session_id)
     if not existing_state or existing_state.get('done', False):
+        # Clear old simulation ID from session when starting a new simulation
+        if 'simulation_id' in session:
+            del session['simulation_id']
+            logger.info(f"Cleared old simulation_id from session for new simulation")
+
         # Load party and monsters from session
         party, party_level = load_party_from_session()
         monsters = load_monsters_from_session()
