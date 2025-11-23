@@ -160,15 +160,25 @@ class DatabaseManager:
             elif log_entry.get('type') == 'action':
                 actor = log_entry.get('actor', 'Unknown')
                 result = log_entry.get('result', {})
-                
+
+                # Convert actor to string if it's a Character/Monster object
+                if hasattr(actor, 'name'):
+                    actor = actor.name
+                else:
+                    actor = str(actor) if actor else 'Unknown'
+
                 # Extract action information
                 action_type = 'attack'  # Default
                 target = ''
                 damage = 0
                 result_text = ''
-                
-                # Get target from result
+
+                # Get target from result and convert to string if it's an object
                 target = result.get('target', '')
+                if hasattr(target, 'name'):
+                    target = target.name
+                else:
+                    target = str(target) if target else ''
                 
                 # Determine action type and damage
                 if 'action' in result:
