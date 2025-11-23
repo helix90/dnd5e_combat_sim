@@ -174,8 +174,18 @@ function selectPrebuiltEncounter(name) {
       // Show balance info if available
       if (result.balance) {
         const balanceInfo = document.createElement('div');
-        balanceInfo.className = 'alert alert-info mt-3';
-        balanceInfo.innerHTML = `<strong>Encounter Balance:</strong> ${result.balance}`;
+        const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
+        const alertClass = difficulty === 'deadly' || difficulty === 'trivial' ? 'alert-warning' : 'alert-info';
+        balanceInfo.className = `alert ${alertClass} mt-3`;
+
+        if (typeof result.balance === 'object') {
+          balanceInfo.innerHTML = `
+            <strong>Encounter Balance:</strong> ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}<br>
+            <small>Total XP: ${result.balance.total_xp} (Base: ${result.balance.base_xp})</small>
+          `;
+        } else {
+          balanceInfo.innerHTML = `<strong>Encounter Balance:</strong> ${difficulty}`;
+        }
         document.getElementById('prebuilt').appendChild(balanceInfo);
       }
       
@@ -317,9 +327,22 @@ function updateSelectedMonsters() {
     .then(response => response.json())
     .then(result => {
       const warningDiv = document.getElementById('balance-warning');
-      if (result.balance && result.balance !== 'balanced') {
-        warningDiv.textContent = `Encounter Balance: ${result.balance}`;
-        warningDiv.classList.remove('d-none');
+      if (result.balance) {
+        const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
+
+        if (difficulty && difficulty !== 'balanced') {
+          if (typeof result.balance === 'object') {
+            warningDiv.innerHTML = `
+              <strong>Encounter Balance:</strong> ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}<br>
+              <small>Total XP: ${result.balance.total_xp} (Base: ${result.balance.base_xp})</small>
+            `;
+          } else {
+            warningDiv.textContent = `Encounter Balance: ${difficulty}`;
+          }
+          warningDiv.classList.remove('d-none');
+        } else {
+          warningDiv.classList.add('d-none');
+        }
       } else {
         warningDiv.classList.add('d-none');
       }
