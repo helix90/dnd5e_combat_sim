@@ -25,6 +25,11 @@ class BatchSimulationController:
         Start a batch combat simulation in a background thread.
         Returns the batch_id for tracking.
         """
+        from utils.logging import logger
+
+        logger.info(f"execute_batch_simulation called: session_id={session_id}, num_runs={num_runs}, batch_name={batch_name}")
+        logger.info(f"Party: {len(party)} members, Monsters: {len(monsters)} monsters")
+
         # Input validation
         if num_runs <= 0:
             raise ValueError("num_runs must be greater than 0")
@@ -35,10 +40,14 @@ class BatchSimulationController:
         if not monsters or len(monsters) == 0:
             raise ValueError("monsters cannot be empty")
 
+        logger.info("Input validation passed")
+
         # Create batch simulation record first
         party_level = max([char.get('level', 1) for char in party]) if party else 1
         encounter_type = 'custom'  # Could be enhanced to detect prebuilt encounters
+        logger.info(f"Creating batch simulation record: party_level={party_level}, encounter_type={encounter_type}")
         batch_id = self.db.create_batch_simulation(session_id, batch_name, party_level, encounter_type)
+        logger.info(f"Created batch simulation with ID: {batch_id}")
 
         # Initialize state BEFORE starting thread so it's immediately available for progress polling
         with self.state_lock:
@@ -55,11 +64,15 @@ class BatchSimulationController:
                 'error': None
             }
 
+        logger.info(f"Initialized batch state for batch_id={batch_id}")
+
         def run():
             try:
-                
+                logger.info(f"Batch {batch_id} thread started, beginning {num_runs} simulations")
+
                 # Run simulations
                 for run_number in range(1, num_runs + 1):
+                    logger.debug(f"Batch {batch_id}: Starting run {run_number}/{num_runs}")
                     try:
                         # Convert party dictionaries to Character objects
                         character_objects = []
@@ -120,12 +133,16 @@ class BatchSimulationController:
                                     monster_objects.append(monster_data)
                         
                         # Create combat and run simulation
+                        logger.debug(f"Batch {batch_id} run {run_number}: Creating combat with {len(character_objects)} characters and {len(monster_objects)} monsters")
                         combat = Combat(character_objects + monster_objects)
+                        logger.debug(f"Batch {batch_id} run {run_number}: Running combat simulation")
                         result = combat.run()
-                        
+                        logger.debug(f"Batch {batch_id} run {run_number}: Combat finished, winner={result.get('winner', 'unknown')}, rounds={result.get('rounds', 0)}")
+
                         # Save individual simulation
                         sim_id = self.db.save_simulation_result(session_id, result)
-                        
+                        logger.debug(f"Batch {batch_id} run {run_number}: Saved simulation as ID {sim_id}")
+
                         # Add to batch
                         self.db.add_batch_run(
                             batch_id, sim_id, run_number,
@@ -133,7 +150,8 @@ class BatchSimulationController:
                             result.get('rounds', 0),
                             result.get('party_hp_remaining', 0)
                         )
-                        
+                        logger.debug(f"Batch {batch_id} run {run_number}: Added to batch")
+
                         # Update batch statistics with thread safety
                         with self.state_lock:
                             state = self.batch_states[batch_id]
@@ -151,6 +169,7 @@ class BatchSimulationController:
                             state['progress'] = (total_processed / state['total_runs']) * 100
 
                     except Exception as e:
+                        logger.error(f"Batch {batch_id} run {run_number} failed with error: {e}", exc_info=True)
                         log_exception(e)
                         # Track failed runs
                         with self.state_lock:
@@ -160,7 +179,9 @@ class BatchSimulationController:
                             state['progress'] = (total_processed / state['total_runs']) * 100
                         # Continue with next run even if one fails
                         continue
-                
+
+                logger.info(f"Batch {batch_id} completed all {num_runs} runs, finalizing statistics")
+
                 # Finalize batch statistics with thread safety
                 with self.state_lock:
                     state = self.batch_states[batch_id]
@@ -171,14 +192,17 @@ class BatchSimulationController:
                         avg_rounds = 0
                         avg_party_hp = 0
 
+                    logger.info(f"Batch {batch_id}: Updating database statistics")
                     self.db.update_batch_statistics(
                         batch_id, state['completed_runs'], state['party_wins'],
                         state['monster_wins'], avg_rounds, avg_party_hp
                     )
 
                     state['done'] = True
+                    logger.info(f"Batch {batch_id} COMPLETE: {state['completed_runs']} runs, {state['party_wins']} party wins, {state['monster_wins']} monster wins")
 
             except Exception as e:
+                logger.error(f"Batch {batch_id} thread failed with fatal error: {e}", exc_info=True)
                 log_exception(e)
                 # Don't raise in thread - store error in state instead
                 with self.state_lock:
@@ -190,10 +214,13 @@ class BatchSimulationController:
                         'failed_runs': 0,
                         'total_runs': num_runs
                     }
-        
+
+        logger.info(f"Batch {batch_id}: Starting background thread")
         t = threading.Thread(target=run)
+        t.daemon = False  # Ensure thread is not daemon so it completes
         t.start()
         self.batch_threads[batch_id] = t
+        logger.info(f"Batch {batch_id}: Thread started, is_alive={t.is_alive()}")
         return batch_id
 
     def _load_character_cache(self):
