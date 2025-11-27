@@ -81,7 +81,8 @@ def test_attack_action_ranged_and_finesse(monkeypatch):
         description="Shoot with a bow.",
         weapon_name="Shortbow",
         damage_dice="1d6",
-        damage_type="piercing"
+        damage_type="piercing",
+        weapon_type="ranged"
     )
     dmg = bow.damage_roll(attacker)
     assert dmg == 2 + 4
@@ -91,7 +92,8 @@ def test_attack_action_ranged_and_finesse(monkeypatch):
         description="Stab with a dagger.",
         weapon_name="Dagger",
         damage_dice="1d4",
-        damage_type="piercing"
+        damage_type="piercing",
+        weapon_type="finesse"
     )
     dmg2 = dagger.damage_roll(attacker)
     assert dmg2 == 2 + 4

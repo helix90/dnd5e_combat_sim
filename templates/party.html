@@ -13,8 +13,8 @@
   <div class="mb-3">
     <label for="party_level" class="form-label">Party Level:</label>
     <select class="form-select" id="party_level" name="party_level">
-      {% for lvl in range(1, 21) %}
-        <option value="{{ lvl }}" {% if lvl == 5 %}selected{% endif %}>Level {{ lvl }}</option>
+      {% for lvl in available_levels %}
+        <option value="{{ lvl }}" {% if lvl == 5 or (5 not in available_levels and loop.last) %}selected{% endif %}>Level {{ lvl }}</option>
       {% endfor %}
     </select>
   </div>

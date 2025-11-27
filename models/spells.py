@@ -111,12 +111,26 @@ class Spell:
                 dice = dice.replace('1d', '2d')  # 2x damage at level 5+
         else:
             dice = self.damage_dice
-            
-        num, die = dice.lower().split('d')
+
+        # Parse dice notation with optional modifier (e.g., "1d4+1", "2d6", "8d6-2")
+        dice_str = dice.lower()
+        modifier = 0
+
+        # Extract modifier if present
+        if '+' in dice_str:
+            dice_part, mod_part = dice_str.split('+')
+            modifier = int(mod_part)
+            dice_str = dice_part
+        elif '-' in dice_str and not dice_str.startswith('-'):
+            dice_part, mod_part = dice_str.rsplit('-', 1)
+            modifier = -int(mod_part)
+            dice_str = dice_part
+
+        num, die = dice_str.split('d')
         num = int(num)
         die = int(die)
         rolls = [random.randint(1, die) for _ in range(num)]
-        return sum(rolls)
+        return sum(rolls) + modifier
 
     def get_save_dc(self, caster: Any) -> int:
         """
@@ -180,7 +194,8 @@ class SpellAction(Action):
         elif hasattr(caster, 'spell_slots'):
             slots = getattr(caster, 'spell_slots')
         if slots is not None:
-            value = slots.get(required_level, 0)
+            # Try both int and str keys for compatibility with JSON data
+            value = slots.get(required_level, 0) or slots.get(str(required_level), 0)
             # If value is a MagicMock, treat as 0
             try:
                 from unittest.mock import MagicMock
@@ -204,7 +219,9 @@ class SpellAction(Action):
         elif hasattr(caster, 'spell_slots'):
             slots = getattr(caster, 'spell_slots')
         if slots is not None:
-            value = slots.get(required_level, 0)
+            # Try both int and str keys for compatibility with JSON data
+            key_to_use = required_level if required_level in slots else str(required_level)
+            value = slots.get(key_to_use, 0)
             try:
                 from unittest.mock import MagicMock
                 if isinstance(value, MagicMock):
@@ -212,7 +229,7 @@ class SpellAction(Action):
             except ImportError:
                 pass
             if value > 0:
-                slots[required_level] = value - 1
+                slots[key_to_use] = value - 1
                 return True
         return False
 
@@ -260,11 +277,13 @@ class SpellAction(Action):
 
         result = {
             'action': self.name,
+            'caster': getattr(caster, 'name', str(caster)),
             'spell': self.spell.name,
             'spell_level': self.spell.level,
             'success': True,
             'description': self.description,
-            'target': getattr(target, 'name', str(target))
+            'target': getattr(target, 'name', str(target)),
+            'type': 'spell'  # Explicit type for easier identification
         }
 
         # Handle spell attack rolls

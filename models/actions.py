@@ -43,13 +43,15 @@ class AttackAction(Action):
         weapon_name: str,
         damage_dice: str,  # e.g., '1d8', '2d6'
         damage_type: str,
-        hit_bonus: Optional[int] = None
+        hit_bonus: Optional[int] = None,
+        weapon_type: str = "melee"  # 'melee', 'ranged', or 'finesse'
     ) -> None:
         super().__init__(action_type="attack", name=name, description=description)
         self.weapon_name = weapon_name
         self.damage_dice = damage_dice
         self.damage_type = damage_type
         self._hit_bonus = hit_bonus  # If None, calculate from attacker
+        self.weapon_type = weapon_type  # Track weapon type for attack bonus calculation
 
     def hit_bonus(self, attacker: Any) -> int:
         """
@@ -61,9 +63,9 @@ class AttackAction(Action):
         """
         if self._hit_bonus is not None:
             return self._hit_bonus
-        # Default: use attacker's attack_bonus()
+        # Pass weapon type to attacker's attack_bonus() method
         if hasattr(attacker, 'attack_bonus'):
-            return attacker.attack_bonus()
+            return attacker.attack_bonus(self.weapon_type)
         return 0
 
     @staticmethod
@@ -94,12 +96,13 @@ class AttackAction(Action):
         # Only add ability modifier if dice_mod is zero (i.e., not already included in dice string)
         mod = 0
         if hasattr(attacker, 'ability_modifier') and dice_mod == 0:
-            # For melee, use STR; for ranged, use DEX; for finesse, use higher
-            if 'bow' in self.weapon_name.lower() or 'crossbow' in self.weapon_name.lower():
+            # Use weapon_type to determine which ability modifier to use
+            if self.weapon_type == 'ranged':
                 mod = attacker.ability_modifier('dex')
-            elif 'dagger' in self.weapon_name.lower() or 'finesse' in self.weapon_name.lower():
+            elif self.weapon_type == 'finesse':
+                # Finesse weapons use the higher of STR or DEX
                 mod = max(attacker.ability_modifier('str'), attacker.ability_modifier('dex'))
-            else:
+            else:  # melee
                 mod = attacker.ability_modifier('str')
         total = sum(rolls) + mod + dice_mod
         return max(0, total)

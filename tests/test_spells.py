@@ -274,7 +274,76 @@ class TestSpellAction:
         # Remove the spell_slots attribute to test fallback
         del mock_caster_no_attr.spell_slots
         assert action.check_spell_slot_availability(mock_caster_no_attr) is False
-    
+
+    def test_check_spell_slot_availability_with_string_keys(self):
+        """Test spell slot availability with string keys (JSON compatibility regression test)."""
+        # This tests the fix for the bug where JSON-loaded spell_slots have string keys
+        # but spell levels are integers, causing lookups to fail
+        spell = Spell(
+            name="Cure Wounds",
+            level=1,
+            school="Evocation",
+            casting_time="1 action",
+            range="Touch",
+            duration="Instantaneous",
+            components={"verbal": True, "somatic": True, "material": False},
+            damage_dice="1d8",
+            damage_type=None,
+            healing=True
+        )
+
+        action = SpellAction(spell, spell_slot_level=1)
+
+        # Caster with string keys (as loaded from JSON)
+        mock_caster_string_keys = MagicMock()
+        mock_caster_string_keys.spell_slots_remaining = {'1': 3, '2': 2}
+        assert action.check_spell_slot_availability(mock_caster_string_keys) is True
+
+        # Caster with integer keys (programmatically created)
+        mock_caster_int_keys = MagicMock()
+        mock_caster_int_keys.spell_slots_remaining = {1: 3, 2: 2}
+        assert action.check_spell_slot_availability(mock_caster_int_keys) is True
+
+        # Caster with no level 1 slots (string key)
+        mock_caster_no_l1 = MagicMock()
+        mock_caster_no_l1.spell_slots_remaining = {'1': 0, '2': 2}
+        assert action.check_spell_slot_availability(mock_caster_no_l1) is False
+
+    def test_consume_spell_slot_with_string_keys(self):
+        """Test spell slot consumption with string keys (JSON compatibility regression test)."""
+        spell = Spell(
+            name="Cure Wounds",
+            level=1,
+            school="Evocation",
+            casting_time="1 action",
+            range="Touch",
+            duration="Instantaneous",
+            components={"verbal": True, "somatic": True, "material": False},
+            damage_dice="1d8",
+            damage_type=None,
+            healing=True
+        )
+
+        action = SpellAction(spell, spell_slot_level=1)
+
+        # Test with string keys
+        mock_caster_string = MagicMock()
+        mock_caster_string.spell_slots_remaining = {'1': 3, '2': 2}
+        assert action.consume_spell_slot(mock_caster_string) is True
+        assert mock_caster_string.spell_slots_remaining['1'] == 2
+
+        # Test with integer keys
+        mock_caster_int = MagicMock()
+        mock_caster_int.spell_slots_remaining = {1: 3, 2: 2}
+        assert action.consume_spell_slot(mock_caster_int) is True
+        assert mock_caster_int.spell_slots_remaining[1] == 2
+
+        # Test consuming when slots are zero
+        mock_caster_zero = MagicMock()
+        mock_caster_zero.spell_slots_remaining = {'1': 0, '2': 2}
+        assert action.consume_spell_slot(mock_caster_zero) is False
+        assert mock_caster_zero.spell_slots_remaining['1'] == 0  # Should not go negative
+
     def test_consume_spell_slot(self):
         """Test spell slot consumption."""
         spell = Spell(

@@ -192,8 +192,11 @@ class DatabaseManager:
                         # It's already a string
                         action_name_str = str(action_name) if action_name else ''
 
-                    # Determine action type based on action name or other indicators
-                    if 'attack' in action_name_str.lower() or result.get('hit') is not None:
+                    # Check if result already has an explicit 'type' field (preferred)
+                    if 'type' in result and result['type'] in ['spell', 'attack', 'defend', 'wait', 'special']:
+                        action_type = result['type']
+                    # Otherwise, determine action type based on action name or other indicators
+                    elif 'attack' in action_name_str.lower() or result.get('hit') is not None:
                         action_type = 'attack'
                     elif 'spell' in result or 'cast' in action_name_str.lower():
                         action_type = 'spell'

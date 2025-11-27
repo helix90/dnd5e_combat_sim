@@ -308,6 +308,7 @@ def party() -> str:
         Rendered HTML template or redirect response
     """
     parties = PartyLoader.load_parties()
+    available_levels = PartyLoader.get_available_levels()
 
     if request.method == 'POST':
         # Validate party selection
@@ -343,7 +344,7 @@ def party() -> str:
 
         return redirect(url_for('encounter_selection'))
 
-    return render_template('party.html', parties=parties)
+    return render_template('party.html', parties=parties, available_levels=available_levels)
 
 @app.route('/encounter', methods=['GET'])
 def encounter_selection() -> str:

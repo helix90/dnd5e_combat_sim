@@ -136,7 +136,8 @@ class SimulationController:
                     description=ad.get('description', ad.get('name', 'Attack')),
                     weapon_name=ad.get('name', 'Weapon'),
                     damage_dice=ad.get('damage_dice', DEFAULT_DAMAGE_DICE),
-                    damage_type=ad.get('damage_type', DEFAULT_DAMAGE_TYPE)
+                    damage_type=ad.get('damage_type', DEFAULT_DAMAGE_TYPE),
+                    weapon_type=ad.get('weapon_type', 'melee')
                 ))
             elif ad.get('type') == 'special':
                 actions.append(Action(

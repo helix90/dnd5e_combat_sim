@@ -24,12 +24,13 @@ class CombatLogger:
         self.log: List[Dict[str, Any]] = []
         self._round_cache = {}  # Cache for round-specific data
     
-    def log_action(self, actor: Any, action_result: dict) -> None:
+    def log_action(self, actor: Any, action_result: dict, round_number: int = 0) -> None:
         """Log action with optimized data structure."""
         self.log.append({
             'type': 'action',
             'actor': getattr(actor, 'name', str(actor)),
             'result': action_result,
+            'round': round_number,
             'timestamp': len(self.log)  # Use index as timestamp for efficiency
         })
 
@@ -131,7 +132,7 @@ class Combat:
                     combat_state = self._build_combat_state(participant)
                     action_plan = ai.choose_action(participant, combat_state)
                     result = self._execute_action(participant, action_plan)
-                    self.logger.log_action(participant, result)
+                    self.logger.log_action(participant, result, self.current_round)
                     if self.is_combat_over():
                         return participant
                 return participant
@@ -140,11 +141,13 @@ class Combat:
     def _build_combat_state(self, participant: Any) -> Dict[str, Any]:
         """Build combat state efficiently with participant type checking."""
         is_character = participant in self._original_characters
-        allies = [p for p in self.participants if p != participant and 
+        # Include ALL allies of the same type (including the participant itself)
+        # This allows characters to heal themselves, which is valid in D&D 5e
+        allies = [p for p in self.participants if
                  (p in self._original_characters) == is_character and p.is_alive()]
-        enemies = [p for p in self.participants if 
+        enemies = [p for p in self.participants if
                    (p in self._original_characters) != is_character and p.is_alive()]
-        
+
         return {
             'allies': allies,
             'enemies': enemies,

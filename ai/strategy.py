@@ -23,8 +23,14 @@ RANDOM_TARGET_PROBABILITY = 0.15  # 15% chance to pick random target
 # Spellcaster classes that should prefer spell attacks
 SPELLCASTER_CLASSES = {'Wizard', 'Cleric', 'Sorcerer', 'Warlock', 'Druid', 'Bard'}
 
+# Pure offensive caster classes (no healing spells typically)
+OFFENSIVE_CASTER_CLASSES = {'Wizard', 'Sorcerer', 'Warlock'}
+
 # Common damaging cantrips
 DAMAGING_CANTRIPS = {'Fire Bolt', 'Sacred Flame', 'Eldritch Blast', 'Ray of Frost', 'Produce Flame'}
+
+# Early combat rounds where offensive casters should be aggressive with spell slots
+AGGRESSIVE_SPELL_ROUNDS = 5
 
 logger = logging.getLogger(__name__)
 
@@ -370,6 +376,31 @@ class PartyAIStrategy(AIStrategy):
 
         return 8.0  # Default estimate
 
+    def _estimate_spell_damage(self, spell: Any) -> float:
+        """
+        Estimate average damage for a spell.
+
+        Args:
+            spell: Spell to estimate
+
+        Returns:
+            Estimated average damage amount
+        """
+        damage_dice = getattr(spell, 'damage_dice', '1d6')
+
+        try:
+            # Parse dice notation (e.g., "8d6", "3d10")
+            if 'd' in str(damage_dice):
+                num, die = str(damage_dice).split('d')
+                num = int(num)
+                die = int(die)
+                avg = num * (die / 2 + 0.5)
+                return avg
+        except:
+            pass
+
+        return 7.0  # Default estimate
+
     def _try_attack_enemy(self, combatant: Any, enemies: List[Any], combat_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Attempt to attack an enemy.
@@ -388,8 +419,49 @@ class PartyAIStrategy(AIStrategy):
         # Check if combatant is a spellcaster
         character_class = getattr(combatant, 'character_class', None)
         is_spellcaster = character_class in SPELLCASTER_CLASSES if character_class else False
+        is_offensive_caster = character_class in OFFENSIVE_CASTER_CLASSES if character_class else False
+        current_round = combat_state.get('round', 1)
 
-        # Spellcasters prefer cantrips
+        # Check if this is a pure offensive caster (has no healing spells)
+        has_healing_spells = False
+        if is_offensive_caster:
+            all_spells = getattr(combatant, 'spells', {}).values()
+            has_healing_spells = any(hasattr(s, 'healing') and s.healing for s in all_spells)
+
+        # OFFENSIVE CASTER AGGRESSIVE STRATEGY
+        # Pure offensive casters (wizards without healing) should prioritize damage spells in early rounds
+        if is_offensive_caster and not has_healing_spells and current_round <= AGGRESSIVE_SPELL_ROUNDS:
+            damaging_spells = [
+                s for s in getattr(combatant, 'spells', {}).values()
+                if hasattr(s, 'damage_dice') and s.damage_dice and getattr(s, 'level', 0) > 0
+            ]
+
+            # Filter to spells we have slots for
+            castable_spells = []
+            for spell in damaging_spells:
+                spell_level = getattr(spell, 'level', 1)
+                # Check if we have spell slots
+                if hasattr(combatant, 'spell_slots_remaining'):
+                    slots = combatant.spell_slots_remaining
+                    # Try both int and str keys
+                    available = slots.get(spell_level, 0) or slots.get(str(spell_level), 0)
+                    if available > 0:
+                        castable_spells.append(spell)
+
+            if castable_spells:
+                # Prioritize higher level spells for maximum damage
+                # Sort by level (descending), then by estimated damage
+                best_spell = max(castable_spells, key=lambda s: (
+                    getattr(s, 'level', 0),
+                    self._estimate_spell_damage(s)
+                ))
+
+                spell_action = SpellAction(best_spell, spell_slot_level=best_spell.level)
+                logger.info(f"[PartyAI] {combatant.name} aggressively casts {best_spell.name} (lvl {best_spell.level}) vs {dangerous.name}")
+                return {'type': 'cast_spell', 'spell': spell_action, 'target': dangerous}
+
+        # STANDARD SPELLCASTER STRATEGY
+        # Spellcasters prefer cantrips (resource conservation)
         if is_spellcaster:
             spell_attacks = [
                 a for a in getattr(combatant, 'actions', [])

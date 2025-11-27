@@ -189,6 +189,25 @@ class PartyLoader:
         logger.info("Cleared all party loader caches")
 
     @classmethod
+    def get_available_levels(cls) -> List[int]:
+        """
+        Get a sorted list of all available character levels.
+
+        Returns:
+            Sorted list of integer levels that have character data available
+
+        Raises:
+            ValidationError: If character data cannot be loaded
+        """
+        cls._ensure_caches_loaded()
+
+        with cls._cache_lock:
+            available_levels = sorted(cls._characters_cache.keys())
+
+        logger.debug(f"Available character levels: {available_levels}")
+        return available_levels
+
+    @classmethod
     def load_parties(cls) -> List[Dict[str, Any]]:
         """
         Load all parties from the JSON file (cached).
@@ -329,17 +348,38 @@ class PartyLoader:
         # Get base party
         party = cls.get_party_by_id(party_id)
 
-        # Check if level data exists
+        # Check if level data exists, fall back to closest level if not
+        actual_level = level
         with cls._cache_lock:
             if level not in cls._characters_cache:
-                logger.error(f"Level {level} not found in character data")
-                raise ValidationError(f"Level {level} character data not found")
+                # Find the closest available level (prefer lower levels to avoid overpowering)
+                available_levels = sorted(cls._characters_cache.keys())
+                if not available_levels:
+                    logger.error("No character data found for any level")
+                    raise ValidationError("No character data available")
+
+                # Find closest level <= requested level, or highest available if all are lower
+                closest_level = None
+                for avail_level in reversed(available_levels):
+                    if avail_level <= level:
+                        closest_level = avail_level
+                        break
+
+                if closest_level is None:
+                    # All available levels are higher than requested, use the lowest
+                    closest_level = available_levels[0]
+
+                actual_level = closest_level
+                logger.warning(
+                    f"Level {level} not found in character data, "
+                    f"using closest available level {actual_level}"
+                )
 
         # Enrich party with full character data
         full_party = []
         characters = party.get(KEY_CHARACTERS, [])
 
-        logger.debug(f"Enriching {len(characters)} characters for party {party_id} at level {level}")
+        logger.debug(f"Enriching {len(characters)} characters for party {party_id} at level {actual_level}")
 
         for c in characters:
             # Extract character identifiers
@@ -355,16 +395,16 @@ class PartyLoader:
                 full_party.append(copy.deepcopy(c))
                 continue
 
-            # O(1) lookup using index
-            found = cls._lookup_character(name, char_class, level)
+            # O(1) lookup using index with actual_level
+            found = cls._lookup_character(name, char_class, actual_level)
 
             if found:
-                logger.debug(f"Found full data for {name} ({char_class}) at level {level}")
+                logger.debug(f"Found full data for {name} ({char_class}) at level {actual_level}")
                 full_party.append(copy.deepcopy(found))
             else:
                 # Fallback to original party character if not found
                 logger.warning(
-                    f"Character '{name}' ({char_class}) not found at level {level}, "
+                    f"Character '{name}' ({char_class}) not found at level {actual_level}, "
                     f"using fallback data"
                 )
                 full_party.append(copy.deepcopy(c))
@@ -372,9 +412,12 @@ class PartyLoader:
         # Create enriched party dictionary
         enriched_party = copy.deepcopy(party)
         enriched_party[KEY_CHARACTERS] = full_party
+        # Store the actual level used
+        enriched_party[KEY_LEVEL] = actual_level
 
         logger.info(
-            f"Successfully loaded party {party_id} with {len(full_party)} characters at level {level}"
+            f"Successfully loaded party {party_id} with {len(full_party)} characters at level {actual_level}"
+            + (f" (requested level {level})" if actual_level != level else "")
         )
 
         return enriched_party

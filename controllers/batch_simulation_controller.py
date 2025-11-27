@@ -254,7 +254,8 @@ class BatchSimulationController:
             return None
 
         char_name = char_data.get('name', '')
-        char_class = char_data.get('class', '')
+        # Try both 'class' and 'character_class' for compatibility
+        char_class = char_data.get('character_class') or char_data.get('class', '')
         char_level = char_data.get('level', 1)
 
         cache_key = (char_name, char_class, char_level)
