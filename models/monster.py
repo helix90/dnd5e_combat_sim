@@ -7,6 +7,7 @@ in the D&D 5e system with all relevant attributes and methods for combat.
 
 from typing import Dict, List, Optional
 from models.actions import AttackAction
+from models.buffs import BuffManager
 from utils.api_client import APIClient
 from utils.exceptions import APIError
 
@@ -72,6 +73,7 @@ class Monster:
         self.special_abilities = special_abilities or []
         self.legendary_actions = legendary_actions or []
         self.multiattack = multiattack
+        self.buffs = BuffManager()
         # Add default actions if not provided
         if actions is not None:
             self.actions = actions

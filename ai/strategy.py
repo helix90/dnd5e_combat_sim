@@ -249,6 +249,13 @@ class PartyAIStrategy(AIStrategy):
             allies = [c for c in combat_state['allies'] if c.is_alive()]
             enemies = [c for c in combat_state['enemies'] if c.is_alive()]
 
+            # Priority 0: Cast buff spells early in combat (first 2 rounds)
+            current_round = combat_state.get('round', 1)
+            if current_round <= 2:
+                buff_action = self._try_cast_buff_spell(combatant, allies, combat_state)
+                if buff_action:
+                    return buff_action
+
             # Priority 1: Heal critical allies (below 15% HP)
             critical_allies = [
                 a for a in allies
@@ -376,6 +383,104 @@ class PartyAIStrategy(AIStrategy):
 
         return 8.0  # Default estimate
 
+    def _try_cast_buff_spell(self, combatant: Any, allies: List[Any], combat_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Attempt to cast a buff spell on allies.
+
+        Args:
+            combatant: The caster
+            allies: Available allies to buff
+            combat_state: Current combat state
+
+        Returns:
+            Buff spell action dictionary, or None if no buff available
+        """
+        # Get all buff spells
+        buff_spells = [
+            s for s in getattr(combatant, 'spells', {}).values()
+            if hasattr(s, 'is_buff_spell') and s.is_buff_spell
+        ]
+
+        if not buff_spells:
+            return None
+
+        # Filter to spells we have slots for
+        castable_buffs = []
+        for spell in buff_spells:
+            spell_level = getattr(spell, 'level', 1)
+            # Check if we have spell slots
+            if hasattr(combatant, 'spell_slots_remaining'):
+                slots = combatant.spell_slots_remaining
+                # Try both int and str keys
+                available = slots.get(spell_level, 0) or slots.get(str(spell_level), 0)
+                if available > 0:
+                    castable_buffs.append(spell)
+
+        if not castable_buffs:
+            return None
+
+        # For each castable buff, find allies who don't already have it
+        for spell in castable_buffs:
+            buff_name = spell.buff_data.get('name', spell.name) if hasattr(spell, 'buff_data') else spell.name
+            is_concentration = spell.buff_data.get('concentration', False) if hasattr(spell, 'buff_data') else False
+
+            # If this is a concentration buff, check if caster is already concentrating on it
+            if is_concentration:
+                # Check if any ally (including caster) already has this concentration buff from this caster
+                caster_name = getattr(combatant, 'name', str(combatant))
+                already_concentrating = False
+
+                for ally in allies:
+                    if hasattr(ally, 'buffs'):
+                        for active_buff in ally.buffs.active_buffs:
+                            if (active_buff.name == buff_name and
+                                active_buff.source == caster_name and
+                                active_buff.concentration):
+                                # Caster is already maintaining this concentration buff
+                                logger.debug(f"[PartyAI] {combatant.name} already concentrating on {buff_name}, skipping")
+                                already_concentrating = True
+                                break
+                    if already_concentrating:
+                        break
+
+                # Skip this spell if already concentrating on it
+                if already_concentrating:
+                    continue
+
+            # Find allies without this buff
+            unbuffed_allies = [
+                a for a in allies
+                if hasattr(a, 'buffs') and not a.buffs.has_buff(buff_name)
+            ]
+
+            if unbuffed_allies:
+                # Get max_targets from spell (default to 1 for single-target buffs)
+                max_targets = getattr(spell, 'max_targets', 1)
+
+                # Select up to max_targets allies to buff, prioritizing highest HP
+                targets_to_buff = sorted(
+                    unbuffed_allies,
+                    key=lambda a: getattr(a, 'max_hp', a.hp),
+                    reverse=True
+                )[:max_targets]
+
+                # Use list of targets if multi-target, single target otherwise
+                target = targets_to_buff if len(targets_to_buff) > 1 else targets_to_buff[0]
+
+                spell_action = SpellAction(spell, spell_slot_level=spell.level)
+
+                # Log differently for multi-target spells
+                if len(targets_to_buff) > 1:
+                    target_names = ", ".join([t.name for t in targets_to_buff])
+                    logger.info(f"[PartyAI] {combatant.name} casts buff {spell.name} on {target_names}")
+                else:
+                    logger.info(f"[PartyAI] {combatant.name} casts buff {spell.name} on {targets_to_buff[0].name}")
+
+                return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
+
+        # No allies need buffs
+        return None
+
     def _estimate_spell_damage(self, spell: Any) -> float:
         """
         Estimate average damage for a spell.
@@ -457,8 +562,19 @@ class PartyAIStrategy(AIStrategy):
                 ))
 
                 spell_action = SpellAction(best_spell, spell_slot_level=best_spell.level)
-                logger.info(f"[PartyAI] {combatant.name} aggressively casts {best_spell.name} (lvl {best_spell.level}) vs {dangerous.name}")
-                return {'type': 'cast_spell', 'spell': spell_action, 'target': dangerous}
+
+                # Check if this is an area effect spell
+                if getattr(best_spell, 'area_effect', False):
+                    # Target all enemies with area effect spells
+                    target = enemies
+                    target_names = ", ".join([e.name for e in enemies])
+                    logger.info(f"[PartyAI] {combatant.name} aggressively casts AoE {best_spell.name} (lvl {best_spell.level}) targeting {target_names}")
+                else:
+                    # Single target spell
+                    target = dangerous
+                    logger.info(f"[PartyAI] {combatant.name} aggressively casts {best_spell.name} (lvl {best_spell.level}) vs {dangerous.name}")
+
+                return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
 
         # STANDARD SPELLCASTER STRATEGY
         # Spellcasters prefer cantrips (resource conservation)
@@ -497,8 +613,19 @@ class PartyAIStrategy(AIStrategy):
             spell = cantrips[0] if cantrips else damaging_spells[0]
 
             spell_action = SpellAction(spell)
-            logger.info(f"[PartyAI] {combatant.name} casts {spell.name} vs {dangerous.name}")
-            return {'type': 'cast_spell', 'spell': spell_action, 'target': dangerous}
+
+            # Check if this is an area effect spell
+            if getattr(spell, 'area_effect', False):
+                # Target all enemies with area effect spells
+                target = enemies
+                target_names = ", ".join([e.name for e in enemies])
+                logger.info(f"[PartyAI] {combatant.name} casts AoE {spell.name} targeting {target_names}")
+            else:
+                # Single target spell
+                target = dangerous
+                logger.info(f"[PartyAI] {combatant.name} casts {spell.name} vs {dangerous.name}")
+
+            return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
 
         return None
 
@@ -619,9 +746,16 @@ class MonsterAIStrategy(AIStrategy):
             ]
 
             if specials and self._should_use_special_ability(combatant, enemies, combat_state):
-                target = self.evaluate_targets(combatant, enemies, combat_state)[0]
-                logger.info(f"[MonsterAI] {combatant.name} uses special ability: {specials[0].name} vs {target.name}")
-                return {'type': 'special', 'action': specials[0], 'target': target}
+                special_action = specials[0]
+                # Check if this is an area effect ability
+                if getattr(special_action, 'area_effect', False):
+                    target = enemies
+                    target_names = ", ".join([e.name for e in enemies])
+                    logger.info(f"[MonsterAI] {combatant.name} uses AoE special ability: {special_action.name} targeting {target_names}")
+                else:
+                    target = self.evaluate_targets(combatant, enemies, combat_state)[0]
+                    logger.info(f"[MonsterAI] {combatant.name} uses special ability: {special_action.name} vs {target.name}")
+                return {'type': 'special', 'action': special_action, 'target': target}
 
             # Priority 2: Select target using varied strategy
             target = self._select_target_with_strategy(combatant, enemies, combat_state)
@@ -633,8 +767,15 @@ class MonsterAIStrategy(AIStrategy):
             ]
 
             if attack_actions:
-                logger.info(f"[MonsterAI] {combatant.name} attacks {target.name}")
-                return {'type': 'attack', 'action': attack_actions[0], 'target': target}
+                attack_action = attack_actions[0]
+                # Check if this is an area effect attack
+                if getattr(attack_action, 'area_effect', False):
+                    target = enemies
+                    target_names = ", ".join([e.name for e in enemies])
+                    logger.info(f"[MonsterAI] {combatant.name} uses AoE attack: {attack_action.name} targeting {target_names}")
+                else:
+                    logger.info(f"[MonsterAI] {combatant.name} attacks {target.name}")
+                return {'type': 'attack', 'action': attack_action, 'target': target}
 
             # Default: wait if no attack actions
             logger.debug(f"[MonsterAI] {combatant.name} waits (no attack actions)")

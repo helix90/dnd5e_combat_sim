@@ -92,7 +92,10 @@ class SpellManager:
             is_attack_spell=spell_data.get('is_attack_spell', False),
             healing=spell_data.get('healing', False),
             area_effect=spell_data.get('area_effect', False),
-            concentration=spell_data.get('concentration', False)
+            concentration=spell_data.get('concentration', False),
+            is_buff_spell=spell_data.get('is_buff_spell', False),
+            buff_data=spell_data.get('buff_data'),
+            max_targets=spell_data.get('max_targets', 1)
         )
     
     def get_spell(self, spell_name: str) -> Optional[Spell]:

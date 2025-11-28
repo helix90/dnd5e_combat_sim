@@ -127,6 +127,10 @@ class Combat:
                     self.current_round += 1
                     self.logger.log_round_start(self.current_round)
                     self._alive_participants_cache = None
+                    # Tick buffs on all alive participants at the start of each round
+                    for p in alive_set:
+                        if hasattr(p, 'buffs'):
+                            p.buffs.tick_round()
                 ai = self.ai_strategy_map.get(participant)
                 if ai:
                     combat_state = self._build_combat_state(participant)

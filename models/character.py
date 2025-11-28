@@ -8,6 +8,7 @@ in the D&D 5e system with all relevant attributes and methods for combat.
 from typing import Dict, List, Optional, Any
 from models.actions import AttackAction
 from models.spells import Spell, SpellAction
+from models.buffs import BuffManager
 
 
 class Character:
@@ -103,7 +104,8 @@ class Character:
         self.bonus_actions = bonus_actions or []
         self.initiative_bonus = initiative_bonus
         self.notes = notes
-        
+        self.buffs = BuffManager()
+
         # Add default actions if not provided
         if actions is not None:
             self.actions = actions

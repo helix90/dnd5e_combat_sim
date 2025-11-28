@@ -37,7 +37,10 @@ class Spell:
         is_attack_spell: bool = False,  # True if spell requires attack roll
         healing: bool = False,  # True if spell heals instead of damages
         area_effect: bool = False,  # True if spell affects multiple targets
-        concentration: bool = False  # True if spell requires concentration
+        concentration: bool = False,  # True if spell requires concentration
+        is_buff_spell: bool = False,  # True if spell applies buffs
+        buff_data: Optional[Dict[str, Any]] = None,  # Buff configuration data
+        max_targets: int = 1  # Maximum number of targets (e.g., 3 for Bless)
     ) -> None:
         self.name = name
         self.level = level
@@ -55,6 +58,9 @@ class Spell:
         self.healing = healing
         self.area_effect = area_effect
         self.concentration = concentration
+        self.is_buff_spell = is_buff_spell
+        self.buff_data = buff_data or {}
+        self.max_targets = max_targets
 
     @classmethod
     def from_api(cls, name, api_client=None):
@@ -248,14 +254,16 @@ class SpellAction(Action):
     def execute(self, caster: Any, target: Any) -> Dict[str, Any]:
         """
         Execute the spell: handle attack rolls, saving throws, and damage/healing.
-        
+
         Args:
             caster: The spellcaster (Character or Monster)
-            target: The target (Character or Monster)
-            
+            target: The target (Character, Monster, or list of targets for multi-target spells)
+
         Returns:
             dict: Result of the spell cast
         """
+        # Convert single target to list for uniform handling
+        targets_list = target if isinstance(target, list) else [target]
         # Check and consume spell slot
         if not self.check_spell_slot_availability(caster):
             return {
@@ -275,6 +283,12 @@ class SpellAction(Action):
                 'target': getattr(target, 'name', str(target))
             }
 
+        # Get target name(s) for result
+        if isinstance(target, list):
+            target_names = [getattr(t, 'name', str(t)) for t in target]
+        else:
+            target_names = getattr(target, 'name', str(target))
+
         result = {
             'action': self.name,
             'caster': getattr(caster, 'name', str(caster)),
@@ -282,110 +296,327 @@ class SpellAction(Action):
             'spell_level': self.spell.level,
             'success': True,
             'description': self.description,
-            'target': getattr(target, 'name', str(target)),
+            'target': target_names,
             'type': 'spell'  # Explicit type for easier identification
         }
 
+        # Handle buff spells
+        if self.spell.is_buff_spell:
+            from models.buffs import Buff
+
+            # Apply buff to all targets
+            buffs_applied = []
+            for t in targets_list:
+                # Create a separate buff instance for each target
+                buff = Buff(
+                    name=self.spell.buff_data.get('name', self.spell.name),
+                    source=getattr(caster, 'name', str(caster)),
+                    duration_rounds=self.spell.buff_data.get('duration_rounds', -1),
+                    bonus_dice=self.spell.buff_data.get('bonus_dice'),
+                    bonus_static=self.spell.buff_data.get('bonus_static', 0),
+                    affects=self.spell.buff_data.get('affects', []),
+                    concentration=self.spell.buff_data.get('concentration', self.spell.concentration),
+                    metadata=self.spell.buff_data.get('metadata', {})
+                )
+
+                # Apply buff to this target
+                if hasattr(t, 'buffs'):
+                    t.buffs.add_buff(buff)
+                    buffs_applied.append(getattr(t, 'name', str(t)))
+
+            result.update({
+                'buff_applied': len(buffs_applied) > 0,
+                'buff_name': self.spell.buff_data.get('name', self.spell.name),
+                'buff_duration': self.spell.buff_data.get('duration_rounds', -1),
+                'targets_buffed': buffs_applied,
+                'num_targets': len(buffs_applied)
+            })
+
+            if len(buffs_applied) == 0:
+                result.update({
+                    'reason': 'No targets could receive buffs'
+                })
+
+            return result
+
         # Handle spell attack rolls
         if self.spell.is_attack_spell:
-            attack_roll = random.randint(1, 20)
-            if hasattr(caster, 'spell_attack_bonus'):
-                attack_bonus = caster.spell_attack_bonus()
-            else:
-                attack_bonus = 0
-            total_attack = attack_roll + attack_bonus
-            target_ac = getattr(target, 'ac', 10)
-            hit = total_attack >= target_ac
-            
-            result.update({
-                'attack_roll': attack_roll,
-                'attack_bonus': attack_bonus,
-                'total_attack': total_attack,
-                'target_ac': target_ac,
-                'hit': hit
-            })
-            
-            if hit:
-                if self.spell.healing:
-                    healing = self._get_healing_amount(caster)
-                    target.hp = min(target.hp + healing, getattr(target, 'max_hp', target.hp))
-                    result.update({
-                        'healing': healing,
-                        'target_hp_after': target.hp
-                    })
+            # Check if this is an area effect spell
+            if self.spell.area_effect and len(targets_list) > 1:
+                # Area effect attack spell - make separate attack rolls for each target
+                target_results = []
+                total_damage_dealt = 0
+
+                # Calculate attack bonus once (same for all targets)
+                if hasattr(caster, 'spell_attack_bonus'):
+                    attack_bonus = caster.spell_attack_bonus()
                 else:
-                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                    target.hp -= damage
-                    result.update({
-                        'damage': damage,
-                        'damage_type': self.spell.damage_type,
-                        'target_hp_after': target.hp
-                    })
-            else:
+                    attack_bonus = 0
+
+                # Add buff bonuses to spell attack rolls
+                buff_bonus = 0
+                if hasattr(caster, 'buffs'):
+                    buff_bonus = caster.buffs.calculate_total_bonus('attack_rolls')
+
+                for t in targets_list:
+                    attack_roll = random.randint(1, 20)
+                    total_attack = attack_roll + attack_bonus + buff_bonus
+                    target_ac = getattr(t, 'ac', 10)
+                    hit = total_attack >= target_ac
+
+                    if hit:
+                        if self.spell.healing:
+                            healing = self._get_healing_amount(caster)
+                            t.hp = min(t.hp + healing, getattr(t, 'max_hp', t.hp))
+                            target_results.append({
+                                'target': getattr(t, 'name', str(t)),
+                                'attack_roll': attack_roll,
+                                'total_attack': total_attack,
+                                'target_ac': target_ac,
+                                'hit': True,
+                                'healing': healing,
+                                'hp_after': t.hp
+                            })
+                        else:
+                            damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                            t.hp -= damage
+                            total_damage_dealt += damage
+                            target_results.append({
+                                'target': getattr(t, 'name', str(t)),
+                                'attack_roll': attack_roll,
+                                'total_attack': total_attack,
+                                'target_ac': target_ac,
+                                'hit': True,
+                                'damage': damage,
+                                'hp_after': t.hp
+                            })
+                    else:
+                        target_results.append({
+                            'target': getattr(t, 'name', str(t)),
+                            'attack_roll': attack_roll,
+                            'total_attack': total_attack,
+                            'target_ac': target_ac,
+                            'hit': False,
+                            'damage': 0
+                        })
+
                 result.update({
-                    'damage': 0,
-                    'healing': 0
+                    'attack_bonus': attack_bonus,
+                    'buff_bonus': buff_bonus,
+                    'area_effect': True,
+                    'target_results': target_results,
+                    'total_damage': total_damage_dealt,
+                    'damage_type': self.spell.damage_type
                 })
+
+            else:
+                # Single target attack spell
+                attack_roll = random.randint(1, 20)
+                if hasattr(caster, 'spell_attack_bonus'):
+                    attack_bonus = caster.spell_attack_bonus()
+                else:
+                    attack_bonus = 0
+
+                # Add buff bonuses to spell attack rolls
+                buff_bonus = 0
+                if hasattr(caster, 'buffs'):
+                    buff_bonus = caster.buffs.calculate_total_bonus('attack_rolls')
+
+                total_attack = attack_roll + attack_bonus + buff_bonus
+                target_ac = getattr(targets_list[0], 'ac', 10)
+                hit = total_attack >= target_ac
+
+                result.update({
+                    'attack_roll': attack_roll,
+                    'attack_bonus': attack_bonus,
+                    'buff_bonus': buff_bonus,
+                    'total_attack': total_attack,
+                    'target_ac': target_ac,
+                    'hit': hit
+                })
+
+                if hit:
+                    if self.spell.healing:
+                        healing = self._get_healing_amount(caster)
+                        targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
+                        result.update({
+                            'healing': healing,
+                            'target_hp_after': targets_list[0].hp
+                        })
+                    else:
+                        damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                        targets_list[0].hp -= damage
+                        result.update({
+                            'damage': damage,
+                            'damage_type': self.spell.damage_type,
+                            'target_hp_after': targets_list[0].hp
+                        })
+                else:
+                    result.update({
+                        'damage': 0,
+                        'healing': 0
+                    })
 
         # Handle saving throw spells
         elif self.spell.save_type:
             save_dc = self.spell.get_save_dc(caster)
-            save_roll = random.randint(1, 20)
-            
-            # Calculate save bonus
-            if hasattr(target, 'saving_throw_bonus'):
-                save_bonus = target.saving_throw_bonus(self.spell.save_type)
-            else:
-                save_bonus = 0
-                
-            total_save = save_roll + save_bonus
-            save_success = total_save >= save_dc
-            
-            result.update({
-                'save_type': self.spell.save_type,
-                'save_dc': save_dc,
-                'save_roll': save_roll,
-                'save_bonus': save_bonus,
-                'total_save': total_save,
-                'save_success': save_success
-            })
-            
-            # Apply effects based on save result
-            if self.spell.healing:
-                healing = self._get_healing_amount(caster)
-                target.hp = min(target.hp + healing, getattr(target, 'max_hp', target.hp))
+
+            # Check if this is an area effect spell
+            if self.spell.area_effect and len(targets_list) > 1:
+                # Area effect spell - apply to all targets
+                target_results = []
+                total_damage_dealt = 0
+
+                for t in targets_list:
+                    save_roll = random.randint(1, 20)
+
+                    # Calculate save bonus
+                    if hasattr(t, 'saving_throw_bonus'):
+                        save_bonus = t.saving_throw_bonus(self.spell.save_type)
+                    else:
+                        save_bonus = 0
+
+                    # Add buff bonuses to saving throws
+                    buff_bonus = 0
+                    if hasattr(t, 'buffs'):
+                        buff_bonus = t.buffs.calculate_total_bonus('saving_throws')
+
+                    total_save = save_roll + save_bonus + buff_bonus
+                    save_success = total_save >= save_dc
+
+                    # Calculate damage
+                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                    # Some spells do half damage on successful save
+                    if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
+                        damage = damage // 2
+
+                    # Apply damage
+                    t.hp -= damage
+                    total_damage_dealt += damage
+
+                    target_results.append({
+                        'target': getattr(t, 'name', str(t)),
+                        'save_roll': save_roll,
+                        'save_bonus': save_bonus,
+                        'buff_bonus': buff_bonus,
+                        'total_save': total_save,
+                        'save_success': save_success,
+                        'damage': damage,
+                        'hp_after': t.hp
+                    })
+
                 result.update({
-                    'healing': healing,
-                    'target_hp_after': target.hp
+                    'save_type': self.spell.save_type,
+                    'save_dc': save_dc,
+                    'area_effect': True,
+                    'target_results': target_results,
+                    'total_damage': total_damage_dealt,
+                    'damage_type': self.spell.damage_type
                 })
+
             else:
-                damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                # Some spells do half damage on successful save
-                if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
-                    damage = damage // 2
-                target.hp -= damage
+                # Single target saving throw spell
+                save_roll = random.randint(1, 20)
+
+                # Calculate save bonus
+                if hasattr(targets_list[0], 'saving_throw_bonus'):
+                    save_bonus = targets_list[0].saving_throw_bonus(self.spell.save_type)
+                else:
+                    save_bonus = 0
+
+                # Add buff bonuses to saving throws
+                buff_bonus = 0
+                if hasattr(targets_list[0], 'buffs'):
+                    buff_bonus = targets_list[0].buffs.calculate_total_bonus('saving_throws')
+
+                total_save = save_roll + save_bonus + buff_bonus
+                save_success = total_save >= save_dc
+
                 result.update({
-                    'damage': damage,
-                    'damage_type': self.spell.damage_type,
-                    'target_hp_after': target.hp
+                    'save_type': self.spell.save_type,
+                    'save_dc': save_dc,
+                    'save_roll': save_roll,
+                    'save_bonus': save_bonus,
+                    'buff_bonus': buff_bonus,
+                    'total_save': total_save,
+                    'save_success': save_success
                 })
+
+                # Apply effects based on save result
+                if self.spell.healing:
+                    healing = self._get_healing_amount(caster)
+                    targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
+                    result.update({
+                        'healing': healing,
+                        'target_hp_after': targets_list[0].hp
+                    })
+                else:
+                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                    # Some spells do half damage on successful save
+                    if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
+                        damage = damage // 2
+                    targets_list[0].hp -= damage
+                    result.update({
+                        'damage': damage,
+                        'damage_type': self.spell.damage_type,
+                        'target_hp_after': targets_list[0].hp
+                    })
 
         # Handle spells with no attack or save (like Magic Missile)
         else:
-            if self.spell.healing:
-                healing = self._get_healing_amount(caster)
-                target.hp = min(target.hp + healing, getattr(target, 'max_hp', target.hp))
-                result.update({
-                    'healing': healing,
-                    'target_hp_after': target.hp
-                })
+            # Check if this is an area effect spell
+            if self.spell.area_effect and len(targets_list) > 1:
+                # Area effect spell - apply to all targets
+                target_results = []
+                total_damage_dealt = 0
+
+                for t in targets_list:
+                    if self.spell.healing:
+                        healing = self._get_healing_amount(caster)
+                        t.hp = min(t.hp + healing, getattr(t, 'max_hp', t.hp))
+                        target_results.append({
+                            'target': getattr(t, 'name', str(t)),
+                            'healing': healing,
+                            'hp_after': t.hp
+                        })
+                    else:
+                        damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                        t.hp -= damage
+                        total_damage_dealt += damage
+                        target_results.append({
+                            'target': getattr(t, 'name', str(t)),
+                            'damage': damage,
+                            'hp_after': t.hp
+                        })
+
+                if self.spell.healing:
+                    result.update({
+                        'area_effect': True,
+                        'target_results': target_results
+                    })
+                else:
+                    result.update({
+                        'area_effect': True,
+                        'target_results': target_results,
+                        'total_damage': total_damage_dealt,
+                        'damage_type': self.spell.damage_type
+                    })
             else:
-                damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                target.hp -= damage
-                result.update({
-                    'damage': damage,
-                    'damage_type': self.spell.damage_type,
-                    'target_hp_after': target.hp
-                })
+                # Single target spell
+                if self.spell.healing:
+                    healing = self._get_healing_amount(caster)
+                    targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
+                    result.update({
+                        'healing': healing,
+                        'target_hp_after': targets_list[0].hp
+                    })
+                else:
+                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                    targets_list[0].hp -= damage
+                    result.update({
+                        'damage': damage,
+                        'damage_type': self.spell.damage_type,
+                        'target_hp_after': targets_list[0].hp
+                    })
 
         return result 
