@@ -208,7 +208,9 @@ class DatabaseManager:
                         action_type = 'special'
                     
                     # Extract damage
-                    damage = result.get('damage', 0)
+                    # For AoE spells/attacks, damage is in 'total_damage'
+                    # For single-target, it's in 'damage'
+                    damage = result.get('total_damage', result.get('damage', 0))
                     
                     # Build result text
                     if action_type == 'attack':
