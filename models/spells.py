@@ -358,6 +358,10 @@ class SpellAction(Action):
                 if hasattr(caster, 'buffs'):
                     buff_bonus = caster.buffs.calculate_total_bonus('attack_rolls')
 
+                # Roll damage once for AoE spells (same damage for all targets that are hit)
+                base_damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                base_healing = self._get_healing_amount(caster) if self.spell.healing else 0
+
                 for t in targets_list:
                     attack_roll = random.randint(1, 20)
                     total_attack = attack_roll + attack_bonus + buff_bonus
@@ -366,28 +370,26 @@ class SpellAction(Action):
 
                     if hit:
                         if self.spell.healing:
-                            healing = self._get_healing_amount(caster)
-                            t.hp = min(t.hp + healing, getattr(t, 'max_hp', t.hp))
+                            t.hp = min(t.hp + base_healing, getattr(t, 'max_hp', t.hp))
                             target_results.append({
                                 'target': getattr(t, 'name', str(t)),
                                 'attack_roll': attack_roll,
                                 'total_attack': total_attack,
                                 'target_ac': target_ac,
                                 'hit': True,
-                                'healing': healing,
+                                'healing': base_healing,
                                 'hp_after': t.hp
                             })
                         else:
-                            damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                            t.hp -= damage
-                            total_damage_dealt += damage
+                            t.hp -= base_damage
+                            total_damage_dealt += base_damage
                             target_results.append({
                                 'target': getattr(t, 'name', str(t)),
                                 'attack_roll': attack_roll,
                                 'total_attack': total_attack,
                                 'target_ac': target_ac,
                                 'hit': True,
-                                'damage': damage,
+                                'damage': base_damage,
                                 'hp_after': t.hp
                             })
                     else:
@@ -467,6 +469,9 @@ class SpellAction(Action):
                 target_results = []
                 total_damage_dealt = 0
 
+                # Roll damage once for AoE spells (same base damage for all targets)
+                base_damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+
                 for t in targets_list:
                     save_roll = random.randint(1, 20)
 
@@ -484,9 +489,8 @@ class SpellAction(Action):
                     total_save = save_roll + save_bonus + buff_bonus
                     save_success = total_save >= save_dc
 
-                    # Calculate damage
-                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                    # Some spells do half damage on successful save
+                    # Apply damage (half on successful save for certain spells)
+                    damage = base_damage
                     if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
                         damage = damage // 2
 
