@@ -177,6 +177,9 @@ class DatabaseManager:
                 target = result.get('target', '')
                 if hasattr(target, 'name'):
                     target = target.name
+                elif isinstance(target, list):
+                    # Convert list of targets to comma-separated string
+                    target = ', '.join(str(t) for t in target)
                 else:
                     target = str(target) if target else ''
                 

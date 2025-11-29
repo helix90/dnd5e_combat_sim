@@ -74,9 +74,20 @@ class ResultsController:
                 
                 # Damage taken
                 if target_key and damage > 0:
-                    stats[target_key]['name'] = target_key  # Set target name
-                    stats[target_key]['damage_taken'] += damage
-                    stats[target_key]['rounds'][round_num]['damage_taken'] = stats[target_key]['rounds'][round_num].get('damage_taken', 0) + damage
+                    # Handle AoE spells with multiple targets (comma-separated)
+                    if ', ' in target_key:
+                        # Split targets and distribute damage evenly
+                        targets = [t.strip() for t in target_key.split(',')]
+                        damage_per_target = damage // len(targets) if len(targets) > 0 else damage
+                        for individual_target in targets:
+                            stats[individual_target]['name'] = individual_target
+                            stats[individual_target]['damage_taken'] += damage_per_target
+                            stats[individual_target]['rounds'][round_num]['damage_taken'] = stats[individual_target]['rounds'][round_num].get('damage_taken', 0) + damage_per_target
+                    else:
+                        # Single target
+                        stats[target_key]['name'] = target_key  # Set target name
+                        stats[target_key]['damage_taken'] += damage
+                        stats[target_key]['rounds'][round_num]['damage_taken'] = stats[target_key]['rounds'][round_num].get('damage_taken', 0) + damage
                 
                 # Spells cast
                 if action_type == 'spell':
