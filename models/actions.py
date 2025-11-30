@@ -148,6 +148,9 @@ class AttackAction(Action):
 
             # If this is a save-based action (like dragon breath)
             if self.save_type and self.save_dc:
+                # Roll damage once for AoE actions (same base damage for all targets)
+                base_damage = self.damage_roll(attacker)
+
                 for t in targets_list:
                     save_roll = random.randint(1, 20)
 
@@ -165,9 +168,8 @@ class AttackAction(Action):
                     total_save = save_roll + save_bonus + buff_bonus
                     save_success = total_save >= self.save_dc
 
-                    # Roll damage
-                    damage = self.damage_roll(attacker)
-                    # Half damage on successful save (common for breath weapons)
+                    # Apply damage (half on successful save for breath weapons)
+                    damage = base_damage
                     if save_success:
                         damage = damage // 2
 
@@ -204,12 +206,15 @@ class AttackAction(Action):
                 if hasattr(attacker, 'buffs'):
                     buff_bonus = attacker.buffs.calculate_total_bonus('attack_rolls')
 
+                # Roll damage once for AoE actions (same damage for all targets that are hit)
+                base_damage = self.damage_roll(attacker)
+
                 for t in targets_list:
                     attack_roll = random.randint(1, 20)
                     total_attack = attack_roll + bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
                     hit = total_attack >= target_ac
-                    damage = self.damage_roll(attacker) if hit else 0
+                    damage = base_damage if hit else 0
 
                     # Apply damage
                     if hit and hasattr(t, 'hp'):
