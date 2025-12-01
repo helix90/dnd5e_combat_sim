@@ -180,10 +180,22 @@ class Combat:
             return result
         elif action_type == 'special':
             # Handle special actions
-            action_name = action_plan.get('action', 'Unknown Action')
+            action = action_plan.get('action')
             target = action_plan.get('target')
-            result = {'action': action_name, 'target': target, 'type': 'special'}
-            return result
+            action_name = getattr(action, 'name', 'Unknown Action')
+
+            # Check if this is a multiattack
+            if action_name.lower() == 'multiattack' and hasattr(participant, 'actions'):
+                # Execute multiattack: perform multiple individual attacks
+                result = self._execute_multiattack(participant, target, action)
+                # Clear alive cache after damage-dealing action
+                if result.get('total_damage', 0) > 0:
+                    self._alive_participants_cache = None
+                return result
+            else:
+                # Other special actions (not yet implemented)
+                result = {'action': action_name, 'target': target, 'type': 'special'}
+                return result
         elif action_type == 'defend':
             return {
                 'action': 'Defend',
@@ -200,6 +212,82 @@ class Combat:
             # Default action
             result = {'action': 'Unknown Action', 'type': 'unknown'}
             return result
+
+    def _execute_multiattack(self, participant: Any, target: Any, multiattack_action: Any) -> Dict[str, Any]:
+        """
+        Execute a multiattack action by performing multiple individual attacks.
+
+        Parses the multiattack description to determine which attacks to make,
+        or uses common patterns (e.g., 1 Bite + 2 Claws for dragons/trolls).
+
+        Args:
+            participant: The creature performing multiattack
+            target: The target(s) of the attacks
+            multiattack_action: The multiattack action object
+
+        Returns:
+            Combined result dictionary with all attack results
+        """
+        description = getattr(multiattack_action, 'description', '').lower()
+        attack_actions = [
+            a for a in participant.actions
+            if hasattr(a, 'action_type') and a.action_type == 'attack'
+        ]
+
+        # Map attack names to action objects
+        attacks_by_name = {a.name.lower(): a for a in attack_actions}
+
+        # Determine which attacks to perform based on description
+        attacks_to_perform = []
+
+        # Common pattern: parse description for attack counts
+        # E.g., "one with its bite and two with its claws"
+        import re
+
+        # Try to find patterns like "one with its bite", "two with its claws"
+        attack_patterns = re.findall(r'(one|two|three|four|1|2|3|4)\s+(?:attack\s+)?with\s+(?:its\s+)?(\w+)', description)
+
+        number_map = {'one': 1, 'two': 2, 'three': 3, 'four': 4, '1': 1, '2': 2, '3': 3, '4': 4}
+
+        for count_str, attack_name in attack_patterns:
+            count = number_map.get(count_str.lower(), 1)
+            # Find matching attack action (e.g., "bite" matches "Bite", "claws" matches "Claw")
+            # Remove trailing 's' to handle plural forms
+            attack_name_singular = attack_name.rstrip('s')
+            for map_name, action in attacks_by_name.items():
+                # Check if either the exact name or singular form matches
+                if attack_name in map_name or attack_name_singular in map_name:
+                    attacks_to_perform.extend([action] * count)
+                    break
+
+        # Fallback: if no pattern matched, use a default (1x first attack + 2x second attack)
+        if not attacks_to_perform and len(attack_actions) >= 2:
+            attacks_to_perform = [attack_actions[0], attack_actions[1], attack_actions[1]]
+        elif not attacks_to_perform and len(attack_actions) == 1:
+            attacks_to_perform = [attack_actions[0]] * 2
+
+        # Execute each attack
+        attack_results = []
+        total_damage = 0
+        target_name = getattr(target, 'name', str(target)) if not isinstance(target, list) else ', '.join([getattr(t, 'name', str(t)) for t in target])
+
+        for attack_action in attacks_to_perform:
+            attack_result = attack_action.execute(participant, target)
+            attack_results.append(attack_result)
+            total_damage += attack_result.get('damage', 0)
+
+        # Build combined result
+        result = {
+            'action': 'Multiattack',
+            'target': target_name,
+            'type': 'special',
+            'multiattack': True,
+            'individual_attacks': attack_results,
+            'total_damage': total_damage,
+            'attacks_performed': [getattr(a, 'name', 'Unknown') for a in attacks_to_perform]
+        }
+
+        return result
 
     def is_combat_over(self) -> bool:
         """
