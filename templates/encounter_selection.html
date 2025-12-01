@@ -37,6 +37,7 @@
     <div class="row" id="prebuilt-encounters">
       <!-- JS will populate pre-built encounter cards -->
     </div>
+    <button id="prebuilt-continue" class="btn btn-success mt-3" disabled>Continue</button>
   </div>
 </div>
 {% endblock %}
@@ -44,6 +45,26 @@
 {% block scripts %}
 <script>
 let currentParty = null;
+
+// Helper function to enable/disable both continue buttons
+function setContinueButtons(enabled, onClickHandler) {
+  const customBtn = document.getElementById('custom-continue');
+  const prebuiltBtn = document.getElementById('prebuilt-continue');
+
+  if (customBtn) {
+    customBtn.disabled = !enabled;
+    if (enabled && onClickHandler) {
+      customBtn.onclick = onClickHandler;
+    }
+  }
+
+  if (prebuiltBtn) {
+    prebuiltBtn.disabled = !enabled;
+    if (enabled && onClickHandler) {
+      prebuiltBtn.onclick = onClickHandler;
+    }
+  }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   // Load current party info first
@@ -132,15 +153,11 @@ function selectPrebuiltEncounter(name) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       `;
       document.getElementById('prebuilt').insertBefore(notification, document.getElementById('prebuilt').firstChild);
-      
-      // Enable continue button
-      const continueBtn = document.getElementById('custom-continue');
-      if (continueBtn) {
-        continueBtn.disabled = false;
-        continueBtn.onclick = function() {
-          window.location.href = '/simulate';
-        };
-      }
+
+      // Enable both continue buttons
+      setContinueButtons(true, function() {
+        window.location.href = '/simulate';
+      });
       
       // Add clear selection button (remove existing ones first)
       const existingClearBtns = document.querySelectorAll('#prebuilt .clear-selection-btn');
@@ -160,10 +177,8 @@ function selectPrebuiltEncounter(name) {
             existingLists.forEach(list => list.remove());
             const existingClearBtns = document.querySelectorAll('#prebuilt .clear-selection-btn');
             existingClearBtns.forEach(btn => btn.remove());
-            // Disable continue button
-            if (continueBtn) {
-              continueBtn.disabled = true;
-            }
+            // Disable both continue buttons
+            setContinueButtons(false, null);
           })
           .catch(error => {
             console.error('Error clearing selection:', error);
@@ -265,8 +280,7 @@ function addMonster(monsterData) {
 function updateSelectedMonsters() {
   const selectedMonsters = getSelectedMonsters();
   const selectedList = document.getElementById('selected-monsters');
-  const continueBtn = document.getElementById('custom-continue');
-  
+
   selectedList.innerHTML = '';
   selectedMonsters.forEach(monster => {
     const li = document.createElement('li');
@@ -277,38 +291,37 @@ function updateSelectedMonsters() {
     `;
     selectedList.appendChild(li);
   });
-  
-  // Enable/disable continue button
-  if (continueBtn) {
-    continueBtn.disabled = selectedMonsters.length === 0;
-    if (selectedMonsters.length > 0) {
-      continueBtn.onclick = function() {
-        // Send selected monsters to backend
-        fetch('/encounter/custom', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            monsters: selectedMonsters,
-            party_level: currentParty ? currentParty.party_level : 1,
-            party_size: currentParty ? currentParty.party_size : 4
-          })
+
+  // Enable/disable both continue buttons
+  if (selectedMonsters.length === 0) {
+    setContinueButtons(false, null);
+  } else {
+    setContinueButtons(true, function() {
+      // Send selected monsters to backend
+      fetch('/encounter/custom', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          monsters: selectedMonsters,
+          party_level: currentParty ? currentParty.party_level : 1,
+          party_size: currentParty ? currentParty.party_size : 4
         })
-        .then(response => response.json())
-        .then(result => {
-          if (result.error) {
-            alert('Error: ' + result.error);
-          } else {
-            window.location.href = '/simulate';
-          }
-        })
-        .catch(error => {
-          console.error('Error creating custom encounter:', error);
-          alert('Failed to create custom encounter: ' + error.message);
-        });
-      };
-    }
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.error) {
+          alert('Error: ' + result.error);
+        } else {
+          window.location.href = '/simulate';
+        }
+      })
+      .catch(error => {
+        console.error('Error creating custom encounter:', error);
+        alert('Failed to create custom encounter: ' + error.message);
+      });
+    });
   }
   
   // Show balance warning if available
