@@ -167,7 +167,9 @@ class Combat:
             target = action_plan['target']
             result = action.execute(participant, target)
             # Clear alive cache after damage-dealing action
-            if result.get('damage', 0) > 0:
+            # Check both 'damage' (single-target) and 'total_damage' (AoE like dragon breath)
+            damage = result.get('total_damage', result.get('damage', 0))
+            if damage > 0:
                 self._alive_participants_cache = None
             return result
         elif action_type == 'cast_spell':
@@ -175,7 +177,10 @@ class Combat:
             target = action_plan['target']
             result = spell.execute(participant, target)
             # Clear alive cache after spell action
-            if result.get('damage', 0) > 0 or result.get('healing', 0) > 0:
+            # Check both 'damage' (single-target) and 'total_damage' (AoE)
+            damage = result.get('total_damage', result.get('damage', 0))
+            healing = result.get('healing', 0)
+            if damage > 0 or healing > 0:
                 self._alive_participants_cache = None
             return result
         elif action_type == 'special':
