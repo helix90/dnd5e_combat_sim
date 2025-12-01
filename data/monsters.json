@@ -273,7 +273,7 @@
         {"name": "Bite", "type": "attack", "damage_dice": "2d10+4", "damage_type": "piercing", "weapon_type": "melee"},
         {"name": "Claw", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing", "weapon_type": "melee"},
         {"name": "Tail", "type": "attack", "damage_dice": "2d8+4", "damage_type": "bludgeoning", "weapon_type": "melee"},
-        {"name": "Fire Breath", "type": "special", "description": "The dragon exhales fire in a 30-foot cone. Each creature in that area must make a DC 17 Dexterity saving throw, taking 56 (16d6) fire damage on a failed save, or half as much on a successful one."}
+        {"name": "Fire Breath", "type": "special", "description": "The dragon exhales fire in a 30-foot cone. Each creature in that area must make a DC 17 Dexterity saving throw, taking 56 (16d6) fire damage on a failed save, or half as much on a successful one.", "damage_dice": "16d6", "save_dc": 17, "save_type": "dex", "damage_type": "fire"}
       ]
     },
     {

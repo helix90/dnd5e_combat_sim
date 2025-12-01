@@ -121,9 +121,10 @@ class SimulationController:
     def _build_actions_from_dicts(self, action_dicts: Optional[List[Dict[str, Any]]]) -> List[Action]:
         """
         Convert action dictionaries to Action/AttackAction objects.
+        Handles both regular attacks and special actions (including breath weapons).
 
         Args:
-            action_dicts: List of action dictionaries
+            action_dicts: List of action dictionaries from JSON
 
         Returns:
             List of Action objects
@@ -137,14 +138,36 @@ class SimulationController:
                     weapon_name=ad.get('name', 'Weapon'),
                     damage_dice=ad.get('damage_dice', DEFAULT_DAMAGE_DICE),
                     damage_type=ad.get('damage_type', DEFAULT_DAMAGE_TYPE),
-                    weapon_type=ad.get('weapon_type', 'melee')
+                    weapon_type=ad.get('weapon_type', 'melee'),
+                    hit_bonus=ad.get('hit_bonus'),
+                    area_effect=ad.get('area_effect', False),
+                    save_type=ad.get('save_type'),
+                    save_dc=ad.get('save_dc')
                 ))
             elif ad.get('type') == 'special':
-                actions.append(Action(
-                    action_type='special',
-                    name=ad.get('name', 'Special'),
-                    description=ad.get('description', ad.get('name', 'Special'))
-                ))
+                # Check if this is a breath weapon or other damaging special ability
+                # Breath weapons have damage_dice and save_dc in their JSON
+                if 'damage_dice' in ad and 'save_dc' in ad:
+                    # This is a breath weapon - create as AttackAction with area_effect=True
+                    actions.append(AttackAction(
+                        name=ad.get('name', 'Special'),
+                        description=ad.get('description', ad.get('name', 'Special')),
+                        weapon_name=ad.get('name', 'Special'),
+                        damage_dice=ad.get('damage_dice', DEFAULT_DAMAGE_DICE),
+                        damage_type=ad.get('damage_type', 'fire'),
+                        weapon_type='melee',  # Not used for save-based attacks
+                        hit_bonus=ad.get('hit_bonus'),
+                        area_effect=True,  # Breath weapons are always area effects
+                        save_type=ad.get('save_type', 'dex'),
+                        save_dc=ad.get('save_dc', 10)
+                    ))
+                else:
+                    # Regular special action (like Multiattack)
+                    actions.append(Action(
+                        action_type='special',
+                        name=ad.get('name', 'Special'),
+                        description=ad.get('description', ad.get('name', 'Special'))
+                    ))
         return actions
 
     def _load_full_character_data(self, char_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:

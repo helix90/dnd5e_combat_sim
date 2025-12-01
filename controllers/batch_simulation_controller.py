@@ -1,12 +1,14 @@
 import threading
 import time
 import json
+import re
 from typing import List, Dict, Any, Optional
 from models.combat import Combat
 from models.db import DatabaseManager
 from models.character import Character
 from models.monster import Monster
 from models.spell_manager import SpellManager
+from models.actions import AttackAction, Action
 from utils.exceptions import SimulationError, BatchSimulationError
 from utils.logging import log_exception
 
@@ -121,12 +123,21 @@ class BatchSimulationController:
                         if monsters:
                             for monster_data in monsters:
                                 if isinstance(monster_data, dict):
+                                    # Build actions from JSON data (same as single simulation controller)
+                                    actions = self._build_actions_from_dicts(monster_data.get('actions', []))
+
                                     monster = Monster(
                                         name=monster_data.get('name', 'Unknown'),
                                         challenge_rating=monster_data.get('cr', '1/4'),
                                         hp=monster_data.get('hp', 10),
                                         ac=monster_data.get('ac', 10),
-                                        ability_scores=monster_data.get('ability_scores', {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10})
+                                        ability_scores=monster_data.get('ability_scores', {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}),
+                                        damage_resistances=monster_data.get('damage_resistances', []),
+                                        damage_immunities=monster_data.get('damage_immunities', []),
+                                        special_abilities=monster_data.get('special_abilities', []),
+                                        legendary_actions=monster_data.get('legendary_actions', []),
+                                        multiattack=monster_data.get('multiattack', False),
+                                        actions=actions
                                     )
                                     monster_objects.append(monster)
                                 elif isinstance(monster_data, Monster):
@@ -260,6 +271,58 @@ class BatchSimulationController:
 
         cache_key = (char_name, char_class, char_level)
         return self.character_cache.get(cache_key)
+
+    def _build_actions_from_dicts(self, action_dicts: Optional[List[Dict[str, Any]]]) -> List[Action]:
+        """
+        Convert action dictionaries to Action/AttackAction objects.
+        Handles both regular attacks and special actions (including breath weapons).
+
+        Args:
+            action_dicts: List of action dictionaries from JSON
+
+        Returns:
+            List of Action objects
+        """
+        actions = []
+        for ad in action_dicts or []:
+            if ad.get('type') == 'attack':
+                actions.append(AttackAction(
+                    name=ad.get('name', 'Attack'),
+                    description=ad.get('description', ad.get('name', 'Attack')),
+                    weapon_name=ad.get('name', 'Weapon'),
+                    damage_dice=ad.get('damage_dice', '1d6'),
+                    damage_type=ad.get('damage_type', 'bludgeoning'),
+                    weapon_type=ad.get('weapon_type', 'melee'),
+                    hit_bonus=ad.get('hit_bonus'),
+                    area_effect=ad.get('area_effect', False),
+                    save_type=ad.get('save_type'),
+                    save_dc=ad.get('save_dc')
+                ))
+            elif ad.get('type') == 'special':
+                # Check if this is a breath weapon or other damaging special ability
+                # Breath weapons have damage_dice and save_dc in their JSON
+                if 'damage_dice' in ad and 'save_dc' in ad:
+                    # This is a breath weapon - create as AttackAction with area_effect=True
+                    actions.append(AttackAction(
+                        name=ad.get('name', 'Special'),
+                        description=ad.get('description', ad.get('name', 'Special')),
+                        weapon_name=ad.get('name', 'Special'),
+                        damage_dice=ad.get('damage_dice', '1d6'),
+                        damage_type=ad.get('damage_type', 'fire'),
+                        weapon_type='melee',  # Not used for save-based attacks
+                        hit_bonus=ad.get('hit_bonus'),
+                        area_effect=True,  # Breath weapons are always area effects
+                        save_type=ad.get('save_type', 'dex'),
+                        save_dc=ad.get('save_dc', 10)
+                    ))
+                else:
+                    # Regular special action (like Multiattack)
+                    actions.append(Action(
+                        action_type='special',
+                        name=ad.get('name', 'Special'),
+                        description=ad.get('description', ad.get('name', 'Special'))
+                    ))
+        return actions
 
     def get_batch_progress(self, batch_id: int) -> Dict[str, Any]:
         """
