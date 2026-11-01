@@ -9,6 +9,7 @@ import random
 import re
 
 from models.buffs import BuffManager, create_paralyzed_condition, is_paralyzed
+from models.damage import apply_damage
 from models.rolls import attack_roll, roll_saving_throw
 
 if TYPE_CHECKING:
@@ -201,8 +202,7 @@ class AttackAction(Action):
                         damage = damage // 2
 
                     # Apply damage
-                    if hasattr(t, 'hp'):
-                        t.hp -= damage
+                    damage = apply_damage(t, damage, self.damage_type)
                     total_damage_dealt += damage
 
                     target_results.append({
@@ -241,8 +241,8 @@ class AttackAction(Action):
                     damage = (self.damage_roll(attacker, critical=True) if critical else base_damage) if hit else 0
 
                     # Apply damage
-                    if hit and hasattr(t, 'hp'):
-                        t.hp -= damage
+                    if hit:
+                        damage = apply_damage(t, damage, self.damage_type)
                         total_damage_dealt += damage
 
                     target_results.append({
@@ -285,8 +285,8 @@ class AttackAction(Action):
             damage = (self.damage_roll(attacker, critical=True) if critical else self.damage_roll(attacker)) if hit else 0
 
             # Apply damage to target HP if hit and target has hp
-            if hit and hasattr(targets_list[0], 'hp'):
-                targets_list[0].hp -= damage
+            if hit:
+                damage = apply_damage(targets_list[0], damage, self.damage_type)
 
             if hit and self.on_hit:
                 result.update(self._apply_on_hit_effect(attacker, attack_target))
