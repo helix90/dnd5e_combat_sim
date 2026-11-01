@@ -242,7 +242,7 @@ class AttackAction(Action):
 
                     # Apply damage
                     if hit:
-                        damage = apply_damage(t, damage, self.damage_type)
+                        damage = apply_damage(t, damage, self.damage_type, critical)
                         total_damage_dealt += damage
 
                     target_results.append({
@@ -286,7 +286,7 @@ class AttackAction(Action):
 
             # Apply damage to target HP if hit and target has hp
             if hit:
-                damage = apply_damage(targets_list[0], damage, self.damage_type)
+                damage = apply_damage(targets_list[0], damage, self.damage_type, critical)
 
             if hit and self.on_hit:
                 result.update(self._apply_on_hit_effect(attacker, attack_target))

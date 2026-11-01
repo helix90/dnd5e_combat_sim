@@ -12,7 +12,7 @@ from ai.tactical import TacticalAnalyzer
 from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
 from models.actions import AttackAction
-from models.damage import apply_damage
+from models.damage import apply_damage, has_ability
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
 
@@ -238,10 +238,34 @@ class Combat:
                     result = self._execute_action(participant, action_plan)
                     self._note_regeneration_damage(hp_before, result)
                     self.logger.log_action(participant, result, self.current_round)
+                    self._log_pending_entries()
                     if self.is_combat_over():
                         return participant
                 return participant
         return None
+
+    def _log_pending_entries(self) -> None:
+        """Log abilities that creatures used in response to the last action (e.g. Undead Fortitude)."""
+        for creature in self.participants:
+            entries = getattr(creature, 'pending_log_entries', None)
+            if isinstance(entries, list) and entries:
+                for entry in entries:
+                    self.logger.log_action(creature, entry, self.current_round)
+                entries.clear()
+                self._alive_participants_cache = None
+
+    def _has_active_ally(self, participant: Any) -> bool:
+        """
+        True if another member of the participant's side is up and not incapacitated. There's no
+        positioning, so this stands in for "an ally is within 5 feet of the target" (Sneak Attack,
+        Pack Tactics).
+        """
+        return any(a is not participant and not is_paralyzed(a)
+                   for a in self._build_combat_state(participant)['allies'])
+
+    def _pack_tactics(self, participant: Any) -> bool:
+        """Pack Tactics: advantage on attacks while an ally is next to the target."""
+        return has_ability(participant, 'Pack Tactics') and self._has_active_ally(participant)
 
     def _paralyzed_turn(self, participant: Any) -> Dict[str, Any]:
         """Skip a paralyzed creature's turn and roll its end-of-turn save to end the condition."""
@@ -291,6 +315,8 @@ class Combat:
             target = action_plan['target']
             if self._is_character_weapon_attack(participant, action, target):
                 result = self._execute_weapon_attacks(participant, action, target)
+            elif isinstance(action, AttackAction):
+                result = action.execute(participant, target, advantage=self._pack_tactics(participant))
             else:
                 result = action.execute(participant, target)
             # Clear alive cache after damage-dealing action
@@ -396,7 +422,8 @@ class Combat:
     def _can_sneak_attack(self, participant: Any, action: Any, attack: Dict[str, Any]) -> bool:
         """
         Sneak Attack needs a hit with a finesse or ranged weapon, plus advantage or an ally next to
-        the target. There's no positioning, so any other conscious party member counts as that ally.
+        the target. There's no positioning, so any other party member who is up and not
+        incapacitated counts as that ally.
         """
         if not attack.get('hit') or action.weapon_type not in ('finesse', 'ranged'):
             return False
@@ -404,7 +431,7 @@ class Combat:
             return True
         if attack.get('disadvantage'):
             return False
-        return any(a is not participant for a in self._build_combat_state(participant)['allies'])
+        return self._has_active_ally(participant)
 
     @staticmethod
     def _add_sneak_attack(attack: Dict[str, Any], target: Any, dice: str) -> None:
@@ -412,7 +439,8 @@ class Combat:
         num, die, _ = AttackAction.parse_dice(dice)
         if attack.get('critical'):
             num *= 2
-        damage = apply_damage(target, sum(random.randint(1, die) for _ in range(num)), attack.get('damage_type'))
+        damage = apply_damage(target, sum(random.randint(1, die) for _ in range(num)), attack.get('damage_type'),
+                              attack.get('critical', False))
         attack['damage'] = attack.get('damage', 0) + damage
         attack['sneak_attack'] = damage
 
@@ -484,8 +512,9 @@ class Combat:
         total_damage = 0
         target_name = getattr(target, 'name', str(target)) if not isinstance(target, list) else ', '.join([getattr(t, 'name', str(t)) for t in target])
 
+        advantage = self._pack_tactics(participant)
         for attack_action in attacks_to_perform:
-            attack_result = attack_action.execute(participant, target)
+            attack_result = attack_action.execute(participant, target, advantage=advantage)
             attack_results.append(attack_result)
             total_damage += attack_result.get('damage', 0)
 
