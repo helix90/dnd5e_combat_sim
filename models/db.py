@@ -488,26 +488,6 @@ class DatabaseManager:
             log_exception(e)
             raise DatabaseError(f"Failed to create batch simulation: {e}")
 
-    def add_batch_run(self, batch_id: int, simulation_id: int, run_number: int, result: str, rounds: int, party_hp_remaining: int) -> int:
-        """Add a single run to a batch simulation."""
-        try:
-            start_time = time.time()
-            with self._get_connection() as conn:
-                cursor = conn.execute(
-                    """
-                    INSERT INTO batch_simulation_runs (batch_id, simulation_id, run_number, result, rounds, party_hp_remaining)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    (batch_id, simulation_id, run_number, result, rounds, party_hp_remaining)
-                )
-                run_id = cursor.lastrowid
-                conn.commit()
-            self._log_slow_query("add_batch_run", time.time() - start_time)
-            return run_id
-        except Exception as e:
-            log_exception(e)
-            raise DatabaseError(f"Failed to add batch run: {e}")
-
     def update_batch_statistics(self, batch_id: int, total_runs: int, party_wins: int, monster_wins: int, average_rounds: float, average_party_hp_remaining: float) -> bool:
         """Update batch simulation statistics."""
         try:
