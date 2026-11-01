@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Any, TYPE_CHECKING
 import random
 
 from models.actions import Action
+from models.rolls import attack_roll as roll_attack, roll_saving_throw
 from utils.api_client import APIClient
 from utils.exceptions import APIError
 
@@ -251,13 +252,15 @@ class SpellAction(Action):
                 healing += caster.ability_modifier(ability)
         return healing
 
-    def execute(self, caster: Any, target: Any) -> Dict[str, Any]:
+    def execute(self, caster: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> Dict[str, Any]:
         """
         Execute the spell: handle attack rolls, saving throws, and damage/healing.
 
         Args:
             caster: The spellcaster (Character or Monster)
             target: The target (Character, Monster, or list of targets for multi-target spells)
+            advantage: Extra situational advantage on spell attack rolls, on top of active effects
+            disadvantage: Extra situational disadvantage on spell attack rolls
 
         Returns:
             dict: Result of the spell cast
@@ -363,7 +366,7 @@ class SpellAction(Action):
                 base_healing = self._get_healing_amount(caster) if self.spell.healing else 0
 
                 for t in targets_list:
-                    attack_roll = random.randint(1, 20)
+                    attack_roll = roll_attack(caster, t, advantage, disadvantage).result
                     total_attack = attack_roll + attack_bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
                     hit = total_attack >= target_ac
@@ -413,7 +416,8 @@ class SpellAction(Action):
 
             else:
                 # Single target attack spell
-                attack_roll = random.randint(1, 20)
+                d20 = roll_attack(caster, targets_list[0], advantage, disadvantage)
+                attack_roll = d20.result
                 if hasattr(caster, 'spell_attack_bonus'):
                     attack_bonus = caster.spell_attack_bonus()
                 else:
@@ -430,6 +434,9 @@ class SpellAction(Action):
 
                 result.update({
                     'attack_roll': attack_roll,
+                    'attack_rolls': d20.rolls,
+                    'advantage': d20.advantage,
+                    'disadvantage': d20.disadvantage,
                     'attack_bonus': attack_bonus,
                     'buff_bonus': buff_bonus,
                     'total_attack': total_attack,
@@ -473,21 +480,8 @@ class SpellAction(Action):
                 base_damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
 
                 for t in targets_list:
-                    save_roll = random.randint(1, 20)
-
-                    # Calculate save bonus
-                    if hasattr(t, 'saving_throw_bonus'):
-                        save_bonus = t.saving_throw_bonus(self.spell.save_type)
-                    else:
-                        save_bonus = 0
-
-                    # Add buff bonuses to saving throws
-                    buff_bonus = 0
-                    if hasattr(t, 'buffs'):
-                        buff_bonus = t.buffs.calculate_total_bonus('saving_throws')
-
-                    total_save = save_roll + save_bonus + buff_bonus
-                    save_success = total_save >= save_dc
+                    save = roll_saving_throw(t, self.spell.save_type, save_dc)
+                    save_success = save['save_success']
 
                     # Apply damage (half on successful save for certain spells)
                     damage = base_damage
@@ -500,11 +494,7 @@ class SpellAction(Action):
 
                     target_results.append({
                         'target': getattr(t, 'name', str(t)),
-                        'save_roll': save_roll,
-                        'save_bonus': save_bonus,
-                        'buff_bonus': buff_bonus,
-                        'total_save': total_save,
-                        'save_success': save_success,
+                        **save,
                         'damage': damage,
                         'hp_after': t.hp
                     })
@@ -520,30 +510,13 @@ class SpellAction(Action):
 
             else:
                 # Single target saving throw spell
-                save_roll = random.randint(1, 20)
-
-                # Calculate save bonus
-                if hasattr(targets_list[0], 'saving_throw_bonus'):
-                    save_bonus = targets_list[0].saving_throw_bonus(self.spell.save_type)
-                else:
-                    save_bonus = 0
-
-                # Add buff bonuses to saving throws
-                buff_bonus = 0
-                if hasattr(targets_list[0], 'buffs'):
-                    buff_bonus = targets_list[0].buffs.calculate_total_bonus('saving_throws')
-
-                total_save = save_roll + save_bonus + buff_bonus
-                save_success = total_save >= save_dc
+                save = roll_saving_throw(targets_list[0], self.spell.save_type, save_dc)
+                save_success = save['save_success']
 
                 result.update({
                     'save_type': self.spell.save_type,
                     'save_dc': save_dc,
-                    'save_roll': save_roll,
-                    'save_bonus': save_bonus,
-                    'buff_bonus': buff_bonus,
-                    'total_save': total_save,
-                    'save_success': save_success
+                    **save,
                 })
 
                 # Apply effects based on save result

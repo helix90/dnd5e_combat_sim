@@ -9,30 +9,11 @@ import random
 import re
 
 from models.buffs import BuffManager, create_paralyzed_condition, is_paralyzed
+from models.rolls import attack_roll, roll_saving_throw
 
 if TYPE_CHECKING:
     from models.character import Character
     from models.monster import Monster
-
-def roll_saving_throw(creature: Any, save_type: str, save_dc: int) -> Dict[str, Any]:
-    """
-    Roll a saving throw for a creature, including buff bonuses (e.g. Bless).
-    A paralyzed creature automatically fails STR and DEX saves.
-    """
-    save_roll = random.randint(1, 20)
-    save_bonus = creature.saving_throw_bonus(save_type) if hasattr(creature, 'saving_throw_bonus') else 0
-    buff_bonus = creature.buffs.calculate_total_bonus('saving_throws') if hasattr(creature, 'buffs') else 0
-    total_save = save_roll + save_bonus + buff_bonus
-    auto_fail = save_type in ('str', 'dex') and is_paralyzed(creature)
-    return {
-        'save_roll': save_roll,
-        'save_bonus': save_bonus,
-        'buff_bonus': buff_bonus,
-        'total_save': total_save,
-        'save_success': not auto_fail and total_save >= save_dc,
-        'auto_fail': auto_fail,
-    }
-
 
 class Action:
     """
@@ -142,13 +123,6 @@ class AttackAction(Action):
         total = sum(rolls) + mod + dice_mod
         return max(0, total)
 
-    def _roll_attack(self, target: Any):
-        """Roll the d20 for an attack, with advantage against a paralyzed target."""
-        advantage = is_paralyzed(target)
-        attack_roll = random.randint(1, 20)
-        if advantage:
-            attack_roll = max(attack_roll, random.randint(1, 20))
-        return attack_roll, advantage
 
     def _is_auto_critical(self, target: Any) -> bool:
         """Melee hits against a paralyzed creature are critical hits (we assume melee is within 5 ft)."""
@@ -177,12 +151,14 @@ class AttackAction(Action):
             result['condition_applied'] = 'Paralyzed'
         return result
 
-    def execute(self, attacker: Any, target: Any) -> dict:
+    def execute(self, attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> dict:
         """
         Execute the attack: roll d20 + hit_bonus vs target AC, roll damage if hit.
         Args:
             attacker: The acting character or monster
             target: The target character or monster (or list of targets for area effects)
+            advantage: Extra situational advantage on the attack roll(s), on top of active effects
+            disadvantage: Extra situational disadvantage on the attack roll(s)
         Returns:
             dict: Result of the attack
         """
@@ -257,8 +233,8 @@ class AttackAction(Action):
                 base_damage = self.damage_roll(attacker)
 
                 for t in targets_list:
-                    attack_roll, advantage = self._roll_attack(t)
-                    total_attack = attack_roll + bonus + buff_bonus
+                    d20 = attack_roll(attacker, t, advantage, disadvantage)
+                    total_attack = d20.result + bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
                     hit = total_attack >= target_ac
                     critical = hit and self._is_auto_critical(t)
@@ -271,9 +247,11 @@ class AttackAction(Action):
 
                     target_results.append({
                         'target': getattr(t, 'name', str(t)),
-                        'advantage': advantage,
+                        'advantage': d20.advantage,
+                        'disadvantage': d20.disadvantage,
+                        'attack_rolls': d20.rolls,
                         'critical': critical,
-                        'attack_roll': attack_roll,
+                        'attack_roll': d20.result,
                         'total_attack': total_attack,
                         'target_ac': target_ac,
                         'hit': hit,
@@ -292,7 +270,7 @@ class AttackAction(Action):
         else:
             # Single target action (standard behavior)
             attack_target = targets_list[0]
-            attack_roll, advantage = self._roll_attack(attack_target)
+            d20 = attack_roll(attacker, attack_target, advantage, disadvantage)
             bonus = self.hit_bonus(attacker)
 
             # Add buff bonuses to attack rolls
@@ -300,7 +278,7 @@ class AttackAction(Action):
             if hasattr(attacker, 'buffs'):
                 buff_bonus = attacker.buffs.calculate_total_bonus('attack_rolls')
 
-            total_attack = attack_roll + bonus + buff_bonus
+            total_attack = d20.result + bonus + buff_bonus
             target_ac = getattr(targets_list[0], 'ac', 10)
             hit = total_attack >= target_ac
             critical = hit and self._is_auto_critical(attack_target)
@@ -314,13 +292,15 @@ class AttackAction(Action):
                 result.update(self._apply_on_hit_effect(attacker, attack_target))
 
             result.update({
-                'attack_roll': attack_roll,
+                'attack_roll': d20.result,
+                'attack_rolls': d20.rolls,
                 'hit_bonus': bonus,
                 'buff_bonus': buff_bonus,
                 'total_attack': total_attack,
                 'target_ac': target_ac,
                 'hit': hit,
-                'advantage': advantage,
+                'advantage': d20.advantage,
+                'disadvantage': d20.disadvantage,
                 'critical': critical,
                 'damage': damage
             })

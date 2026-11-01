@@ -136,6 +136,13 @@ class BuffManager:
         """Check if a specific buff is active."""
         return any(b.name == buff_name for b in self.active_buffs)
 
+    def grants(self, kind: str, roll_key: str) -> bool:
+        """
+        True if any active buff grants `kind` ('advantage' or 'disadvantage') on roll_key.
+        See models/rolls.py for the roll keys.
+        """
+        return any(roll_key in b.metadata.get(kind, ()) for b in self.active_buffs)
+
     def get_condition(self, condition: str) -> Optional[Buff]:
         """Return the active buff representing a condition (e.g. 'paralyzed'), if any."""
         return next((b for b in self.active_buffs if b.metadata.get('condition') == condition), None)
@@ -242,7 +249,7 @@ def create_haste_buff(caster_name: str) -> Buff:
         bonus_static=2,
         affects=["armor_class", "extra_action"],
         concentration=True,
-        metadata={"spell_level": 3, "advantage_dex_saves": True}
+        metadata={"spell_level": 3, "advantage": ["saving_throws:dex"]}
     )
 
 
@@ -278,7 +285,12 @@ def create_paralyzed_condition(source: str, save_type: str, save_dc: int, durati
         duration_rounds=duration,
         affects=[],
         concentration=False,
-        metadata={"condition": "paralyzed", "save_type": save_type, "save_dc": save_dc}
+        metadata={
+            "condition": "paralyzed",
+            "save_type": save_type,
+            "save_dc": save_dc,
+            "advantage": ["attacks_against"],
+        }
     )
 
 

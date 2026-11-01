@@ -4,7 +4,8 @@ from unittest.mock import patch
 import pytest
 
 from controllers.batch_simulation_controller import BatchSimulationController
-from models.actions import AttackAction, roll_saving_throw
+from models.actions import AttackAction
+from models.rolls import roll_saving_throw
 from models.buffs import create_paralyzed_condition, is_paralyzed
 from models.character import Character
 from models.combat import Combat
