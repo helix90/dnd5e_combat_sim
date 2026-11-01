@@ -9,7 +9,7 @@ import random
 
 from models.actions import Action
 from models.damage import apply_damage
-from models.rolls import attack_roll as roll_attack, roll_saving_throw
+from models.rolls import attack_hits, attack_roll as roll_attack, roll_saving_throw
 from utils.api_client import APIClient
 from utils.exceptions import APIError
 
@@ -370,7 +370,7 @@ class SpellAction(Action):
                     attack_roll = roll_attack(caster, t, advantage, disadvantage).result
                     total_attack = attack_roll + attack_bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
-                    hit = total_attack >= target_ac
+                    hit = attack_hits(attack_roll, total_attack, target_ac)
 
                     if hit:
                         if self.spell.healing:
@@ -431,7 +431,7 @@ class SpellAction(Action):
 
                 total_attack = attack_roll + attack_bonus + buff_bonus
                 target_ac = getattr(targets_list[0], 'ac', 10)
-                hit = total_attack >= target_ac
+                hit = attack_hits(attack_roll, total_attack, target_ac)
 
                 result.update({
                     'attack_roll': attack_roll,

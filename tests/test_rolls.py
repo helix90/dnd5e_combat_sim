@@ -99,3 +99,34 @@ def test_spell_attacks_and_saves_use_advantage_rules():
     with patch('random.randint', return_value=20):
         result = SpellAction(sacred_flame).execute(caster, target)
     assert result['auto_fail'] and not result['save_success']
+
+
+def test_natural_one_always_misses():
+    from models.rolls import attack_hits
+    assert not attack_hits(1, 30, 5)
+    assert attack_hits(2, 5, 5) and not attack_hits(2, 4, 5)
+
+
+def test_weapon_attack_natural_one_misses_even_with_huge_bonus():
+    hero, goblin = make_hero(), Monster('Goblin', '1/4', 7, 1, SCORES)
+    sword = AttackAction(name='Sword', description='', weapon_name='Sword', damage_dice='1d8',
+                         damage_type='slashing', hit_bonus=20)
+    with patch('random.randint', side_effect=[1]):
+        result = sword.execute(hero, goblin)
+    assert not result['hit'] and goblin.hp == 7
+    # With advantage the other die counts; with disadvantage the 1 does
+    with patch('random.randint', side_effect=[1, 10, 4]):
+        assert sword.execute(hero, goblin, advantage=True)['hit']
+    with patch('random.randint', side_effect=[20, 1]):
+        assert not sword.execute(hero, goblin, disadvantage=True)['hit']
+
+
+def test_spell_attack_natural_one_misses():
+    caster, goblin = make_hero('Caster'), Monster('Goblin', '1/4', 7, 1, SCORES)
+    fire_bolt = Spell(name='Fire Bolt', level=0, school='Evocation', casting_time='1 action',
+                      range='120 feet', duration='Instantaneous',
+                      components={'verbal': True, 'somatic': True, 'material': False},
+                      damage_dice='1d10', damage_type='fire', is_attack_spell=True)
+    with patch('random.randint', side_effect=[1]):
+        result = SpellAction(fire_bolt).execute(caster, goblin)
+    assert not result['hit'] and goblin.hp == 7
