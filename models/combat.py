@@ -416,6 +416,43 @@ class Combat:
         attack['damage'] = attack.get('damage', 0) + damage
         attack['sneak_attack'] = damage
 
+    @staticmethod
+    def _parse_multiattack(description: str, attack_actions: List[Any]) -> List[Any]:
+        """
+        Work out which attacks a Multiattack makes from its description, e.g.
+          "three attacks: one with its bite and two with its claws" -> Bite, Claw, Claw
+          "two greatclub attacks"                                    -> Greatclub, Greatclub
+          "two longsword attacks or two longbow attacks"             -> Longsword, Longsword
+          "two attacks, only one of which can be a bite attack"      -> 2 x the first attack
+        """
+        import re
+        counts = {'one': 1, 'two': 2, 'three': 3, 'four': 4, '1': 1, '2': 2, '3': 3, '4': 4}
+        count_words = '|'.join(counts)
+        # When the monster has a choice of attack routines, use the first
+        description = description.lower().split(' or ')[0]
+
+        def find_action(word: str) -> Optional[Any]:
+            singular = word.rstrip('s')
+            return next((a for a in attack_actions if word in a.name.lower() or singular in a.name.lower()), None)
+
+        attacks = []
+        # "one with its bite and two with its claws"
+        for count, word in re.findall(rf'\b({count_words})\s+(?:attacks?\s+)?with\s+(?:its\s+)?(\w+)', description):
+            action = find_action(word)
+            if action:
+                attacks.extend([action] * counts[count])
+        if not attacks:
+            # "two greatclub attacks"
+            for count, word in re.findall(rf'\b({count_words})\s+(\w+)\s+attacks?\b', description):
+                action = find_action(word)
+                if action:
+                    attacks.extend([action] * counts[count])
+        if not attacks and attack_actions:
+            # "makes two attacks" with no breakdown: repeat the primary attack
+            match = re.search(rf'\b({count_words})\s+attacks\b', description)
+            attacks = [attack_actions[0]] * (counts[match.group(1)] if match else 2)
+        return attacks
+
     def _execute_multiattack(self, participant: Any, target: Any, multiattack_action: Any) -> Dict[str, Any]:
         """
         Execute a multiattack action by performing multiple individual attacks.
@@ -440,34 +477,7 @@ class Combat:
         # Map attack names to action objects
         attacks_by_name = {a.name.lower(): a for a in attack_actions}
 
-        # Determine which attacks to perform based on description
-        attacks_to_perform = []
-
-        # Common pattern: parse description for attack counts
-        # E.g., "one with its bite and two with its claws"
-        import re
-
-        # Try to find patterns like "one with its bite", "two with its claws"
-        attack_patterns = re.findall(r'(one|two|three|four|1|2|3|4)\s+(?:attack\s+)?with\s+(?:its\s+)?(\w+)', description)
-
-        number_map = {'one': 1, 'two': 2, 'three': 3, 'four': 4, '1': 1, '2': 2, '3': 3, '4': 4}
-
-        for count_str, attack_name in attack_patterns:
-            count = number_map.get(count_str.lower(), 1)
-            # Find matching attack action (e.g., "bite" matches "Bite", "claws" matches "Claw")
-            # Remove trailing 's' to handle plural forms
-            attack_name_singular = attack_name.rstrip('s')
-            for map_name, action in attacks_by_name.items():
-                # Check if either the exact name or singular form matches
-                if attack_name in map_name or attack_name_singular in map_name:
-                    attacks_to_perform.extend([action] * count)
-                    break
-
-        # Fallback: if no pattern matched, use a default (1x first attack + 2x second attack)
-        if not attacks_to_perform and len(attack_actions) >= 2:
-            attacks_to_perform = [attack_actions[0], attack_actions[1], attack_actions[1]]
-        elif not attacks_to_perform and len(attack_actions) == 1:
-            attacks_to_perform = [attack_actions[0]] * 2
+        attacks_to_perform = self._parse_multiattack(description, attack_actions)
 
         # Execute each attack
         attack_results = []

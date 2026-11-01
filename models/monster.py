@@ -5,6 +5,7 @@ This module contains the Monster class which represents a monster or NPC
 in the D&D 5e system with all relevant attributes and methods for combat.
 """
 
+import math
 from typing import Any, Dict, List, Optional
 from models.actions import AttackAction
 from models.buffs import BuffManager
@@ -116,29 +117,15 @@ class Monster:
         Calculate the attack bonus for a weapon attack.
         
         Args:
-            weapon_type: Type of weapon ('melee', 'ranged', 'finesse')
+            weapon_type: Type of weapon ('melee' or 'thrown' use STR, 'ranged' DEX, 'finesse' the higher)
             
         Returns:
             The attack bonus (ability modifier + proficiency bonus based on CR)
         """
-        # Calculate proficiency bonus based on challenge rating
-        # This is a simplified version - in the full rules, CR determines proficiency
+        # Proficiency bonus by challenge rating (SRD): +2 at CR 0-4, +3 at 5-8, ... +9 at 29-30
         cr_value = self._parse_challenge_rating()
-        if cr_value <= 1/4:
-            proficiency_bonus = 2
-        elif cr_value <= 1:
-            proficiency_bonus = 2
-        elif cr_value <= 4:
-            proficiency_bonus = 3
-        elif cr_value <= 8:
-            proficiency_bonus = 4
-        elif cr_value <= 12:
-            proficiency_bonus = 5
-        elif cr_value <= 16:
-            proficiency_bonus = 6
-        else:
-            proficiency_bonus = 7
-        
+        proficiency_bonus = 2 + max(0, (math.ceil(cr_value) - 1) // 4)
+
         # For simplicity, assume melee weapons use Strength and ranged use Dexterity
         if weapon_type == "ranged":
             ability_mod = self.ability_modifier('dex')
@@ -147,7 +134,7 @@ class Monster:
             str_mod = self.ability_modifier('str')
             dex_mod = self.ability_modifier('dex')
             ability_mod = max(str_mod, dex_mod)
-        else:  # melee
+        else:  # melee and thrown weapons
             ability_mod = self.ability_modifier('str')
         
         return ability_mod + proficiency_bonus

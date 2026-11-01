@@ -219,7 +219,7 @@ class TestMonster:
         str_mod = cr_1_monster.ability_modifier('str')  # 4
         assert cr_1_monster.attack_bonus("melee") == 6  # 4 + 2
         
-        # Test CR 5 (proficiency bonus 4)
+        # Test CR 5 (proficiency bonus 3)
         cr_5_monster = Monster(
             name="CR 5 Monster",
             challenge_rating="5",
@@ -228,9 +228,9 @@ class TestMonster:
             ability_scores=self.standard_ability_scores
         )
         str_mod = cr_5_monster.ability_modifier('str')  # 4
-        assert cr_5_monster.attack_bonus("melee") == 8  # 4 + 4
+        assert cr_5_monster.attack_bonus("melee") == 7  # 4 + 3
         
-        # Test CR 10 (proficiency bonus 5)
+        # Test CR 10 (proficiency bonus 4)
         cr_10_monster = Monster(
             name="CR 10 Monster",
             challenge_rating="10",
@@ -239,9 +239,9 @@ class TestMonster:
             ability_scores=self.standard_ability_scores
         )
         str_mod = cr_10_monster.ability_modifier('str')  # 4
-        assert cr_10_monster.attack_bonus("melee") == 9  # 4 + 5
+        assert cr_10_monster.attack_bonus("melee") == 8  # 4 + 4
         
-        # Test CR 20 (proficiency bonus 7)
+        # Test CR 20 (proficiency bonus 6)
         cr_20_monster = Monster(
             name="CR 20 Monster",
             challenge_rating="20",
@@ -250,7 +250,7 @@ class TestMonster:
             ability_scores=self.standard_ability_scores
         )
         str_mod = cr_20_monster.ability_modifier('str')  # 4
-        assert cr_20_monster.attack_bonus("melee") == 11  # 4 + 7
+        assert cr_20_monster.attack_bonus("melee") == 10  # 4 + 6
     
     def test_parse_challenge_rating(self):
         """Test challenge rating parsing for various formats."""
