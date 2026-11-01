@@ -8,6 +8,7 @@ from models.db import DatabaseManager
 from models.character import Character
 from models.monster import Monster
 from models.spell_manager import SpellManager
+from models.character_builder import build_character
 from models.actions import AttackAction, Action
 from utils.exceptions import SimulationError, BatchSimulationError
 from utils.logging import log_exception
@@ -84,23 +85,7 @@ class BatchSimulationController:
                                     # Load full character data from characters.json
                                     full_char_data = self._load_full_character_data(char_data)
                                     if full_char_data:
-                                        char = Character(
-                                            name=full_char_data.get('name', char_data.get('name', 'Unknown')),
-                                            level=full_char_data.get('level', char_data.get('level', 1)),
-                                            character_class=full_char_data.get('character_class', char_data.get('class', 'Fighter')),
-                                            race=full_char_data.get('race', 'Human'),
-                                            ability_scores=full_char_data.get('ability_scores', {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}),
-                                            hp=full_char_data.get('hp', 10),
-                                            ac=full_char_data.get('ac', 10),
-                                            proficiency_bonus=full_char_data.get('proficiency_bonus', 2),
-                                            spell_slots=full_char_data.get('spell_slots', {}),
-                                            spell_list=full_char_data.get('spell_list', [])
-                                        )
-                                        # Add spells to character
-                                        for spell_name in full_char_data.get('spell_list', []):
-                                            spell = self.spell_manager.get_spell(spell_name)
-                                            if spell:
-                                                char.add_spell(spell)
+                                        char = build_character(full_char_data, self.spell_manager)
                                         character_objects.append(char)
                                     else:
                                         # Fallback to basic character creation

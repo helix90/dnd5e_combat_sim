@@ -8,6 +8,7 @@ from models.db import DatabaseManager
 from models.character import Character
 from models.monster import Monster
 from models.spell_manager import SpellManager
+from models.character_builder import build_character
 from utils.exceptions import SimulationError, ValidationError
 from utils.logging import log_exception
 from models.actions import AttackAction, Action
@@ -258,36 +259,7 @@ class SimulationController:
             full_char_data = self._load_full_character_data(char_data)
 
             if full_char_data:
-                # Convert actions from dicts to Action/AttackAction objects
-                actions = self._build_actions_from_dicts(full_char_data.get('actions', []))
-
-                char = Character(
-                    name=full_char_data.get('name', char_data.get('name', UNKNOWN_NAME)),
-                    level=party_level,
-                    character_class=full_char_data.get('character_class', char_data.get('class', DEFAULT_CLASS)),
-                    race=full_char_data.get('race', DEFAULT_RACE),
-                    ability_scores=full_char_data.get('ability_scores', DEFAULT_ABILITY_SCORES),
-                    hp=full_char_data.get('hp', DEFAULT_HP),
-                    ac=full_char_data.get('ac', DEFAULT_AC),
-                    proficiency_bonus=full_char_data.get('proficiency_bonus', DEFAULT_PROFICIENCY_BONUS),
-                    spell_slots=full_char_data.get('spell_slots', {}),
-                    spell_list=full_char_data.get('spell_list', []),
-                    features=full_char_data.get('features', []),
-                    items=full_char_data.get('items', []),
-                    spells=full_char_data.get('spells', {}),
-                    actions=actions,
-                    reactions=full_char_data.get('reactions', []),
-                    bonus_actions=full_char_data.get('bonus_actions', []),
-                    initiative_bonus=full_char_data.get('initiative_bonus', 0),
-                    notes=full_char_data.get('notes', ''),
-                )
-
-                # Add spells to character
-                for spell_name in full_char_data.get('spell_list', []):
-                    spell = self.spell_manager.get_spell(spell_name)
-                    if spell:
-                        char.add_spell(spell)
-
+                char = build_character(full_char_data, self.spell_manager, level=party_level)
                 character_objects.append(char)
             else:
                 # Fallback to basic character creation

@@ -11,6 +11,7 @@ from ai.strategy import PartyAIStrategy, MonsterAIStrategy
 from ai.tactical import TacticalAnalyzer
 from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
+from models.actions import AttackAction
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
 
@@ -275,7 +276,10 @@ class Combat:
         if action_type == 'attack':
             action = action_plan['action']
             target = action_plan['target']
-            result = action.execute(participant, target)
+            if self._is_character_weapon_attack(participant, action, target):
+                result = self._execute_weapon_attacks(participant, action, target)
+            else:
+                result = action.execute(participant, target)
             # Clear alive cache after damage-dealing action
             # Check both 'damage' (single-target) and 'total_damage' (AoE like dragon breath)
             damage = result.get('total_damage', result.get('damage', 0))
@@ -327,6 +331,77 @@ class Combat:
             # Default action
             result = {'action': 'Unknown Action', 'type': 'unknown'}
             return result
+
+    @staticmethod
+    def _is_character_weapon_attack(participant: Any, action: Any, target: Any) -> bool:
+        """A party member's single-target weapon attack (not a spell entered as an action)."""
+        from models.character import Character
+        return (isinstance(participant, Character) and isinstance(action, AttackAction)
+                and not action.area_effect and not isinstance(target, list)
+                and action.name not in participant.spells)
+
+    def _execute_weapon_attacks(self, participant: Any, action: Any, target: Any) -> Dict[str, Any]:
+        """
+        Make every attack the character's Attack action allows (Extra Attack), moving on to
+        another enemy if the target drops, and add Sneak Attack damage to the first eligible hit.
+        """
+        attacks = []
+        sneak_dice = participant.sneak_attack_dice()
+        for _ in range(participant.attacks_per_action()):
+            if not target.is_alive():
+                enemies = self._build_combat_state(participant)['enemies']
+                if not enemies:
+                    break
+                target = enemies[0]
+            attack = action.execute(participant, target)
+            if sneak_dice and self._can_sneak_attack(participant, action, attack):
+                self._add_sneak_attack(attack, target, sneak_dice)
+                sneak_dice = None  # once per turn
+            attacks.append(attack)
+
+        if len(attacks) == 1:
+            return attacks[0]
+        targets = list(dict.fromkeys(a['target'] for a in attacks))
+        result = {
+            'action': action.name,
+            'type': 'attack',
+            'weapon': action.weapon_name,
+            'damage_type': action.damage_type,
+            'target': ', '.join(targets),
+            'hit': any(a.get('hit') for a in attacks),
+            'critical': any(a.get('critical') for a in attacks),
+            'damage': sum(a.get('damage', 0) for a in attacks),
+            'attacks': attacks,
+            'extra_attack': True,
+        }
+        sneak = sum(a.get('sneak_attack', 0) for a in attacks)
+        if sneak:
+            result['sneak_attack'] = sneak
+        return result
+
+    def _can_sneak_attack(self, participant: Any, action: Any, attack: Dict[str, Any]) -> bool:
+        """
+        Sneak Attack needs a hit with a finesse or ranged weapon, plus advantage or an ally next to
+        the target. There's no positioning, so any other conscious party member counts as that ally.
+        """
+        if not attack.get('hit') or action.weapon_type not in ('finesse', 'ranged'):
+            return False
+        if attack.get('advantage'):
+            return True
+        if attack.get('disadvantage'):
+            return False
+        return any(a is not participant for a in self._build_combat_state(participant)['allies'])
+
+    @staticmethod
+    def _add_sneak_attack(attack: Dict[str, Any], target: Any, dice: str) -> None:
+        """Roll Sneak Attack (dice doubled on a critical hit) and apply it to the target."""
+        num, die, _ = AttackAction.parse_dice(dice)
+        if attack.get('critical'):
+            num *= 2
+        damage = sum(random.randint(1, die) for _ in range(num))
+        target.hp -= damage
+        attack['damage'] = attack.get('damage', 0) + damage
+        attack['sneak_attack'] = damage
 
     def _execute_multiattack(self, participant: Any, target: Any, multiattack_action: Any) -> Dict[str, Any]:
         """
