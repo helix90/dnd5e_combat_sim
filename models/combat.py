@@ -118,12 +118,20 @@ class Combat:
         """Record damage types that stop regeneration on creatures this action hurt."""
         types = None
         for creature, hp in hp_before.items():
-            if creature.hp < hp:
+            # HP can't go below 0, so a creature that is already down is hurt if the action hit it
+            if creature.hp < hp or (hp == 0 and self._damage_dealt_to(result, creature) > 0):
                 types = self._damage_types(result) if types is None else types
                 stopped = types & {t.lower() for t in creature.regeneration.get('suppressed_by', [])}
                 if stopped:
                     self._regen_suppressed.setdefault(creature, set()).update(stopped)
                     self._alive_participants_cache = None
+
+    @staticmethod
+    def _damage_dealt_to(result: Dict[str, Any], creature: Any) -> int:
+        """Damage a single-target action result (or each attack of an Extra Attack) dealt to the creature."""
+        name = getattr(creature, 'name', None)
+        attacks = result.get('attacks') or [result]
+        return sum(a.get('damage', 0) or 0 for a in attacks if a.get('target') == name)
 
     def _regeneration_turn_start(self, participant: Any) -> Optional[Dict[str, Any]]:
         """
@@ -262,10 +270,14 @@ class Combat:
                  (p in self._original_characters) == is_character and p.is_alive()]
         enemies = [p for p in self.participants if
                    (p in self._original_characters) != is_character and p.is_alive()]
+        # Enemies at 0 HP that will get back up unless burned (e.g. a troll hit by fire or acid)
+        downed_regenerators = [p for p in self._regenerators if
+                               (p in self._original_characters) != is_character and self._will_regenerate(p)]
 
         return {
             'allies': allies,
             'enemies': enemies,
+            'downed_regenerators': downed_regenerators,
             'round': self.current_round
         }
 
@@ -347,8 +359,9 @@ class Combat:
         """
         attacks = []
         sneak_dice = participant.sneak_attack_dice()
-        for _ in range(participant.attacks_per_action()):
-            if not target.is_alive():
+        for i in range(participant.attacks_per_action()):
+            # The first attack goes where the AI aimed it, even at a downed troll it means to burn
+            if i > 0 and not target.is_alive():
                 enemies = self._build_combat_state(participant)['enemies']
                 if not enemies:
                     break

@@ -279,13 +279,18 @@ class PartyAIStrategy(AIStrategy):
                 if healing_action:
                     return healing_action
 
-            # Priority 3: Attack most dangerous enemy
+            # Priority 3: Finish off a downed enemy that would regenerate (burn the troll)
+            finish_action = self._try_finish_regenerator(combatant, combat_state.get('downed_regenerators', []))
+            if finish_action:
+                return finish_action
+
+            # Priority 4: Attack most dangerous enemy
             if enemies:
                 attack_action = self._try_attack_enemy(combatant, enemies, combat_state)
                 if attack_action:
                     return attack_action
 
-            # Priority 4: Default to defend
+            # Priority 5: Default to defend
             logger.debug(f"[PartyAI] {combatant.name} chooses to defend (no valid targets)")
             return {'type': 'defend'}
 
@@ -506,6 +511,34 @@ class PartyAIStrategy(AIStrategy):
             pass
 
         return 7.0  # Default estimate
+
+    def _try_finish_regenerator(self, combatant: Any, downed: List[Any]) -> Optional[Dict[str, Any]]:
+        """
+        Hit a downed regenerating enemy with a damage type that stops its regeneration (fire or
+        acid for a troll), so it dies instead of getting back up. Uses cantrips and weapons only,
+        never spell slots.
+        """
+        for creature in downed:
+            stops = {t.lower() for t in creature.regeneration.get('suppressed_by', [])}
+            cantrips = [
+                s for s in getattr(combatant, 'spells', {}).values()
+                if getattr(s, 'level', None) == 0 and getattr(s, 'damage_dice', None)
+                and not getattr(s, 'healing', False) and (getattr(s, 'damage_type', None) or '').lower() in stops
+            ]
+            if cantrips:
+                cantrip = max(cantrips, key=self._estimate_spell_damage)
+                logger.info(f"[PartyAI] {combatant.name} casts {cantrip.name} to finish the downed {creature.name}")
+                return {'type': 'cast_spell', 'spell': SpellAction(cantrip), 'target': creature}
+            weapons = [
+                a for a in getattr(combatant, 'actions', [])
+                if getattr(a, 'action_type', None) == 'attack' and not getattr(a, 'area_effect', False)
+                and (getattr(a, 'damage_type', None) or '').lower() in stops
+            ]
+            if weapons:
+                weapon = max(weapons, key=lambda a: (a.hit_bonus(combatant), self._average_damage(a)))
+                logger.info(f"[PartyAI] {combatant.name} attacks the downed {creature.name} with {weapon.name}")
+                return {'type': 'attack', 'action': weapon, 'target': creature}
+        return None
 
     @staticmethod
     def _average_damage(action: Any) -> float:

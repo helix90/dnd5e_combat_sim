@@ -124,3 +124,49 @@ def test_controllers_build_monsters_with_regeneration():
             'regeneration': TROLL_REGEN, 'actions': []}
     sim = SimulationController.__new__(SimulationController)
     assert sim._convert_monsters_to_objects([data])[0].regeneration == TROLL_REGEN
+
+
+def test_wizard_burns_downed_troll_with_fire_bolt():
+    from unittest.mock import patch
+    from tests.test_party_attacks import SPELLS, character_data
+    from models.character_builder import build_character
+    calyra, troll = build_character(character_data('Calyra', 5), SPELLS), make_troll()
+    combat = Combat([calyra, troll])
+    combat.initiative_order = [calyra, troll]
+    combat.current_round = 3  # past the opening rounds where she casts buffs
+    hit(combat, troll, 84, 'slashing')
+    assert combat._build_combat_state(calyra)['downed_regenerators'] == [troll]
+    with patch('random.randint', return_value=15):
+        combat.next_turn()
+    entry = combat.get_combat_log()[-1]['result']
+    assert entry['spell'] == 'Fire Bolt' and entry['target'] == 'Troll' and entry['damage'] > 0
+    assert combat.is_combat_over()
+
+
+def test_party_without_fire_cannot_burn_troll():
+    from ai.strategy import PartyAIStrategy
+    hero, troll = make_hero(), make_troll()
+    combat = Combat([hero, troll])
+    hit(combat, troll, 84, 'slashing')
+    action = PartyAIStrategy().choose_action(hero, combat._build_combat_state(hero))
+    assert action['type'] == 'defend'
+
+
+def test_extra_attack_burns_troll_then_hits_next_enemy():
+    from unittest.mock import patch
+    from models.actions import AttackAction
+    flame_tongue = AttackAction(name='Flame Tongue', description='', weapon_name='Flame Tongue',
+                                damage_dice='2d6', damage_type='fire')
+    fighter = Character('Fighter', 5, 'Fighter', 'Human', SCORES, hp=50, ac=30, proficiency_bonus=3,
+                        actions=[flame_tongue], class_features=['Extra Attack'])
+    troll, orc = make_troll(), Monster('Orc', '1/2', 15, 13, SCORES)
+    combat = Combat([fighter, troll, orc])
+    combat.initiative_order = [fighter, troll, orc]
+    combat.current_round = 3
+    hit(combat, troll, 84, 'slashing')
+    # Each attack: d20 of 15 (+3 hits AC 15 and 13), then 2d6 of 3 + 3
+    with patch('random.randint', side_effect=[15, 3, 3, 15, 3, 3]):
+        combat.next_turn()
+    result = combat.get_combat_log()[-1]['result']
+    assert [a['target'] for a in result['attacks']] == ['Troll', 'Orc']
+    assert troll in combat._regen_suppressed and orc.hp < 15
