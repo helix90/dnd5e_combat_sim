@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+  .encounter-card { cursor: pointer; transition: border-color .1s, box-shadow .1s; }
+  .encounter-card:hover, .encounter-card:focus { border-color: var(--bs-primary); outline: none; }
+  .encounter-card.selected { border-color: var(--bs-primary); box-shadow: 0 0 0 .15rem rgba(var(--bs-primary-rgb), .35); background: var(--bs-primary-bg-subtle); }
+  .encounter-group + .encounter-group { margin-top: 1.25rem; }
+  #prebuilt-summary { top: 1rem; }
+</style>
 <h2>Select Encounter</h2>
 <ul class="nav nav-tabs" id="encounterTab" role="tablist">
   <li class="nav-item" role="presentation">
@@ -34,10 +41,42 @@
     <button id="custom-continue" class="btn btn-success" disabled>Continue</button>
   </div>
   <div class="tab-pane fade" id="prebuilt" role="tabpanel">
-    <div class="row" id="prebuilt-encounters">
-      <!-- JS will populate pre-built encounter cards -->
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+          <input type="search" id="prebuilt-search" class="form-control form-control-sm" style="max-width: 14rem"
+                 placeholder="Search name or monster" aria-label="Search encounters">
+          <select id="prebuilt-level" class="form-select form-select-sm" style="max-width: 12rem" aria-label="Filter by level">
+            <option value="">All levels</option>
+          </select>
+          <div class="btn-group btn-group-sm" role="group" aria-label="Filter by type" id="prebuilt-type">
+            <button type="button" class="btn btn-outline-secondary active" data-type="">All</button>
+            <button type="button" class="btn btn-outline-secondary" data-type="mob">Mob</button>
+            <button type="button" class="btn btn-outline-secondary" data-type="mixed">Mixed</button>
+            <button type="button" class="btn btn-outline-secondary" data-type="elite">Elite</button>
+            <button type="button" class="btn btn-outline-secondary" data-type="boss">Boss</button>
+          </div>
+          <small class="text-muted ms-auto" id="prebuilt-count"></small>
+        </div>
+        <div id="prebuilt-encounters">
+          <div class="text-muted">Loading encounters…</div>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="card sticky-lg-top" id="prebuilt-summary">
+          <div class="card-header fw-semibold">Selected Encounter</div>
+          <div class="card-body">
+            <div id="prebuilt-details">
+              <p class="text-muted mb-0">Pick an encounter from the list to see its difficulty for your party.</p>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button id="prebuilt-continue" class="btn btn-success" disabled>Continue</button>
+              <button id="prebuilt-clear" class="btn btn-outline-secondary d-none">Clear Selection</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button id="prebuilt-continue" class="btn btn-success mt-3" disabled>Continue</button>
   </div>
 </div>
 {% endblock %}
@@ -66,50 +105,143 @@ function setContinueButtons(enabled, onClickHandler) {
   }
 }
 
+const TYPE_BADGES = { mob: 'bg-secondary', mixed: 'bg-info text-dark', elite: 'bg-warning text-dark', boss: 'bg-danger' };
+const DIFFICULTY_BADGES = { trivial: 'bg-secondary', easy: 'bg-success', medium: 'bg-info text-dark', hard: 'bg-warning text-dark', deadly: 'bg-danger' };
+let prebuiltEncounters = [];
+let selectedPrebuiltName = null;
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = value == null ? '' : String(value);
+  return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function capitalize(text) {
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+}
+
+function monsterSummary(enc) {
+  return enc.monsters.map(m => `${m.count}× ${m.name}`).join(' · ');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-  // Load current party info first
-  fetch('/api/party/current')
+  const partyLoaded = fetch('/api/party/current')
     .then(response => response.json())
-    .then(party => {
-      currentParty = party;
-    })
+    .then(party => { currentParty = party; })
     .catch(error => {
       console.error('Error loading party info:', error);
       currentParty = { party_level: 1, party_size: 4 };
     });
 
-  // Load prebuilt encounters
-  fetch('/api/encounters/prebuilt')
-    .then(response => response.json())
-    .then(encounters => {
-      const container = document.getElementById('prebuilt-encounters');
-      if (!container) return;
-      container.innerHTML = '';
-      encounters.forEach(enc => {
-        const card = document.createElement('div');
-        card.className = 'card mb-2';
-        card.innerHTML = `
-          <div class="card-body">
-            <h5 class="card-title">${enc.name}</h5>
-            <p class="card-text">Level: ${enc.level} | Type: ${enc.type}</p>
-            <p class="card-text">Monsters: ${enc.monsters.map(m => m.count + 'x ' + m.name).join(', ')}</p>
-            <button class="btn btn-primary btn-sm" onclick="selectPrebuiltEncounter('${enc.name.replace(/'/g, "\\'")}')">Select</button>
-          </div>
-        `;
-        container.appendChild(card);
-      });
+  const encountersLoaded = fetch('/api/encounters/prebuilt')
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
     })
+    .then(encounters => { prebuiltEncounters = encounters; });
+
+  Promise.all([partyLoaded, encountersLoaded])
+    .then(setupPrebuiltFilters)
     .catch(error => {
       console.error('Error loading prebuilt encounters:', error);
-      const container = document.getElementById('prebuilt-encounters');
-      if (container) {
-        container.innerHTML = '<div class="alert alert-danger">Failed to load prebuilt encounters</div>';
-      }
+      document.getElementById('prebuilt-encounters').innerHTML =
+        '<div class="alert alert-danger">Failed to load prebuilt encounters</div>';
     });
+
+  document.getElementById('prebuilt-clear').onclick = clearPrebuiltSelection;
 
   // Load monsters for custom encounter
   loadMonsters();
 });
+
+function setupPrebuiltFilters() {
+  const levelSelect = document.getElementById('prebuilt-level');
+  const partyLevel = currentParty ? currentParty.party_level : null;
+  const levels = [...new Set(prebuiltEncounters.map(e => e.level))].sort((a, b) => a - b);
+  levels.forEach(level => {
+    const option = document.createElement('option');
+    option.value = level;
+    option.textContent = level === partyLevel ? `Level ${level} (your party)` : `Level ${level}`;
+    levelSelect.appendChild(option);
+  });
+  // Start on the party's level when there are encounters for it; "All levels" is one click away
+  if (levels.includes(partyLevel)) levelSelect.value = partyLevel;
+
+  levelSelect.onchange = renderPrebuiltEncounters;
+  document.getElementById('prebuilt-search').oninput = renderPrebuiltEncounters;
+  document.querySelectorAll('#prebuilt-type .btn').forEach(btn => {
+    btn.onclick = function() {
+      document.querySelectorAll('#prebuilt-type .btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      renderPrebuiltEncounters();
+    };
+  });
+  renderPrebuiltEncounters();
+}
+
+function renderPrebuiltEncounters() {
+  const container = document.getElementById('prebuilt-encounters');
+  const level = document.getElementById('prebuilt-level').value;
+  const type = document.querySelector('#prebuilt-type .btn.active').dataset.type;
+  const query = document.getElementById('prebuilt-search').value.trim().toLowerCase();
+  const partyLevel = currentParty ? currentParty.party_level : null;
+
+  const matches = prebuiltEncounters.filter(enc =>
+    (!level || String(enc.level) === level) &&
+    (!type || enc.type === type) &&
+    (!query || enc.name.toLowerCase().includes(query) ||
+      enc.monsters.some(m => m.name.toLowerCase().includes(query)))
+  );
+
+  document.getElementById('prebuilt-count').textContent =
+    `${matches.length} of ${prebuiltEncounters.length} encounters`;
+
+  if (matches.length === 0) {
+    container.innerHTML = '<div class="text-muted">No encounters match these filters.</div>';
+    return;
+  }
+
+  const byLevel = {};
+  matches.forEach(enc => (byLevel[enc.level] = byLevel[enc.level] || []).push(enc));
+
+  container.innerHTML = Object.keys(byLevel).sort((a, b) => a - b).map(lvl => `
+    <section class="encounter-group">
+      <h6 class="text-uppercase text-muted small fw-bold mb-2">
+        Level ${lvl}${Number(lvl) === partyLevel ? ' <span class="badge bg-primary-subtle text-primary-emphasis ms-1">Your party</span>' : ''}
+      </h6>
+      <div class="row row-cols-1 row-cols-md-2 g-2">
+        ${byLevel[lvl].map(enc => `
+          <div class="col">
+            <div class="card h-100 encounter-card${enc.name === selectedPrebuiltName ? ' selected' : ''}"
+                 role="button" tabindex="0" data-name="${escapeHtml(enc.name)}">
+              <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <span class="fw-semibold">${escapeHtml(enc.name)}</span>
+                  <span class="badge ${TYPE_BADGES[enc.type] || 'bg-secondary'}">${escapeHtml(capitalize(enc.type))}</span>
+                </div>
+                <div class="small text-muted mt-1">${escapeHtml(monsterSummary(enc))}</div>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </section>`).join('');
+
+  container.querySelectorAll('.encounter-card').forEach(card => {
+    card.onclick = () => selectPrebuiltEncounter(card.dataset.name);
+    card.onkeydown = event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        selectPrebuiltEncounter(card.dataset.name);
+      }
+    };
+  });
+}
+
+function markSelectedCard() {
+  document.querySelectorAll('#prebuilt-encounters .encounter-card').forEach(card => {
+    card.classList.toggle('selected', card.dataset.name === selectedPrebuiltName);
+  });
+}
 
 function selectPrebuiltEncounter(name) {
   if (!currentParty) {
@@ -117,18 +249,17 @@ function selectPrebuiltEncounter(name) {
     return;
   }
 
-  const data = {
-    template_name: name,
-    party_level: currentParty.party_level,
-    party_size: currentParty.party_size
-  };
+  const details = document.getElementById('prebuilt-details');
+  details.innerHTML = `<p class="text-muted mb-0">Loading ${escapeHtml(name)}…</p>`;
 
   fetch('/encounter/prebuilt', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data)
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      template_name: name,
+      party_level: currentParty.party_level,
+      party_size: currentParty.party_size
+    })
   })
   .then(response => {
     if (!response.ok) {
@@ -138,118 +269,73 @@ function selectPrebuiltEncounter(name) {
   })
   .then(result => {
     if (result.error) {
-      alert('Error: ' + result.error);
-      return;
-    } else {
-      // Clear any existing alerts and info
-      const existingAlerts = document.querySelectorAll('#prebuilt .alert');
-      existingAlerts.forEach(alert => alert.remove());
-      
-      // Show success message in the prebuilt tab
-      const notification = document.createElement('div');
-      notification.className = 'alert alert-success alert-dismissible fade show';
-      notification.innerHTML = `
-        <strong>Encounter Selected!</strong> ${name} has been loaded.
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      `;
-      document.getElementById('prebuilt').insertBefore(notification, document.getElementById('prebuilt').firstChild);
-
-      // Enable both continue buttons
-      setContinueButtons(true, function() {
-        window.location.href = '/simulate';
-      });
-      
-      // Add clear selection button (remove existing ones first)
-      const existingClearBtns = document.querySelectorAll('#prebuilt .clear-selection-btn');
-      existingClearBtns.forEach(btn => btn.remove());
-      
-      const clearBtn = document.createElement('button');
-      clearBtn.className = 'btn btn-outline-secondary btn-sm ms-2 clear-selection-btn';
-      clearBtn.textContent = 'Clear Selection';
-      clearBtn.onclick = function() {
-        // Clear session data via API call
-        fetch('/encounter/clear', { method: 'POST' })
-          .then(() => {
-            // Clear UI elements
-            const existingAlerts = document.querySelectorAll('#prebuilt .alert');
-            existingAlerts.forEach(alert => alert.remove());
-            const existingLists = document.querySelectorAll('#prebuilt .monster-list');
-            existingLists.forEach(list => list.remove());
-            const existingClearBtns = document.querySelectorAll('#prebuilt .clear-selection-btn');
-            existingClearBtns.forEach(btn => btn.remove());
-            // Disable both continue buttons
-            setContinueButtons(false, null);
-          })
-          .catch(error => {
-            console.error('Error clearing selection:', error);
-          });
-      };
-      document.getElementById('prebuilt').appendChild(clearBtn);
-      
-      // Show balance info if available
-      if (result.balance) {
-        const balanceInfo = document.createElement('div');
-        const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
-        const alertClass = difficulty === 'deadly' || difficulty === 'trivial' ? 'alert-warning' : 'alert-info';
-        balanceInfo.className = `alert ${alertClass} mt-3`;
-
-        if (typeof result.balance === 'object') {
-          balanceInfo.innerHTML = `
-            <strong>Encounter Balance:</strong> ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}<br>
-            <small>Total XP: ${result.balance.total_xp} (Base: ${result.balance.base_xp})</small>
-          `;
-        } else {
-          balanceInfo.innerHTML = `<strong>Encounter Balance:</strong> ${difficulty}`;
-        }
-        document.getElementById('prebuilt').appendChild(balanceInfo);
-      }
-      
-      // Show warnings if any
-      if (result.warnings) {
-        const warningInfo = document.createElement('div');
-        warningInfo.className = 'alert alert-warning mt-3';
-        if (Array.isArray(result.warnings)) {
-          warningInfo.innerHTML = `<strong>Warnings:</strong> ${result.warnings.join(', ')}`;
-        } else {
-          warningInfo.innerHTML = `<strong>Warnings:</strong> ${result.warnings}`;
-        }
-        document.getElementById('prebuilt').appendChild(warningInfo);
-      }
-      
-      // Show monster count and list
-      if (result.monsters && result.monsters.length > 0) {
-        const monsterInfo = document.createElement('div');
-        monsterInfo.className = 'alert alert-success mt-3';
-        monsterInfo.innerHTML = `<strong>Encounter Created:</strong> ${result.monsters.length} monsters loaded`;
-        document.getElementById('prebuilt').appendChild(monsterInfo);
-        
-        // Clear any existing monster lists first
-        const existingLists = document.querySelectorAll('#prebuilt .monster-list');
-        existingLists.forEach(list => list.remove());
-        
-        // Create monster list showing actual instances
-        const monsterList = document.createElement('div');
-        monsterList.className = 'mt-3 monster-list';
-        monsterList.innerHTML = '<h6>Selected Monsters:</h6><ul class="list-group">';
-        
-        // Show each monster instance individually to match the combat log
-        result.monsters.forEach(monster => {
-          const monsterName = monster.name || 'Unknown Monster';
-          const monsterCR = monster.cr || 'Unknown CR';
-          const monsterHP = monster.hp || 'Unknown HP';
-          const monsterAC = monster.ac || 'Unknown AC';
-          monsterList.innerHTML += `<li class="list-group-item">${monsterName} (CR: ${monsterCR}, HP: ${monsterHP}, AC: ${monsterAC})</li>`;
-        });
-        
-        monsterList.innerHTML += '</ul>';
-        document.getElementById('prebuilt').appendChild(monsterList);
-      }
+      throw new Error(result.error);
+    }
+    selectedPrebuiltName = name;
+    markSelectedCard();
+    renderPrebuiltDetails(name, result);
+    document.getElementById('prebuilt-clear').classList.remove('d-none');
+    setContinueButtons(true, function() {
+      window.location.href = '/simulate';
+    });
+    // On narrow screens the summary sits below the list, so bring it into view
+    if (window.innerWidth < 992) {
+      document.getElementById('prebuilt-summary').scrollIntoView({ behavior: 'smooth' });
     }
   })
   .catch(error => {
     console.error('Error selecting encounter:', error);
-    alert('Failed to select encounter: ' + error.message);
+    details.innerHTML = `<div class="alert alert-danger mb-0">Failed to select encounter: ${escapeHtml(error.message)}</div>`;
   });
+}
+
+function renderPrebuiltDetails(name, result) {
+  const template = prebuiltEncounters.find(e => e.name === name) || {};
+  let html = `<h5 class="mb-1">${escapeHtml(name)}</h5>
+    <div class="small text-muted mb-2">Level ${escapeHtml(template.level)} · ${escapeHtml(capitalize(template.type))}
+      · your party: level ${escapeHtml(currentParty.party_level)}, ${escapeHtml(currentParty.party_size)} characters</div>`;
+
+  if (result.balance) {
+    const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
+    html += `<div class="mb-2">
+      <span class="badge fs-6 ${DIFFICULTY_BADGES[difficulty] || 'bg-secondary'}">${escapeHtml(capitalize(difficulty))}</span>`;
+    if (typeof result.balance === 'object') {
+      html += ` <small class="text-muted ms-1">${escapeHtml(result.balance.total_xp)} XP (base ${escapeHtml(result.balance.base_xp)})</small>`;
+    }
+    html += '</div>';
+  }
+
+  const warnings = Array.isArray(result.warnings) ? result.warnings : (result.warnings ? [result.warnings] : []);
+  if (warnings.length) {
+    html += `<div class="alert alert-warning py-2 small mb-2">${warnings.map(escapeHtml).join('<br>')}</div>`;
+  }
+
+  if (result.monsters && result.monsters.length) {
+    html += `<table class="table table-sm small mb-0">
+      <thead><tr><th>Monster</th><th class="text-end">CR</th><th class="text-end">HP</th><th class="text-end">AC</th></tr></thead>
+      <tbody>${result.monsters.map(m => `<tr>
+        <td>${escapeHtml(m.name || 'Unknown')}</td>
+        <td class="text-end">${escapeHtml(m.cr ?? '?')}</td>
+        <td class="text-end">${escapeHtml(m.hp ?? '?')}</td>
+        <td class="text-end">${escapeHtml(m.ac ?? '?')}</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+  document.getElementById('prebuilt-details').innerHTML = html;
+}
+
+function clearPrebuiltSelection() {
+  fetch('/encounter/clear', { method: 'POST' })
+    .then(() => {
+      selectedPrebuiltName = null;
+      markSelectedCard();
+      document.getElementById('prebuilt-details').innerHTML =
+        '<p class="text-muted mb-0">Pick an encounter from the list to see its difficulty for your party.</p>';
+      document.getElementById('prebuilt-clear').classList.add('d-none');
+      setContinueButtons(false, null);
+    })
+    .catch(error => {
+      console.error('Error clearing selection:', error);
+    });
 }
 
 // Custom encounter functions
