@@ -95,8 +95,8 @@
       "damage_immunities": ["poison"],
       "multiattack": false,
       "actions": [
-        {"name": "Bite", "type": "attack", "damage_dice": "1d6+1", "damage_type": "piercing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute."},
-        {"name": "Claws", "type": "attack", "damage_dice": "2d4+1", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute."}
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+1", "damage_type": "piercing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d4+1", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}}
       ]
     },
     {

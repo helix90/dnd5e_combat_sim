@@ -4,13 +4,35 @@ Action system for D&D 5e Combat Simulator.
 Defines the Action base class and AttackAction subclass for use by characters and monsters.
 """
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 import random
 import re
+
+from models.buffs import BuffManager, create_paralyzed_condition, is_paralyzed
 
 if TYPE_CHECKING:
     from models.character import Character
     from models.monster import Monster
+
+def roll_saving_throw(creature: Any, save_type: str, save_dc: int) -> Dict[str, Any]:
+    """
+    Roll a saving throw for a creature, including buff bonuses (e.g. Bless).
+    A paralyzed creature automatically fails STR and DEX saves.
+    """
+    save_roll = random.randint(1, 20)
+    save_bonus = creature.saving_throw_bonus(save_type) if hasattr(creature, 'saving_throw_bonus') else 0
+    buff_bonus = creature.buffs.calculate_total_bonus('saving_throws') if hasattr(creature, 'buffs') else 0
+    total_save = save_roll + save_bonus + buff_bonus
+    auto_fail = save_type in ('str', 'dex') and is_paralyzed(creature)
+    return {
+        'save_roll': save_roll,
+        'save_bonus': save_bonus,
+        'buff_bonus': buff_bonus,
+        'total_save': total_save,
+        'save_success': not auto_fail and total_save >= save_dc,
+        'auto_fail': auto_fail,
+    }
+
 
 class Action:
     """
@@ -47,7 +69,8 @@ class AttackAction(Action):
         weapon_type: str = "melee",  # 'melee', 'ranged', or 'finesse'
         area_effect: bool = False,  # True if this action affects multiple targets
         save_type: Optional[str] = None,  # 'str', 'dex', 'con', etc. for save-based attacks
-        save_dc: Optional[int] = None  # DC for the saving throw
+        save_dc: Optional[int] = None,  # DC for the saving throw
+        on_hit: Optional[Dict[str, Any]] = None  # Save-or-condition rider, e.g. ghoul paralysis
     ) -> None:
         super().__init__(action_type="attack", name=name, description=description)
         self.weapon_name = weapon_name
@@ -58,6 +81,9 @@ class AttackAction(Action):
         self.area_effect = area_effect
         self.save_type = save_type
         self.save_dc = save_dc
+        # e.g. {'condition': 'paralyzed', 'save_type': 'con', 'save_dc': 10,
+        #       'duration_rounds': 10, 'immune_races': ['Elf']}
+        self.on_hit = on_hit
 
     def hit_bonus(self, attacker: Any) -> int:
         """
@@ -89,15 +115,18 @@ class AttackAction(Action):
         mod = int(match.group(3)) if match.group(3) else 0
         return num, die, mod
 
-    def damage_roll(self, attacker: Any) -> int:
+    def damage_roll(self, attacker: Any, critical: bool = False) -> int:
         """
         Roll the weapon's damage dice and add attacker's relevant modifier if not already included in the dice string.
         Args:
             attacker: The acting character or monster
+            critical: Roll the damage dice twice (modifiers are added once)
         Returns:
             int: Total damage
         """
         num, die, dice_mod = self.parse_dice(self.damage_dice)
+        if critical:
+            num *= 2
         rolls = [random.randint(1, die) for _ in range(num)]
         # Only add ability modifier if dice_mod is zero (i.e., not already included in dice string)
         mod = 0
@@ -112,6 +141,41 @@ class AttackAction(Action):
                 mod = attacker.ability_modifier('str')
         total = sum(rolls) + mod + dice_mod
         return max(0, total)
+
+    def _roll_attack(self, target: Any):
+        """Roll the d20 for an attack, with advantage against a paralyzed target."""
+        advantage = is_paralyzed(target)
+        attack_roll = random.randint(1, 20)
+        if advantage:
+            attack_roll = max(attack_roll, random.randint(1, 20))
+        return attack_roll, advantage
+
+    def _is_auto_critical(self, target: Any) -> bool:
+        """Melee hits against a paralyzed creature are critical hits (we assume melee is within 5 ft)."""
+        return self.weapon_type != 'ranged' and is_paralyzed(target)
+
+    def _apply_on_hit_effect(self, attacker: Any, target: Any) -> Dict[str, Any]:
+        """Apply this attack's on-hit condition (currently paralysis) to a target that was hit."""
+        effect = self.on_hit or {}
+        if effect.get('condition') != 'paralyzed' or not isinstance(getattr(target, 'buffs', None), BuffManager):
+            return {}
+        if not target.is_alive() or is_paralyzed(target):
+            return {}
+        immune_races = {r.lower() for r in effect.get('immune_races', [])}
+        if str(getattr(target, 'race', '')).lower() in immune_races:
+            return {'effect_immune': True}
+
+        save = roll_saving_throw(target, effect.get('save_type', 'con'), effect.get('save_dc', 10))
+        result = {'effect_save': save}
+        if not save['save_success']:
+            target.buffs.add_buff(create_paralyzed_condition(
+                getattr(attacker, 'name', 'Unknown'),
+                effect.get('save_type', 'con'),
+                effect.get('save_dc', 10),
+                effect.get('duration_rounds', 10),
+            ))
+            result['condition_applied'] = 'Paralyzed'
+        return result
 
     def execute(self, attacker: Any, target: Any) -> dict:
         """
@@ -152,21 +216,8 @@ class AttackAction(Action):
                 base_damage = self.damage_roll(attacker)
 
                 for t in targets_list:
-                    save_roll = random.randint(1, 20)
-
-                    # Calculate save bonus
-                    if hasattr(t, 'saving_throw_bonus'):
-                        save_bonus = t.saving_throw_bonus(self.save_type)
-                    else:
-                        save_bonus = 0
-
-                    # Add buff bonuses to saving throws
-                    buff_bonus = 0
-                    if hasattr(t, 'buffs'):
-                        buff_bonus = t.buffs.calculate_total_bonus('saving_throws')
-
-                    total_save = save_roll + save_bonus + buff_bonus
-                    save_success = total_save >= self.save_dc
+                    save = roll_saving_throw(t, self.save_type, self.save_dc)
+                    save_success = save['save_success']
 
                     # Apply damage (half on successful save for breath weapons)
                     damage = base_damage
@@ -180,11 +231,7 @@ class AttackAction(Action):
 
                     target_results.append({
                         'target': getattr(t, 'name', str(t)),
-                        'save_roll': save_roll,
-                        'save_bonus': save_bonus,
-                        'buff_bonus': buff_bonus,
-                        'total_save': total_save,
-                        'save_success': save_success,
+                        **save,
                         'damage': damage,
                         'hp_after': getattr(t, 'hp', 0)
                     })
@@ -210,11 +257,12 @@ class AttackAction(Action):
                 base_damage = self.damage_roll(attacker)
 
                 for t in targets_list:
-                    attack_roll = random.randint(1, 20)
+                    attack_roll, advantage = self._roll_attack(t)
                     total_attack = attack_roll + bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
                     hit = total_attack >= target_ac
-                    damage = base_damage if hit else 0
+                    critical = hit and self._is_auto_critical(t)
+                    damage = (self.damage_roll(attacker, critical=True) if critical else base_damage) if hit else 0
 
                     # Apply damage
                     if hit and hasattr(t, 'hp'):
@@ -223,6 +271,8 @@ class AttackAction(Action):
 
                     target_results.append({
                         'target': getattr(t, 'name', str(t)),
+                        'advantage': advantage,
+                        'critical': critical,
                         'attack_roll': attack_roll,
                         'total_attack': total_attack,
                         'target_ac': target_ac,
@@ -241,7 +291,8 @@ class AttackAction(Action):
 
         else:
             # Single target action (standard behavior)
-            attack_roll = random.randint(1, 20)
+            attack_target = targets_list[0]
+            attack_roll, advantage = self._roll_attack(attack_target)
             bonus = self.hit_bonus(attacker)
 
             # Add buff bonuses to attack rolls
@@ -252,11 +303,15 @@ class AttackAction(Action):
             total_attack = attack_roll + bonus + buff_bonus
             target_ac = getattr(targets_list[0], 'ac', 10)
             hit = total_attack >= target_ac
-            damage = self.damage_roll(attacker) if hit else 0
+            critical = hit and self._is_auto_critical(attack_target)
+            damage = (self.damage_roll(attacker, critical=True) if critical else self.damage_roll(attacker)) if hit else 0
 
             # Apply damage to target HP if hit and target has hp
             if hit and hasattr(targets_list[0], 'hp'):
                 targets_list[0].hp -= damage
+
+            if hit and self.on_hit:
+                result.update(self._apply_on_hit_effect(attacker, attack_target))
 
             result.update({
                 'attack_roll': attack_roll,
@@ -265,6 +320,8 @@ class AttackAction(Action):
                 'total_attack': total_attack,
                 'target_ac': target_ac,
                 'hit': hit,
+                'advantage': advantage,
+                'critical': critical,
                 'damage': damage
             })
 

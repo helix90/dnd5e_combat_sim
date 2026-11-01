@@ -292,7 +292,8 @@ class BatchSimulationController:
                     hit_bonus=ad.get('hit_bonus'),
                     area_effect=ad.get('area_effect', False),
                     save_type=ad.get('save_type'),
-                    save_dc=ad.get('save_dc')
+                    save_dc=ad.get('save_dc'),
+                    on_hit=ad.get('on_hit')
                 ))
             elif ad.get('type') == 'special':
                 # Check if this is a breath weapon or other damaging special ability
