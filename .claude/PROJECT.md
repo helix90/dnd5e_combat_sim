@@ -47,8 +47,8 @@ source venv/bin/activate && python -m pytest tests/test_combat.py -v
 
 ## Database
 
-- SQLite database: `dnd5e_sim.db`
-- Schema includes: combats, participants, encounters, encounter_monsters, sessions
+- SQLite database: `data/app.db` by default; override with `DATABASE_URL` (e.g. `sqlite:////data/app.db`)
+- Schema (`db/schema.sql`): sessions, simulations, combat_logs, batch_simulations, batch_simulation_runs
 
 ## Notes
 

@@ -279,6 +279,10 @@ def ensure_session() -> None:
     else:
         session.permanent = True  # Ensure existing sessions are also permanent
 
+def _session_owns(record: Optional[Dict[str, Any]]) -> bool:
+    """Return True if a simulation/batch DB record belongs to the current session."""
+    return bool(record) and record.get('session_id') == session.get('session_id')
+
 # Main Routes
 
 @app.route('/')
@@ -859,6 +863,8 @@ def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
         Rendered HTML template or error page
     """
     try:
+        if not _session_owns(db.get_batch_simulation(batch_id)):
+            return render_template('error.html', error=f"Batch simulation {batch_id} not found"), 404
         results = batch_simulation_controller.get_batch_results(batch_id)
         return render_template('batch_results.html', results=results), 200
     except Exception as e:
@@ -944,6 +950,17 @@ def results() -> str:
                 log=[],
                 sim_id=None
             )
+
+    # sim_id can come from the query string, so only show simulations owned by this session
+    if not _session_owns(db.get_simulation(sim_id)):
+        logger.warning(f"/results: simulation {sim_id} not found for session {session['session_id']}")
+        return render_template(
+            'results.html',
+            summary={'win_loss': 'No simulation found', 'party_status': 'No data'},
+            statistics=[],
+            log=[],
+            sim_id=None
+        ), 404
 
     # Build page data
     try:

@@ -126,3 +126,27 @@ def test_api_prebuilt_encounters():
         data = response.get_json()
         assert isinstance(data, list)
         assert any('name' in enc for enc in data) 
+
+def test_results_rejects_other_sessions_simulation(client):
+    from app import db
+    other_sim = db.save_simulation('someone-else', 3, 'goblin', 'win', 4, 12)
+    rv = client.get(f'/results?sim_id={other_sim}')
+    assert rv.status_code == 404
+    assert b'No simulation found' in rv.data
+
+
+def test_results_allows_own_simulation(client):
+    from app import db
+    client.get('/')  # establishes session_id
+    with client.session_transaction() as sess:
+        session_id = sess['session_id']
+    own_sim = db.save_simulation(session_id, 3, 'goblin', 'win', 4, 12)
+    rv = client.get(f'/results?sim_id={own_sim}')
+    assert rv.status_code == 200
+
+
+def test_batch_results_rejects_other_sessions_batch(client):
+    from app import db
+    other_batch = db.create_batch_simulation('someone-else', 'b', 3, 'goblin')
+    rv = client.get(f'/batch/results/{other_batch}')
+    assert rv.status_code == 404

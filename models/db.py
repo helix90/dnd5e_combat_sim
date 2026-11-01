@@ -6,12 +6,33 @@ import time
 from utils.exceptions import DatabaseError
 from utils.logging import log_exception
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCHEMA_PATH = os.path.join(PROJECT_ROOT, 'db', 'schema.sql')
+DEFAULT_DATABASE_URL = 'sqlite:///data/app.db'
+
+
+def resolve_db_path(database_url: Optional[str] = None) -> str:
+    """
+    Resolve a SQLite database file path from a DATABASE_URL-style string.
+
+    Uses DATABASE_URL from the environment when no URL is given. Follows the
+    SQLAlchemy convention: sqlite:///relative/path or sqlite:////absolute/path.
+    Relative paths are resolved against the project root, not the CWD.
+    """
+    url = database_url or os.environ.get('DATABASE_URL') or DEFAULT_DATABASE_URL
+    prefix = 'sqlite:///'
+    if not url.startswith(prefix):
+        raise DatabaseError(f"Unsupported DATABASE_URL (only {prefix} is supported): {url}")
+    path = url[len(prefix):]
+    return path if os.path.isabs(path) else os.path.join(PROJECT_ROOT, path)
+
+
 class DatabaseManager:
     """
     Manages SQLite database operations with optimized queries and connection pooling.
     """
-    def __init__(self, db_path: str = "dnd5e_sim.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: Optional[str] = None):
+        self.db_path = db_path or resolve_db_path()
         self._ensure_db_directory()
         self._init_database()
         self._create_indexes()
@@ -26,7 +47,7 @@ class DatabaseManager:
         """Initialize database with schema."""
         try:
             with self._get_connection() as conn:
-                with open('db/schema.sql', 'r') as f:
+                with open(SCHEMA_PATH, 'r') as f:
                     conn.executescript(f.read())
         except Exception as e:
             log_exception(e)
@@ -74,8 +95,15 @@ class DatabaseManager:
         try:
             start_time = time.time()
             with self._get_connection() as conn:
+                # Upsert rather than INSERT OR REPLACE: REPLACE deletes the row,
+                # wiping selected_party_id and created_at whenever a caller
+                # passes no party.
                 conn.execute(
-                    "INSERT OR REPLACE INTO sessions (session_id, selected_party_id) VALUES (?, ?)",
+                    """
+                    INSERT INTO sessions (session_id, selected_party_id) VALUES (?, ?)
+                    ON CONFLICT(session_id) DO UPDATE SET
+                        selected_party_id = COALESCE(excluded.selected_party_id, sessions.selected_party_id)
+                    """,
                     (session_id, selected_party_id)
                 )
                 conn.commit()

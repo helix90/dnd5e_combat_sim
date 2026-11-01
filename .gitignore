@@ -123,6 +123,8 @@ docker-compose.override.yml
 # Database
 *.sqlite3
 *.db
+*.db-wal
+*.db-shm
 *.bak
 *.sql
 !db/schema.sql

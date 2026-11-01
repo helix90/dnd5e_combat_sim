@@ -138,7 +138,7 @@ def test_aoe_spell_damage_tracking():
 
     # Query the combat_logs table for the wizard's spell action
     import sqlite3
-    conn = sqlite3.connect('dnd5e_sim.db')
+    conn = sqlite3.connect(db.db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -252,7 +252,7 @@ def test_single_target_spell_damage_tracking():
 
     # Query the combat_logs table
     import sqlite3
-    conn = sqlite3.connect('dnd5e_sim.db')
+    conn = sqlite3.connect(db.db_path)
     cursor = conn.cursor()
 
     cursor.execute('''
