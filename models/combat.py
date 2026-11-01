@@ -198,8 +198,10 @@ class Combat:
             idx = (start + i) % n
             participant = self.initiative_order[idx]
             if participant in alive_set:
-                self.current_turn = (idx + 1) % n
-                if self.current_turn == 0:
+                self.current_turn = idx + 1
+                # Wrapping past the end of the initiative order starts a new round. (Checking for
+                # the last slot instead would stall the round count once that creature is dead.)
+                if start + i >= n:
                     self.current_round += 1
                     self.logger.log_round_start(self.current_round)
                     self._alive_participants_cache = None
