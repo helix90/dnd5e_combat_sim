@@ -354,3 +354,17 @@ def test_combat_log_includes_spell_name(monkeypatch):
         combat.next_turn()
     log_lines = combat.format_log_for_web()
     assert any("casts Cure Wounds on" in line for line in log_lines), f"Expected spell name in log, got: {log_lines}" 
+
+def test_rounds_advance_after_last_in_initiative_dies():
+    scores = {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}
+    hero = Character('Hero', 1, 'Fighter', 'Human', scores, hp=100, ac=30, proficiency_bonus=2)
+    goblin = Monster('Goblin', '1/4', 100, 30, scores)
+    orc = Monster('Orc', '1/2', 15, 13, scores)
+    combat = Combat([hero, goblin, orc])
+    combat.initiative_order = [hero, goblin, orc]
+    orc.hp = 0  # the creature last in initiative is dead
+    rounds = []
+    for _ in range(6):
+        combat.next_turn()
+        rounds.append(combat.current_round)
+    assert rounds == [1, 1, 2, 2, 3, 3]

@@ -137,6 +137,7 @@ class BatchSimulationController:
                                         special_abilities=monster_data.get('special_abilities', []),
                                         legendary_actions=monster_data.get('legendary_actions', []),
                                         multiattack=monster_data.get('multiattack', False),
+                                        regeneration=monster_data.get('regeneration'),
                                         actions=actions
                                     )
                                     monster_objects.append(monster)

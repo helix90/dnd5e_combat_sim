@@ -76,13 +76,87 @@ class Combat:
         self._alive_participants_cache = None
         self._last_alive_check = 0
         self.tactical = TacticalAnalyzer()
+        # Regeneration (e.g. trolls): damage types that stopped it since the creature's last turn,
+        # and creatures that started a turn at 0 HP without regenerating, which are dead for good
+        self._regenerators = [p for p in participants if isinstance(getattr(p, 'regeneration', None), dict)]
+        self._regen_suppressed: Dict[Any, set] = {}
+        self._regen_dead: set = set()
 
     def _get_alive_participants(self) -> List[Any]:
         """Get alive participants with caching for efficiency."""
         if self._alive_participants_cache is None or self._last_alive_check != self.current_round:
-            self._alive_participants_cache = [p for p in self.participants if p.is_alive()]
+            self._alive_participants_cache = [
+                p for p in self.participants if p.is_alive() or self._will_regenerate(p)
+            ]
             self._last_alive_check = self.current_round
         return self._alive_participants_cache
+
+    def _will_regenerate(self, participant: Any) -> bool:
+        """True for a creature at 0 HP that will get back up at the start of its next turn."""
+        regen = getattr(participant, 'regeneration', None)
+        return (isinstance(regen, dict) and regen.get('revives_at_zero', False)
+                and participant.hp <= 0
+                and participant not in self._regen_dead
+                and participant not in self._regen_suppressed)
+
+    @staticmethod
+    def _damage_types(result: Any) -> set:
+        """Collect every damage type mentioned in an action result, including nested attacks."""
+        found = set()
+        if isinstance(result, dict):
+            if isinstance(result.get('damage_type'), str):
+                found.add(result['damage_type'].lower())
+            for value in result.values():
+                found |= Combat._damage_types(value)
+        elif isinstance(result, list):
+            for value in result:
+                found |= Combat._damage_types(value)
+        return found
+
+    def _note_regeneration_damage(self, hp_before: Dict[Any, int], result: Dict[str, Any]) -> None:
+        """Record damage types that stop regeneration on creatures this action hurt."""
+        types = None
+        for creature, hp in hp_before.items():
+            if creature.hp < hp:
+                types = self._damage_types(result) if types is None else types
+                stopped = types & {t.lower() for t in creature.regeneration.get('suppressed_by', [])}
+                if stopped:
+                    self._regen_suppressed.setdefault(creature, set()).update(stopped)
+                    self._alive_participants_cache = None
+
+    def _regeneration_turn_start(self, participant: Any) -> Optional[Dict[str, Any]]:
+        """
+        Apply regeneration at the start of the creature's turn. Returns a log entry, or None
+        if nothing happened (already at full HP).
+        """
+        regen = participant.regeneration
+        stopped = self._regen_suppressed.pop(participant, None)
+        was_down = participant.hp <= 0
+        healed = 0
+        if stopped:
+            types = ' or '.join(sorted(stopped))
+            if was_down:
+                self._regen_dead.add(participant)
+                description = f"took {types} damage, so it doesn't regenerate and dies"
+            else:
+                description = f"took {types} damage, so it doesn't regenerate this turn"
+        elif was_down and not regen.get('revives_at_zero', False):
+            return None
+        elif participant.hp >= participant.max_hp:
+            return None
+        else:
+            healed = min(int(regen.get('hp', 0)), participant.max_hp - participant.hp)
+            participant.hp += healed
+            description = f"regenerates {healed} HP" + (" and gets back up" if was_down else "")
+        self._alive_participants_cache = None
+        return {
+            'action': 'Regeneration',
+            'type': 'condition',
+            'condition': 'regeneration',
+            'target': participant.name,
+            'healing': healed,
+            'description': description,
+        }
 
     def roll_initiative(self) -> None:
         """
@@ -124,8 +198,10 @@ class Combat:
             idx = (start + i) % n
             participant = self.initiative_order[idx]
             if participant in alive_set:
-                self.current_turn = (idx + 1) % n
-                if self.current_turn == 0:
+                self.current_turn = idx + 1
+                # Wrapping past the end of the initiative order starts a new round. (Checking for
+                # the last slot instead would stall the round count once that creature is dead.)
+                if start + i >= n:
                     self.current_round += 1
                     self.logger.log_round_start(self.current_round)
                     self._alive_participants_cache = None
@@ -133,6 +209,12 @@ class Combat:
                     for p in alive_set:
                         if hasattr(p, 'buffs'):
                             p.buffs.tick_round()
+                if participant in self._regenerators:
+                    regen_result = self._regeneration_turn_start(participant)
+                    if regen_result:
+                        self.logger.log_action(participant, regen_result, self.current_round)
+                    if participant.hp <= 0:
+                        return participant
                 if is_paralyzed(participant):
                     # Incapacitated: no action this turn, then repeat the save at the end of it
                     result = self._paralyzed_turn(participant)
@@ -142,7 +224,9 @@ class Combat:
                 if ai:
                     combat_state = self._build_combat_state(participant)
                     action_plan = ai.choose_action(participant, combat_state)
+                    hp_before = {c: c.hp for c in self._regenerators}
                     result = self._execute_action(participant, action_plan)
+                    self._note_regeneration_damage(hp_before, result)
                     self.logger.log_action(participant, result, self.current_round)
                     if self.is_combat_over():
                         return participant
