@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import threading
 from typing import List, Dict, Any, Optional
 from contextlib import contextmanager
 import time
@@ -27,15 +28,32 @@ def resolve_db_path(database_url: Optional[str] = None) -> str:
     return path if os.path.isabs(path) else os.path.join(PROJECT_ROOT, path)
 
 
+def _as_int(value: Any) -> int:
+    """Coerce a damage/healing value from a combat result to int (None or junk -> 0)."""
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 class DatabaseManager:
     """
     Manages SQLite database operations with optimized queries and connection pooling.
     """
+    # Paths whose schema/indexes/WAL mode have already been set up in this
+    # process, so the several DatabaseManager instances don't redo it.
+    _initialized_paths = set()
+    _init_lock = threading.Lock()
+
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or resolve_db_path()
-        self._ensure_db_directory()
-        self._init_database()
-        self._create_indexes()
+        with DatabaseManager._init_lock:
+            if self.db_path in self._initialized_paths and os.path.exists(self.db_path):
+                return
+            self._ensure_db_directory()
+            self._init_database()
+            self._create_indexes()
+            self._initialized_paths.add(self.db_path)
     
     def _ensure_db_directory(self):
         """Ensure the database directory exists."""
@@ -47,6 +65,8 @@ class DatabaseManager:
         """Initialize database with schema."""
         try:
             with self._get_connection() as conn:
+                # journal_mode is persistent per database file, so set it once here
+                conn.execute("PRAGMA journal_mode = WAL")
                 with open(SCHEMA_PATH, 'r') as f:
                     conn.executescript(f.read())
         except Exception as e:
@@ -56,10 +76,13 @@ class DatabaseManager:
     def _create_indexes(self):
         """Create performance indexes for common queries."""
         indexes = [
-            "CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id)",
+            # Redundant with the UNIQUE constraint on sessions.session_id
+            "DROP INDEX IF EXISTS idx_sessions_session_id",
             "CREATE INDEX IF NOT EXISTS idx_simulations_session_id ON simulations(session_id)",
             "CREATE INDEX IF NOT EXISTS idx_combat_logs_simulation_id ON combat_logs(simulation_id)",
             "CREATE INDEX IF NOT EXISTS idx_simulations_created_at ON simulations(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_batch_runs_batch_id ON batch_simulation_runs(batch_id)",
+            "CREATE INDEX IF NOT EXISTS idx_batch_runs_simulation_id ON batch_simulation_runs(simulation_id)",
         ]
         try:
             with self._get_connection() as conn:
@@ -76,7 +99,6 @@ class DatabaseManager:
         conn.row_factory = sqlite3.Row  # Enable dict-like access
         # Enable foreign keys and optimize for performance
         conn.execute("PRAGMA foreign_keys = ON")
-        conn.execute("PRAGMA journal_mode = WAL")
         conn.execute("PRAGMA synchronous = NORMAL")
         conn.execute("PRAGMA cache_size = 10000")
         conn.execute("PRAGMA temp_store = MEMORY")
@@ -130,7 +152,12 @@ class DatabaseManager:
             raise DatabaseError(f"Failed to get simulation: {e}")
     
     def get_simulation_history(self, session_id: str) -> List[Dict[str, Any]]:
-        """Get simulation history with optimized query and pagination."""
+        """
+        Get single-simulation history for a session, newest first.
+
+        Runs that belong to a batch are excluded; they're shown via batch history.
+        id is used for ordering because created_at only has one-second resolution.
+        """
         try:
             start_time = time.time()
             with self._get_connection() as conn:
@@ -140,8 +167,9 @@ class DatabaseManager:
                     FROM simulations s 
                     LEFT JOIN combat_logs cl ON s.id = cl.simulation_id 
                     WHERE s.session_id = ? 
+                      AND NOT EXISTS (SELECT 1 FROM batch_simulation_runs bsr WHERE bsr.simulation_id = s.id)
                     GROUP BY s.id 
-                    ORDER BY s.created_at DESC 
+                    ORDER BY s.id DESC 
                     LIMIT 50
                     """,
                     (session_id,)
@@ -154,15 +182,16 @@ class DatabaseManager:
             raise DatabaseError(f"Failed to get simulation history: {e}")
 
     def get_last_simulation_id(self, session_id: str) -> Optional[int]:
-        """Get the most recent simulation ID for a session."""
+        """Get the most recent non-batch simulation ID for a session."""
         try:
             start_time = time.time()
             with self._get_connection() as conn:
                 cursor = conn.execute(
                     """
-                    SELECT id FROM simulations 
+                    SELECT id FROM simulations s
                     WHERE session_id = ? 
-                    ORDER BY created_at DESC 
+                      AND NOT EXISTS (SELECT 1 FROM batch_simulation_runs bsr WHERE bsr.simulation_id = s.id)
+                    ORDER BY id DESC 
                     LIMIT 1
                     """,
                     (session_id,)
@@ -241,7 +270,8 @@ class DatabaseManager:
                     # Extract damage
                     # For AoE spells/attacks, damage is in 'total_damage'
                     # For single-target, it's in 'damage'
-                    damage = result.get('total_damage', result.get('damage', 0))
+                    total_damage = result.get('total_damage')
+                    damage = _as_int(total_damage if total_damage is not None else result.get('damage'))
                     
                     # Build result text
                     if action_type == 'attack':
@@ -253,8 +283,8 @@ class DatabaseManager:
                         else:
                             result_text = "Miss"
                     elif action_type == 'spell':
-                        if result.get('healing', 0) > 0:
-                            healing = result.get('healing', 0)
+                        healing = _as_int(result.get('healing'))
+                        if healing > 0:
                             result_text = f"Heals {healing} HP"
                             damage = -healing  # Negative for healing
                         else:
@@ -283,53 +313,80 @@ class DatabaseManager:
         
         return converted_logs
 
+    def _insert_simulation_result(self, conn: sqlite3.Connection, session_id: str, result: Dict[str, Any]) -> int:
+        """Insert a simulation and its combat logs on conn without committing."""
+        cursor = conn.execute(
+            """
+            INSERT INTO simulations (session_id, party_level, encounter_type, result, rounds, party_hp_remaining)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session_id,
+                result.get('party_level', 1),
+                result.get('encounter_type', 'custom'),
+                str(result.get('winner', 'unknown')),
+                result.get('rounds', 0),
+                result.get('party_hp_remaining', 0)
+            )
+        )
+        sim_id = cursor.lastrowid
+
+        # Convert and batch insert combat logs
+        logs = result.get('log', [])
+        if logs:
+            converted_logs = self._convert_combat_log_format(logs)
+            log_data = [
+                (sim_id, log.get('round_number', 0), log.get('action_order', 0),
+                 log.get('character_name', ''), log.get('action_type', ''),
+                 log.get('target', ''), str(log.get('result', '')), log.get('damage', 0))
+                for log in converted_logs
+            ]
+            conn.executemany(
+                """
+                INSERT INTO combat_logs 
+                (simulation_id, round_number, action_order, character_name, action_type, target, result, damage)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                log_data
+            )
+        return sim_id
+
     def save_simulation_result(self, session_id: str, result: Dict[str, Any]) -> int:
         """Save simulation result with optimized batch insert."""
         try:
             start_time = time.time()
             with self._get_connection() as conn:
-                # Insert simulation
-                cursor = conn.execute(
-                    """
-                    INSERT INTO simulations (session_id, party_level, encounter_type, result, rounds, party_hp_remaining)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        session_id,
-                        result.get('party_level', 1),
-                        result.get('encounter_type', 'custom'),
-                        str(result.get('winner', 'unknown')),
-                        result.get('rounds', 0),
-                        result.get('party_hp_remaining', 0)
-                    )
-                )
-                sim_id = cursor.lastrowid
-                
-                # Convert and batch insert combat logs
-                logs = result.get('log', [])
-                if logs:
-                    converted_logs = self._convert_combat_log_format(logs)
-                    log_data = [
-                        (sim_id, log.get('round_number', 0), log.get('action_order', 0),
-                         log.get('character_name', ''), log.get('action_type', ''),
-                         log.get('target', ''), str(log.get('result', '')), log.get('damage', 0))
-                        for log in converted_logs
-                    ]
-                    conn.executemany(
-                        """
-                        INSERT INTO combat_logs 
-                        (simulation_id, round_number, action_order, character_name, action_type, target, result, damage)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        log_data
-                    )
-                
+                sim_id = self._insert_simulation_result(conn, session_id, result)
                 conn.commit()
             self._log_slow_query("save_simulation_result", time.time() - start_time)
             return sim_id
         except Exception as e:
             log_exception(e)
             raise DatabaseError(f"Failed to save simulation result: {e}")
+
+    def save_batch_run_result(self, session_id: str, batch_id: int, run_number: int, result: Dict[str, Any]) -> int:
+        """
+        Save one batch run: the simulation, its combat logs and the batch_simulation_runs
+        row, in a single transaction so a failure can't leave an orphaned simulation.
+        """
+        try:
+            start_time = time.time()
+            with self._get_connection() as conn:
+                sim_id = self._insert_simulation_result(conn, session_id, result)
+                conn.execute(
+                    """
+                    INSERT INTO batch_simulation_runs (batch_id, simulation_id, run_number, result, rounds, party_hp_remaining)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (batch_id, sim_id, run_number, str(result.get('winner', 'unknown')),
+                     result.get('rounds', 0), result.get('party_hp_remaining', 0))
+                )
+                conn.commit()
+            self._log_slow_query("save_batch_run_result", time.time() - start_time)
+            return sim_id
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to save batch run result: {e}")
     
     def cleanup_old_sessions(self, days_old: int = 7) -> int:
         """Clean up old sessions and related data."""

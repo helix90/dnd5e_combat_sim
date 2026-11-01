@@ -150,18 +150,9 @@ class BatchSimulationController:
                         result = combat.run()
                         logger.debug(f"Batch {batch_id} run {run_number}: Combat finished, winner={result.get('winner', 'unknown')}, rounds={result.get('rounds', 0)}")
 
-                        # Save individual simulation
-                        sim_id = self.db.save_simulation_result(session_id, result)
+                        # Save the simulation and its batch run row atomically
+                        sim_id = self.db.save_batch_run_result(session_id, batch_id, run_number, result)
                         logger.debug(f"Batch {batch_id} run {run_number}: Saved simulation as ID {sim_id}")
-
-                        # Add to batch
-                        self.db.add_batch_run(
-                            batch_id, sim_id, run_number,
-                            result.get('winner', 'unknown'),
-                            result.get('rounds', 0),
-                            result.get('party_hp_remaining', 0)
-                        )
-                        logger.debug(f"Batch {batch_id} run {run_number}: Added to batch")
 
                         # Update batch statistics with thread safety
                         with self.state_lock:
@@ -193,24 +184,29 @@ class BatchSimulationController:
 
                 logger.info(f"Batch {batch_id} completed all {num_runs} runs, finalizing statistics")
 
-                # Finalize batch statistics with thread safety
+                # Snapshot final statistics under the lock, but write them to the DB
+                # outside it so progress polling and other batches aren't blocked on I/O
                 with self.state_lock:
                     state = self.batch_states[batch_id]
-                    if state['completed_runs'] > 0:
-                        avg_rounds = state['total_rounds'] / state['completed_runs']
-                        avg_party_hp = state['total_party_hp_remaining'] / state['completed_runs']
+                    completed_runs = state['completed_runs']
+                    party_wins = state['party_wins']
+                    monster_wins = state['monster_wins']
+                    if completed_runs > 0:
+                        avg_rounds = state['total_rounds'] / completed_runs
+                        avg_party_hp = state['total_party_hp_remaining'] / completed_runs
                     else:
                         avg_rounds = 0
                         avg_party_hp = 0
 
-                    logger.info(f"Batch {batch_id}: Updating database statistics")
-                    self.db.update_batch_statistics(
-                        batch_id, state['completed_runs'], state['party_wins'],
-                        state['monster_wins'], avg_rounds, avg_party_hp
-                    )
+                logger.info(f"Batch {batch_id}: Updating database statistics")
+                self.db.update_batch_statistics(
+                    batch_id, completed_runs, party_wins, monster_wins, avg_rounds, avg_party_hp
+                )
 
-                    state['done'] = True
-                    logger.info(f"Batch {batch_id} COMPLETE: {state['completed_runs']} runs, {state['party_wins']} party wins, {state['monster_wins']} monster wins")
+                # Only mark done once the stats are in the DB, since the results page reads them from there
+                with self.state_lock:
+                    self.batch_states[batch_id]['done'] = True
+                logger.info(f"Batch {batch_id} COMPLETE: {completed_runs} runs, {party_wins} party wins, {monster_wins} monster wins")
 
             except Exception as e:
                 logger.error(f"Batch {batch_id} thread failed with fatal error: {e}", exc_info=True)
