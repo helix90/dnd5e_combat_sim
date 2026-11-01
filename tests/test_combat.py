@@ -368,3 +368,18 @@ def test_rounds_advance_after_last_in_initiative_dies():
         combat.next_turn()
         rounds.append(combat.current_round)
     assert rounds == [1, 1, 2, 2, 3, 3]
+
+
+@pytest.mark.parametrize('description, expected', [
+    ('The troll makes three attacks: one with its bite and two with its claws.', ['Bite', 'Claw', 'Claw']),
+    ('The giant makes two greatclub attacks.', ['Greatclub', 'Greatclub']),
+    ('The wight makes two longsword attacks or two longbow attacks.', ['Longsword', 'Longsword']),
+    ('The vampire spawn makes two attacks, only one of which can be a bite attack.', ['Claws', 'Claws']),
+])
+def test_multiattack_descriptions(description, expected):
+    names = ['Claws', 'Bite', 'Claw', 'Greatclub', 'Rock', 'Longsword', 'Longbow']
+    if 'troll' in description:
+        names = ['Bite', 'Claw']
+    actions = [AttackAction(name=n, description=n, weapon_name=n, damage_dice='1d6', damage_type='slashing')
+               for n in names]
+    assert [a.name for a in Combat._parse_multiattack(description, actions)] == expected

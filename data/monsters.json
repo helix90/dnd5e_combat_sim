@@ -79,7 +79,7 @@
       "damage_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "weapon_type": "melee", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."}
+        {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "weapon_type": "finesse", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."}
       ]
     },
     {
@@ -113,7 +113,7 @@
       "multiattack": false,
       "actions": [
         {"name": "Greataxe", "type": "attack", "damage_dice": "1d12+3", "damage_type": "slashing", "weapon_type": "melee"},
-        {"name": "Javelin", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "ranged"}
+        {"name": "Javelin", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "thrown"}
       ]
     },
     {
@@ -217,7 +217,7 @@
       "damage_immunities": ["necrotic", "poison"],
       "multiattack": false,
       "actions": [
-        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "melee", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken."}
+        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken."}
       ]
     },
     {
@@ -254,7 +254,7 @@
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The giant makes two greatclub attacks."},
         {"name": "Greatclub", "type": "attack", "damage_dice": "3d8+5", "damage_type": "bludgeoning", "weapon_type": "melee"},
-        {"name": "Rock", "type": "attack", "damage_dice": "4d10+5", "damage_type": "bludgeoning", "weapon_type": "ranged"}
+        {"name": "Rock", "type": "attack", "damage_dice": "4d10+5", "damage_type": "bludgeoning", "weapon_type": "thrown"}
       ]
     },
     {
