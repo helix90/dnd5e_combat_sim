@@ -789,7 +789,7 @@ class TestCharacterSpellCasting:
         assert result['spell_level'] == 3
         assert result['damage'] == 32  # 8 * 4 = 32
         assert result['damage_type'] == "fire"
-        assert target.hp == -12  # 20 - 32 = -12
+        assert target.hp == 0  # 20 - 32, floored at 0
         
         # Check that spell slot was consumed
         assert character.spell_slots_remaining[3] == 1

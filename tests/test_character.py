@@ -268,3 +268,30 @@ class TestCharacter:
         assert self.standard_ability_scores == original_scores
         # The character's ability scores should be modified
         assert self.character.ability_scores['str'] == 20 
+
+def test_hp_floors_at_zero_and_healing_starts_from_zero():
+    from models.character import Character
+    from models.monster import Monster
+    from models.spells import Spell
+    scores = {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 16, 'cha': 10}
+    cleric = Character('Cleric', 1, 'Cleric', 'Human', scores, hp=10, ac=10, proficiency_bonus=2,
+                       spell_slots={'1': 2})
+    hero = Character('Hero', 1, 'Fighter', 'Human', scores, hp=12, ac=10, proficiency_bonus=2)
+    hero.hp -= 20
+    assert hero.hp == 0 and not hero.is_alive()
+
+    goblin = Monster('Goblin', '1/4', 7, 15, scores)
+    goblin.hp -= 50
+    assert goblin.hp == 0
+
+    # Healing a downed character starts from 0, not from the overkill amount
+    cure = Spell(name='Cure Wounds', level=1, school='Evocation', casting_time='1 action',
+                 range='Touch', duration='Instantaneous',
+                 components={'verbal': True, 'somatic': True, 'material': False},
+                 damage_dice='1d8', healing=True)
+    cleric.add_spell(cure)
+    from unittest.mock import patch
+    with patch('random.randint', return_value=5):
+        result = cleric.cast_spell('Cure Wounds', hero)
+    assert result.get('healing', 0) > 0, result
+    assert hero.hp == result['healing']
