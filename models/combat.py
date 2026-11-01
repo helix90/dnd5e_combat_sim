@@ -9,7 +9,7 @@ from utils.exceptions import SimulationError
 from utils.logging import log_exception
 from ai.strategy import PartyAIStrategy, MonsterAIStrategy
 from ai.tactical import TacticalAnalyzer
-from models.actions import roll_saving_throw
+from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
