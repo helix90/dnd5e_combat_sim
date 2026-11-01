@@ -180,8 +180,8 @@
       "level": 6,
       "type": "elite",
       "monsters": [
-        {"name": "Hill Giant", "count": 1},
-        {"name": "Goblin", "count": 3}
+        {"name": "Hill Giant", "count": 2},
+        {"name": "Goblin", "count": 1}
       ]
     },
     {
