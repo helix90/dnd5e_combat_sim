@@ -253,7 +253,7 @@ class DatabaseManager:
                         action_name_str = str(action_name) if action_name else ''
 
                     # Check if result already has an explicit 'type' field (preferred)
-                    if 'type' in result and result['type'] in ['spell', 'attack', 'defend', 'wait', 'special']:
+                    if 'type' in result and result['type'] in ['spell', 'attack', 'defend', 'wait', 'special', 'condition']:
                         action_type = result['type']
                     # Otherwise, determine action type based on action name or other indicators
                     elif 'attack' in action_name_str.lower() or result.get('hit') is not None:
@@ -280,6 +280,10 @@ class DatabaseManager:
                                 result_text = f"Hit for {damage} damage"
                             else:
                                 result_text = "Hit for 0 damage"
+                            if result.get('critical'):
+                                result_text += " (critical)"
+                            if result.get('condition_applied'):
+                                result_text += f"; target is {result['condition_applied'].lower()}"
                         else:
                             result_text = "Miss"
                     elif action_type == 'spell':
@@ -295,6 +299,8 @@ class DatabaseManager:
                         result_text = "Takes defensive stance"
                     elif action_type == 'wait':
                         result_text = "Takes no action"
+                    elif action_type == 'condition':
+                        result_text = result.get('description', action_name_str)
                     else:
                         result_text = f"{action_name_str} on {target}"
                         if damage > 0:

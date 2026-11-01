@@ -9,6 +9,8 @@ from utils.exceptions import SimulationError
 from utils.logging import log_exception
 from ai.strategy import PartyAIStrategy, MonsterAIStrategy
 from ai.tactical import TacticalAnalyzer
+from models.actions import roll_saving_throw
+from models.buffs import is_paralyzed
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
 
@@ -131,6 +133,11 @@ class Combat:
                     for p in alive_set:
                         if hasattr(p, 'buffs'):
                             p.buffs.tick_round()
+                if is_paralyzed(participant):
+                    # Incapacitated: no action this turn, then repeat the save at the end of it
+                    result = self._paralyzed_turn(participant)
+                    self.logger.log_action(participant, result, self.current_round)
+                    return participant
                 ai = self.ai_strategy_map.get(participant)
                 if ai:
                     combat_state = self._build_combat_state(participant)
@@ -141,6 +148,25 @@ class Combat:
                         return participant
                 return participant
         return None
+
+    def _paralyzed_turn(self, participant: Any) -> Dict[str, Any]:
+        """Skip a paralyzed creature's turn and roll its end-of-turn save to end the condition."""
+        condition = participant.buffs.get_condition('paralyzed')
+        save_type = condition.metadata.get('save_type', 'con')
+        save = roll_saving_throw(participant, save_type, condition.metadata.get('save_dc', 10))
+        if save['save_success']:
+            participant.buffs.remove_buff(condition.name)
+            outcome = f"succeeds on a {save_type.upper()} save ({save['total_save']}) and is no longer paralyzed"
+        else:
+            outcome = f"fails a {save_type.upper()} save ({save['total_save']}) and remains paralyzed"
+        return {
+            'action': 'Paralyzed',
+            'type': 'condition',
+            'condition': 'paralyzed',
+            'condition_ended': save['save_success'],
+            'description': f"is paralyzed and loses its turn; {outcome}",
+            **save,
+        }
 
     def _build_combat_state(self, participant: Any) -> Dict[str, Any]:
         """Build combat state efficiently with participant type checking."""
@@ -404,7 +430,9 @@ class Combat:
             elif entry['type'] == 'action':
                 actor = entry['actor']
                 result = entry['result']
-                if 'action' in result:
+                if result.get('type') == 'condition':
+                    lines.append(f"{actor} {result.get('description', '')}.")
+                elif 'action' in result:
                     action = result['action']
                     # Log spell name if present
                     if 'spell' in result:
@@ -416,7 +444,11 @@ class Combat:
                         else:
                             lines.append(f"{actor} casts {spell_name} on {result.get('target', '')}.")
                     elif 'damage' in result:
-                        lines.append(f"{actor} uses {action} on {result.get('target', '')}: {result['damage']} damage.")
+                        crit = " (critical hit)" if result.get('critical') else ""
+                        line = f"{actor} uses {action} on {result.get('target', '')}: {result['damage']} damage{crit}."
+                        if result.get('condition_applied'):
+                            line += f" {result.get('target', '')} is {result['condition_applied'].lower()}!"
+                        lines.append(line)
                     elif 'healing' in result:
                         lines.append(f"{actor} uses {action} on {result.get('target', '')}: heals {result['healing']} HP.")
                     else:

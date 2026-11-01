@@ -136,6 +136,14 @@ class BuffManager:
         """Check if a specific buff is active."""
         return any(b.name == buff_name for b in self.active_buffs)
 
+    def get_condition(self, condition: str) -> Optional[Buff]:
+        """Return the active buff representing a condition (e.g. 'paralyzed'), if any."""
+        return next((b for b in self.active_buffs if b.metadata.get('condition') == condition), None)
+
+    def has_condition(self, condition: str) -> bool:
+        """Check if a condition (e.g. 'paralyzed') is active."""
+        return self.get_condition(condition) is not None
+
     def get_active_buff_names(self) -> List[str]:
         """Get names of all active buffs."""
         return [b.name for b in self.active_buffs]
@@ -253,3 +261,29 @@ def create_heroism_buff(caster_name: str, caster_mod: int = 3) -> Buff:
         concentration=True,
         metadata={"spell_level": 1, "temp_hp_per_round": caster_mod}
     )
+
+
+def create_paralyzed_condition(source: str, save_type: str, save_dc: int, duration: int = 10) -> Buff:
+    """
+    Create the Paralyzed condition (e.g. from a ghoul's attack).
+
+    Paralyzed: incapacitated, automatically fails STR and DEX saves, attacks against
+    it have advantage, and melee hits against it are critical hits. The creature
+    repeats the saving throw at the end of each of its turns, ending the effect on a
+    success. Lasts up to 1 minute (10 rounds).
+    """
+    return Buff(
+        name="Paralyzed",
+        source=source,
+        duration_rounds=duration,
+        affects=[],
+        concentration=False,
+        metadata={"condition": "paralyzed", "save_type": save_type, "save_dc": save_dc}
+    )
+
+
+def is_paralyzed(creature: Any) -> bool:
+    """True if the creature currently has the Paralyzed condition."""
+    buffs = getattr(creature, 'buffs', None)
+    # isinstance guards against test doubles whose auto-created attributes are truthy
+    return isinstance(buffs, BuffManager) and buffs.has_condition('paralyzed')
