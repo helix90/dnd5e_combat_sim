@@ -81,6 +81,9 @@ class Monster:
         self.legendary_actions = legendary_actions or []
         self.multiattack = multiattack
         self.regeneration = regeneration
+        # Results of abilities triggered outside the monster's own turn (e.g. Undead Fortitude),
+        # waiting for the combat log
+        self.pending_log_entries: List[Dict[str, Any]] = []
         self.buffs = BuffManager()
         # Add default actions if not provided
         if actions is not None:
