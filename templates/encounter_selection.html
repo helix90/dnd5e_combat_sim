@@ -5,7 +5,9 @@
   .encounter-card:hover, .encounter-card:focus { border-color: var(--bs-primary); outline: none; }
   .encounter-card.selected { border-color: var(--bs-primary); box-shadow: 0 0 0 .15rem rgba(var(--bs-primary-rgb), .35); background: var(--bs-primary-bg-subtle); }
   .encounter-group + .encounter-group { margin-top: 1.25rem; }
-  #prebuilt-summary { top: 1rem; }
+  #prebuilt-summary, #custom-summary { top: 1rem; }
+  .monster-card.in-encounter { border-color: var(--bs-success); background: var(--bs-success-bg-subtle); }
+  .qty-btn { width: 1.75rem; padding: 0; }
 </style>
 <h2>Select Encounter</h2>
 <ul class="nav nav-tabs" id="encounterTab" role="tablist">
@@ -18,27 +20,41 @@
 </ul>
 <div class="tab-content mt-3" id="encounterTabContent">
   <div class="tab-pane fade show active" id="custom" role="tabpanel">
-    <div class="row mb-3">
-      <div class="col-md-4">
-        <label for="cr-filter" class="form-label">Filter by CR:</label>
-        <select class="form-select" id="cr-filter">
-          <option value="">All</option>
-          <!-- JS will populate CR options -->
-        </select>
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+          <input type="search" id="monster-search" class="form-control form-control-sm" style="max-width: 14rem"
+                 placeholder="Search monsters" aria-label="Search monsters">
+          <select id="cr-filter" class="form-select form-select-sm" style="max-width: 9rem" aria-label="Filter by CR">
+            <option value="">All CRs</option>
+          </select>
+          <select id="monster-type-filter" class="form-select form-select-sm" style="max-width: 11rem" aria-label="Filter by type">
+            <option value="">All types</option>
+          </select>
+          <small class="text-muted ms-auto" id="monster-count"></small>
+        </div>
+        <div id="monster-selector">
+          <div class="text-muted">Loading monsters…</div>
+        </div>
       </div>
-      <div class="col-md-8">
-        <label class="form-label">Add Monsters:</label>
-        <div id="monster-selector" class="d-flex flex-wrap gap-2">
-          <!-- JS will populate monster buttons -->
+      <div class="col-lg-4 order-first order-lg-last">
+        <div class="card sticky-lg-top" id="custom-summary">
+          <div class="card-header fw-semibold d-flex justify-content-between">
+            <span>Your Encounter</span>
+            <span class="text-muted fw-normal small" id="custom-total"></span>
+          </div>
+          <div class="card-body">
+            <ul id="selected-monsters" class="list-unstyled mb-0"></ul>
+            <p id="custom-empty" class="text-muted mb-0">Click <strong>Add</strong> on a monster to build an encounter.</p>
+            <div id="custom-balance" class="mt-3"></div>
+            <div class="d-flex gap-2 mt-3">
+              <button id="custom-continue" class="btn btn-success" disabled>Continue</button>
+              <button id="custom-clear" class="btn btn-outline-secondary d-none">Clear</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <h5>Selected Monsters</h5>
-    <ul id="selected-monsters" class="list-group mb-3">
-      <!-- JS will populate selected monsters -->
-    </ul>
-    <div id="balance-warning" class="alert alert-warning d-none"></div>
-    <button id="custom-continue" class="btn btn-success" disabled>Continue</button>
   </div>
   <div class="tab-pane fade" id="prebuilt" role="tabpanel">
     <div class="row g-4">
@@ -85,24 +101,11 @@
 <script>
 let currentParty = null;
 
-// Helper function to enable/disable both continue buttons
-function setContinueButtons(enabled, onClickHandler) {
-  const customBtn = document.getElementById('custom-continue');
-  const prebuiltBtn = document.getElementById('prebuilt-continue');
-
-  if (customBtn) {
-    customBtn.disabled = !enabled;
-    if (enabled && onClickHandler) {
-      customBtn.onclick = onClickHandler;
-    }
-  }
-
-  if (prebuiltBtn) {
-    prebuiltBtn.disabled = !enabled;
-    if (enabled && onClickHandler) {
-      prebuiltBtn.onclick = onClickHandler;
-    }
-  }
+// Each tab has its own Continue button; a null handler disables it
+function setContinueButton(id, onClickHandler) {
+  const button = document.getElementById(id);
+  button.disabled = !onClickHandler;
+  button.onclick = onClickHandler;
 }
 
 const TYPE_BADGES = { mob: 'bg-secondary', mixed: 'bg-info text-dark', elite: 'bg-warning text-dark', boss: 'bg-danger' };
@@ -275,9 +278,7 @@ function selectPrebuiltEncounter(name) {
     markSelectedCard();
     renderPrebuiltDetails(name, result);
     document.getElementById('prebuilt-clear').classList.remove('d-none');
-    setContinueButtons(true, function() {
-      window.location.href = '/simulate';
-    });
+    setContinueButton('prebuilt-continue', () => { window.location.href = '/simulate'; });
     // On narrow screens the summary sits below the list, so bring it into view
     if (window.innerWidth < 992) {
       document.getElementById('prebuilt-summary').scrollIntoView({ behavior: 'smooth' });
@@ -331,7 +332,7 @@ function clearPrebuiltSelection() {
       document.getElementById('prebuilt-details').innerHTML =
         '<p class="text-muted mb-0">Pick an encounter from the list to see its difficulty for your party.</p>';
       document.getElementById('prebuilt-clear').classList.add('d-none');
-      setContinueButtons(false, null);
+      setContinueButton('prebuilt-continue', null);
     })
     .catch(error => {
       console.error('Error clearing selection:', error);
@@ -339,166 +340,206 @@ function clearPrebuiltSelection() {
 }
 
 // Custom encounter functions
-function getSelectedMonsters() {
-  const selectedMonsters = [];
-  const monsterButtons = document.querySelectorAll('#monster-selector .btn-success');
-  monsterButtons.forEach(btn => {
-    const monsterData = JSON.parse(btn.dataset.monster);
-    selectedMonsters.push(monsterData);
-  });
-  return selectedMonsters;
+let allMonsters = [];
+const customCounts = new Map();  // monster name -> how many are in the encounter
+let balanceRequest = 0;          // ignore balance responses that arrive out of order
+
+function crValue(cr) {
+  const [num, den] = String(cr).split('/');
+  return den ? Number(num) / Number(den) : Number(num);
 }
 
-function addMonster(monsterData) {
-  const monsterSelector = document.getElementById('monster-selector');
-  const monsterButton = document.createElement('button');
-  monsterButton.className = 'btn btn-success btn-sm';
-  monsterButton.dataset.monster = JSON.stringify(monsterData);
-  monsterButton.textContent = monsterData.name;
-  monsterButton.onclick = function() {
-    this.remove();
-    updateSelectedMonsters();
-  };
-  monsterSelector.appendChild(monsterButton);
-  updateSelectedMonsters();
-}
-
-function updateSelectedMonsters() {
-  const selectedMonsters = getSelectedMonsters();
-  const selectedList = document.getElementById('selected-monsters');
-
-  selectedList.innerHTML = '';
-  selectedMonsters.forEach(monster => {
-    const li = document.createElement('li');
-    li.className = 'list-group-item d-flex justify-content-between align-items-center';
-    li.innerHTML = `
-      ${monster.name} (CR: ${monster.cr}, HP: ${monster.hp}, AC: ${monster.ac})
-      <span class="badge bg-primary rounded-pill">${monster.count || 1}</span>
-    `;
-    selectedList.appendChild(li);
-  });
-
-  // Enable/disable both continue buttons
-  if (selectedMonsters.length === 0) {
-    setContinueButtons(false, null);
-  } else {
-    setContinueButtons(true, function() {
-      // Send selected monsters to backend
-      fetch('/encounter/custom', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          monsters: selectedMonsters,
-          party_level: currentParty ? currentParty.party_level : 1,
-          party_size: currentParty ? currentParty.party_size : 4
-        })
-      })
-      .then(response => response.json())
-      .then(result => {
-        if (result.error) {
-          alert('Error: ' + result.error);
-        } else {
-          window.location.href = '/simulate';
-        }
-      })
-      .catch(error => {
-        console.error('Error creating custom encounter:', error);
-        alert('Failed to create custom encounter: ' + error.message);
-      });
-    });
-  }
-  
-  // Show balance warning if available
-  if (currentParty && selectedMonsters.length > 0) {
-    fetch('/api/encounter/balance', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        monsters: selectedMonsters,
-        party_level: currentParty.party_level,
-        party_size: currentParty.party_size
-      })
-    })
-    .then(response => response.json())
-    .then(result => {
-      const warningDiv = document.getElementById('balance-warning');
-      if (result.balance) {
-        const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
-
-        if (difficulty && difficulty !== 'balanced') {
-          if (typeof result.balance === 'object') {
-            warningDiv.innerHTML = `
-              <strong>Encounter Balance:</strong> ${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}<br>
-              <small>Total XP: ${result.balance.total_xp} (Base: ${result.balance.base_xp})</small>
-            `;
-          } else {
-            warningDiv.textContent = `Encounter Balance: ${difficulty}`;
-          }
-          warningDiv.classList.remove('d-none');
-        } else {
-          warningDiv.classList.add('d-none');
-        }
-      } else {
-        warningDiv.classList.add('d-none');
-      }
-    })
-    .catch(error => {
-      console.error('Error checking balance:', error);
-    });
-  }
-}
-
-// Load monsters for custom encounter
 function loadMonsters() {
   fetch('/api/monsters')
-    .then(response => response.json())
+    .then(response => {
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    })
     .then(monsters => {
-      const monsterSelector = document.getElementById('monster-selector');
+      allMonsters = monsters.slice().sort((a, b) => crValue(a.cr) - crValue(b.cr) || a.name.localeCompare(b.name));
+
       const crFilter = document.getElementById('cr-filter');
-      
-      // Populate CR filter
-      const crs = [...new Set(monsters.map(m => m.cr))].sort();
-      crs.forEach(cr => {
-        const option = document.createElement('option');
-        option.value = cr;
-        option.textContent = `CR ${cr}`;
-        crFilter.appendChild(option);
+      [...new Set(allMonsters.map(m => String(m.cr)))].forEach(cr => {
+        crFilter.add(new Option(`CR ${cr}`, cr));
       });
-      
-      // Populate monster buttons
-      monsters.forEach(monster => {
-        const monsterButton = document.createElement('button');
-        monsterButton.className = 'btn btn-outline-primary btn-sm';
-        monsterButton.textContent = monster.name;
-        monsterButton.onclick = function() {
-          addMonster(monster);
-        };
-        monsterSelector.appendChild(monsterButton);
+      const typeFilter = document.getElementById('monster-type-filter');
+      [...new Set(allMonsters.map(m => m.type).filter(Boolean))].sort().forEach(type => {
+        typeFilter.add(new Option(capitalize(type), type));
       });
-      
-      // Add CR filter functionality
-      crFilter.onchange = function() {
-        const selectedCR = this.value;
-        const monsterButtons = monsterSelector.querySelectorAll('.btn');
-        monsterButtons.forEach(btn => {
-          if (!selectedCR || btn.dataset.monster) {
-            btn.style.display = 'block';
-          } else {
-            const monsterData = JSON.parse(btn.dataset.monster);
-            btn.style.display = monsterData.cr === selectedCR ? 'block' : 'none';
-          }
-        });
-      };
+
+      crFilter.onchange = renderMonsterList;
+      typeFilter.onchange = renderMonsterList;
+      document.getElementById('monster-search').oninput = renderMonsterList;
+      document.getElementById('custom-clear').onclick = clearCustomEncounter;
+      renderMonsterList();
+      renderCustomEncounter();
     })
     .catch(error => {
       console.error('Error loading monsters:', error);
+      document.getElementById('monster-selector').innerHTML =
+        '<div class="alert alert-danger">Failed to load monsters</div>';
     });
 }
 
+function renderMonsterList() {
+  const container = document.getElementById('monster-selector');
+  const cr = document.getElementById('cr-filter').value;
+  const type = document.getElementById('monster-type-filter').value;
+  const query = document.getElementById('monster-search').value.trim().toLowerCase();
 
+  const matches = allMonsters.filter(m =>
+    (!cr || String(m.cr) === cr) &&
+    (!type || m.type === type) &&
+    (!query || m.name.toLowerCase().includes(query))
+  );
+  document.getElementById('monster-count').textContent = `${matches.length} of ${allMonsters.length} monsters`;
+
+  if (matches.length === 0) {
+    container.innerHTML = '<div class="text-muted">No monsters match these filters.</div>';
+    return;
+  }
+
+  container.innerHTML = `<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-2">
+    ${matches.map(m => {
+      const count = customCounts.get(m.name) || 0;
+      return `<div class="col">
+        <div class="card h-100 monster-card${count ? ' in-encounter' : ''}">
+          <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center gap-2">
+            <div>
+              <div class="fw-semibold">${escapeHtml(m.name)}</div>
+              <div class="small text-muted">CR ${escapeHtml(m.cr)} · ${escapeHtml(capitalize(m.type || ''))}</div>
+              <div class="small text-muted">HP ${escapeHtml(m.hp)} · AC ${escapeHtml(m.ac)}</div>
+            </div>
+            <button type="button" class="btn btn-sm ${count ? 'btn-success' : 'btn-outline-primary'} text-nowrap"
+                    data-name="${escapeHtml(m.name)}" aria-label="Add ${escapeHtml(m.name)}">
+              + Add${count ? ` <span class="badge bg-light text-dark ms-1">${count}</span>` : ''}
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  container.querySelectorAll('button[data-name]').forEach(btn => {
+    btn.onclick = () => changeMonsterCount(btn.dataset.name, 1);
+  });
+}
+
+function changeMonsterCount(name, delta) {
+  const count = Math.max(0, (customCounts.get(name) || 0) + delta);
+  if (count) customCounts.set(name, count); else customCounts.delete(name);
+  renderMonsterList();
+  renderCustomEncounter();
+}
+
+function clearCustomEncounter() {
+  customCounts.clear();
+  renderMonsterList();
+  renderCustomEncounter();
+}
+
+// The backend expects one entry per monster, so expand the counts
+function getSelectedMonsters() {
+  const selected = [];
+  customCounts.forEach((count, name) => {
+    const monster = allMonsters.find(m => m.name === name);
+    for (let i = 0; i < count; i++) selected.push(monster);
+  });
+  return selected;
+}
+
+function renderCustomEncounter() {
+  const list = document.getElementById('selected-monsters');
+  const total = [...customCounts.values()].reduce((a, b) => a + b, 0);
+
+  list.innerHTML = [...customCounts.entries()].map(([name, count]) => {
+    const m = allMonsters.find(x => x.name === name);
+    return `<li class="d-flex align-items-center gap-2 py-1 border-bottom">
+      <div class="flex-grow-1">
+        <div class="fw-semibold">${escapeHtml(name)}</div>
+        <div class="small text-muted">CR ${escapeHtml(m.cr)} · HP ${escapeHtml(m.hp)} · AC ${escapeHtml(m.ac)}</div>
+      </div>
+      <div class="btn-group btn-group-sm" role="group" aria-label="${escapeHtml(name)} count">
+        <button type="button" class="btn btn-outline-secondary qty-btn" data-name="${escapeHtml(name)}" data-delta="-1" aria-label="Remove one ${escapeHtml(name)}">−</button>
+        <span class="btn btn-outline-secondary disabled text-body" style="min-width: 2rem">${count}</span>
+        <button type="button" class="btn btn-outline-secondary qty-btn" data-name="${escapeHtml(name)}" data-delta="1" aria-label="Add one ${escapeHtml(name)}">+</button>
+      </div>
+      <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" data-name="${escapeHtml(name)}" data-delta="${-count}" aria-label="Remove all ${escapeHtml(name)}">✕</button>
+    </li>`;
+  }).join('');
+  list.querySelectorAll('button[data-delta]').forEach(btn => {
+    btn.onclick = () => changeMonsterCount(btn.dataset.name, Number(btn.dataset.delta));
+  });
+
+  document.getElementById('custom-empty').classList.toggle('d-none', total > 0);
+  document.getElementById('custom-clear').classList.toggle('d-none', total === 0);
+  document.getElementById('custom-total').textContent = total ? `${total} monster${total === 1 ? '' : 's'}` : '';
+  setContinueButton('custom-continue', total ? submitCustomEncounter : null);
+  updateCustomBalance();
+}
+
+function updateCustomBalance() {
+  const balanceDiv = document.getElementById('custom-balance');
+  const monsters = getSelectedMonsters();
+  const request = ++balanceRequest;
+  if (!currentParty || monsters.length === 0) {
+    balanceDiv.innerHTML = '';
+    return;
+  }
+
+  fetch('/api/encounter/balance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      monsters: monsters,
+      party_level: currentParty.party_level,
+      party_size: currentParty.party_size
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (request !== balanceRequest) return;
+    let html = `<div class="small text-muted mb-1">For your party: level ${escapeHtml(currentParty.party_level)}, ${escapeHtml(currentParty.party_size)} characters</div>`;
+    if (result.balance) {
+      const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
+      html += `<span class="badge fs-6 ${DIFFICULTY_BADGES[difficulty] || 'bg-secondary'}">${escapeHtml(capitalize(difficulty))}</span>`;
+      if (typeof result.balance === 'object') {
+        html += ` <small class="text-muted ms-1">${escapeHtml(result.balance.total_xp)} XP (base ${escapeHtml(result.balance.base_xp)})</small>`;
+      }
+    }
+    const warnings = Array.isArray(result.warnings) ? result.warnings : (result.warnings ? [result.warnings] : []);
+    if (warnings.length) {
+      html += `<div class="alert alert-warning py-2 small mt-2 mb-0">${warnings.map(escapeHtml).join('<br>')}</div>`;
+    }
+    balanceDiv.innerHTML = html;
+  })
+  .catch(error => {
+    console.error('Error checking balance:', error);
+  });
+}
+
+function submitCustomEncounter() {
+  fetch('/encounter/custom', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      monsters: getSelectedMonsters(),
+      party_level: currentParty ? currentParty.party_level : 1,
+      party_size: currentParty ? currentParty.party_size : 4
+    })
+  })
+  .then(response => response.json())
+  .then(result => {
+    if (result.error) {
+      alert('Error: ' + result.error);
+    } else {
+      window.location.href = '/simulate';
+    }
+  })
+  .catch(error => {
+    console.error('Error creating custom encounter:', error);
+    alert('Failed to create custom encounter: ' + error.message);
+  });
+}
 </script>
 {% endblock %} 
