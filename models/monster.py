@@ -155,6 +155,16 @@ class Monster:
         import random
         return random.randint(1, 20) + self.ability_modifier('dex')
 
+    @property
+    def hp(self) -> int:
+        """Current hit points; never below 0 (5e: excess damage doesn't reduce HP further)."""
+        return self._hp
+
+    @hp.setter
+    def hp(self, value: int) -> None:
+        # Floor at 0 so healing a downed creature starts from 0, as in 5e
+        self._hp = max(0, value)
+
     def is_alive(self) -> bool:
         """
         Returns True if hp > 0.

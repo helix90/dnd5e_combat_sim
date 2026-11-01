@@ -138,13 +138,13 @@ class TestSpellCombatIntegration:
         assert result1['spell'] == "Fireball"
         assert result1['save_success'] is False  # Goblin failed save (roll 8 vs DC 15)
         assert result1['damage'] == 32  # 8d6, each 4 = 32
-        assert self.goblin.hp == -17  # 15 - 32 = -17 (dead)
+        assert self.goblin.hp == 0  # 15 - 32, floored at 0
         
         assert result2['success'] is True
         assert result2['spell'] == "Fireball"
         assert result2['save_success'] is False  # Orc failed save (roll 8 vs DC 15)
         assert result2['damage'] == 32  # Full damage (no half damage on save)
-        assert self.orc.hp == -7  # 25 - 32 = -7 (dead)
+        assert self.orc.hp == 0  # 25 - 32, floored at 0
         
         # Cleric casts Sacred Flame at the orc (but orc is dead, so target goblin instead)
         self.orc.hp = 10  # Revive orc for testing
@@ -156,7 +156,7 @@ class TestSpellCombatIntegration:
         assert result3['spell'] == "Sacred Flame"
         assert result3['save_success'] is False  # Orc failed save (roll 8 vs DC 15)
         assert result3['damage'] == 12  # 2d8 returns 12 at level 5
-        assert self.orc.hp == -2  # 10 - 12 = -2
+        assert self.orc.hp == 0  # 10 - 12, floored at 0
         
         # Check spell slot consumption
         print(f"Wizard spell slots after: {self.wizard.spell_slots_remaining}")
@@ -255,7 +255,7 @@ class TestSpellCombatIntegration:
         assert result1['target_ac'] == 12
         assert result1['hit'] is True
         assert result1['damage'] == 16  # 2d10 at level 5, each die returns 8
-        assert self.goblin.hp == -1  # 15 - 16 = -1
+        assert self.goblin.hp == 0  # 15 - 16, floored at 0
         
         # Test a miss by changing the mock
         def mock_randint_miss(a, b):
@@ -278,7 +278,7 @@ class TestSpellCombatIntegration:
         assert result2['total_attack'] == 12
         assert result2['hit'] is True
         assert result2['damage'] == 16
-        assert self.goblin.hp == -17  # No damage dealt
+        assert self.goblin.hp == 0  # Already at 0, stays floored at 0
     
     def test_spell_slot_management(self):
         """Test spell slot management during combat."""
