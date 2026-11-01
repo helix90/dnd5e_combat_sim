@@ -412,10 +412,12 @@ class TestSpellAction:
         action = SpellAction(spell)
         
         mock_caster = MagicMock()
+        mock_caster.buffs.calculate_total_bonus.return_value = 0
         mock_caster.spell_attack_bonus.return_value = 5
         mock_caster.level = 1
         
         mock_target = MagicMock()
+        mock_target.buffs.calculate_total_bonus.return_value = 0
         mock_target.ac = 18
         mock_target.hp = 20
         
@@ -453,11 +455,13 @@ class TestSpellAction:
         action = SpellAction(spell, spell_slot_level=3)
         
         mock_caster = MagicMock()
+        mock_caster.buffs.calculate_total_bonus.return_value = 0
         mock_caster.spell_save_dc.return_value = 15
         mock_caster.level = 5
         mock_caster.spell_slots_remaining = {3: 2}
         
         mock_target = MagicMock()
+        mock_target.buffs.calculate_total_bonus.return_value = 0
         mock_target.saving_throw_bonus.return_value = 2
         mock_target.hp = 30
         
@@ -496,11 +500,13 @@ class TestSpellAction:
         action = SpellAction(spell, spell_slot_level=3)
         
         mock_caster = MagicMock()
+        mock_caster.buffs.calculate_total_bonus.return_value = 0
         mock_caster.spell_save_dc.return_value = 15
         mock_caster.level = 5
         mock_caster.spell_slots_remaining = {3: 2}
         
         mock_target = MagicMock()
+        mock_target.buffs.calculate_total_bonus.return_value = 0
         mock_target.saving_throw_bonus.return_value = 2
         mock_target.hp = 30
         

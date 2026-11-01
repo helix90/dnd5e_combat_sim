@@ -125,6 +125,7 @@ docker-compose.override.yml
 *.db
 *.bak
 *.sql
+!db/schema.sql
 
 # System
 .DS_Store
