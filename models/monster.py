@@ -5,7 +5,7 @@ This module contains the Monster class which represents a monster or NPC
 in the D&D 5e system with all relevant attributes and methods for combat.
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from models.actions import AttackAction
 from models.buffs import BuffManager
 from utils.api_client import APIClient
@@ -38,7 +38,8 @@ class Monster:
         special_abilities: Optional[List[str]] = None,
         legendary_actions: Optional[List[str]] = None,
         multiattack: bool = False,
-        actions: Optional[List] = None
+        actions: Optional[List] = None,
+        regeneration: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Initialize a new Monster instance.
@@ -54,6 +55,8 @@ class Monster:
             legendary_actions: List of legendary actions
             multiattack: Whether the monster can multiattack
             actions: List of actions
+            regeneration: Optional regeneration rules, e.g. for a troll
+                {'hp': 10, 'suppressed_by': ['acid', 'fire'], 'revives_at_zero': True}
         Raises:
             ValueError: If ability scores are invalid
         """
@@ -73,6 +76,7 @@ class Monster:
         self.special_abilities = special_abilities or []
         self.legendary_actions = legendary_actions or []
         self.multiattack = multiattack
+        self.regeneration = regeneration
         self.buffs = BuffManager()
         # Add default actions if not provided
         if actions is not None:
