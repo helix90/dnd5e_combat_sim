@@ -38,13 +38,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           }
         ]
@@ -93,7 +93,7 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
@@ -194,13 +194,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -297,7 +297,7 @@
           {
             "name": "Dagger",
             "type": "attack",
-            "damage_dice": "1d4+2",
+            "damage_dice": "1d4",
             "damage_type": "piercing"
           },
           {
@@ -349,7 +349,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -450,13 +450,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -505,7 +505,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -552,13 +552,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -652,13 +652,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -699,13 +699,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -745,13 +745,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+3",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -797,7 +797,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -844,13 +844,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+3",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -891,13 +891,13 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Handaxe",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "slashing"
           }
         ]
@@ -938,13 +938,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -984,13 +984,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+3",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -1085,13 +1085,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -1132,13 +1132,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+4",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -1187,7 +1187,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -1240,13 +1240,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           }
         ]
@@ -1295,7 +1295,7 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
@@ -1397,13 +1397,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -1504,7 +1504,7 @@
           {
             "name": "Dagger",
             "type": "attack",
-            "damage_dice": "1d4+2",
+            "damage_dice": "1d4",
             "damage_type": "piercing"
           },
           {
@@ -1558,7 +1558,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -1668,13 +1668,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -1724,7 +1724,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -1778,13 +1778,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -1882,13 +1882,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -1936,13 +1936,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+5",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -1984,13 +1984,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+3",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -2039,7 +2039,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -2088,13 +2088,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+3",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -2136,13 +2136,13 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Handaxe",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "slashing"
           }
         ]
@@ -2193,13 +2193,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -2241,13 +2241,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+3",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -2352,13 +2352,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+5",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -2401,13 +2401,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+4",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -2457,7 +2457,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -2511,13 +2511,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           }
         ]
@@ -2570,7 +2570,7 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
@@ -2676,13 +2676,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -2788,7 +2788,7 @@
           {
             "name": "Dagger",
             "type": "attack",
-            "damage_dice": "1d4+2",
+            "damage_dice": "1d4",
             "damage_type": "piercing"
           },
           {
@@ -2846,7 +2846,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -2961,13 +2961,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3020,7 +3020,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -3077,13 +3077,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3185,13 +3185,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3242,13 +3242,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+5",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3292,13 +3292,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+3",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -3352,7 +3352,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -3402,13 +3402,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+3",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3451,13 +3451,13 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Handaxe",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "slashing"
           }
         ]
@@ -3511,13 +3511,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3561,13 +3561,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+3",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -3677,13 +3677,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+5",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3727,13 +3727,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+4",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -3785,7 +3785,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -3840,13 +3840,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           }
         ]
@@ -3901,7 +3901,7 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
@@ -4010,13 +4010,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -4124,7 +4124,7 @@
           {
             "name": "Dagger",
             "type": "attack",
-            "damage_dice": "1d4+2",
+            "damage_dice": "1d4",
             "damage_type": "piercing"
           },
           {
@@ -4183,7 +4183,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -4300,13 +4300,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -4360,7 +4360,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -4418,13 +4418,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -4528,13 +4528,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -4586,13 +4586,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+6",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -4638,13 +4638,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+4",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -4699,7 +4699,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -4750,13 +4750,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+4",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -4800,13 +4800,13 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Handaxe",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "slashing"
           }
         ]
@@ -4861,13 +4861,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -4913,13 +4913,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d4+4",
+            "damage_dice": "1d4",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           }
         ]
@@ -5031,13 +5031,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+6",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -5082,13 +5082,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+5",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+5",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -5141,7 +5141,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -5197,13 +5197,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           }
         ]
@@ -5260,7 +5260,7 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
@@ -5372,13 +5372,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -5419,6 +5419,20 @@
         "saving_throw_proficiencies": [
           "str",
           "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing"
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing"
+          }
         ]
       },
       {
@@ -5457,6 +5471,20 @@
         "saving_throw_proficiencies": [
           "str",
           "con"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning"
+          },
+          {
+            "name": "Handaxe",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "slashing"
+          }
         ]
       },
       {
@@ -5505,6 +5533,20 @@
         "saving_throw_proficiencies": [
           "wis",
           "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing"
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing"
+          }
         ]
       },
       {
@@ -5544,6 +5586,20 @@
         "saving_throw_proficiencies": [
           "str",
           "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning"
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning"
+          }
         ]
       },
       {
@@ -5652,7 +5708,7 @@
           {
             "name": "Dagger",
             "type": "attack",
-            "damage_dice": "1d4+2",
+            "damage_dice": "1d4",
             "damage_type": "piercing"
           },
           {
@@ -5714,7 +5770,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -5837,13 +5893,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -5900,7 +5956,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -5961,13 +6017,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -6074,13 +6130,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -6135,13 +6191,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+6",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -6189,13 +6245,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           }
         ]
@@ -6254,7 +6310,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -6377,13 +6433,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+6",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -6430,13 +6486,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+5",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+5",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -6492,7 +6548,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -6549,13 +6605,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+3",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           }
         ]
@@ -6612,7 +6668,7 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
@@ -6726,13 +6782,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+3",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -6845,7 +6901,7 @@
           {
             "name": "Dagger",
             "type": "attack",
-            "damage_dice": "1d4+2",
+            "damage_dice": "1d4",
             "damage_type": "piercing"
           },
           {
@@ -6909,7 +6965,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -7035,13 +7091,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7098,7 +7154,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
@@ -7159,13 +7215,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7273,13 +7329,13 @@
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           },
           {
             "name": "Shortbow",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7334,13 +7390,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+6",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7389,13 +7445,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           }
         ]
@@ -7455,7 +7511,7 @@
           {
             "name": "Rapier",
             "type": "attack",
-            "damage_dice": "1d8+2",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
@@ -7508,13 +7564,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+4",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7559,13 +7615,13 @@
           {
             "name": "Warhammer",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Handaxe",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "slashing"
           }
         ]
@@ -7624,13 +7680,13 @@
           {
             "name": "Longsword",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7679,13 +7735,13 @@
           {
             "name": "Unarmed Strike",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
-            "damage_dice": "1d8+4",
+            "damage_dice": "1d8",
             "damage_type": "bludgeoning"
           }
         ]
@@ -7803,13 +7859,13 @@
           {
             "name": "Longbow",
             "type": "attack",
-            "damage_dice": "1d8+6",
+            "damage_dice": "1d8",
             "damage_type": "piercing"
           },
           {
             "name": "Shortsword",
             "type": "attack",
-            "damage_dice": "1d6+4",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7856,13 +7912,13 @@
           {
             "name": "Greataxe",
             "type": "attack",
-            "damage_dice": "1d12+5",
+            "damage_dice": "1d12",
             "damage_type": "slashing"
           },
           {
             "name": "Javelin",
             "type": "attack",
-            "damage_dice": "1d6+5",
+            "damage_dice": "1d6",
             "damage_type": "piercing"
           }
         ]
@@ -7918,7 +7974,7 @@
           {
             "name": "Mace",
             "type": "attack",
-            "damage_dice": "1d6+1",
+            "damage_dice": "1d6",
             "damage_type": "bludgeoning"
           },
           {

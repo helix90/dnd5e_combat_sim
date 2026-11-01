@@ -5,6 +5,7 @@ This module contains the Character class which represents a player character
 in the D&D 5e system with all relevant attributes and methods for combat.
 """
 
+import re
 from typing import Dict, List, Optional, Any
 from models.actions import AttackAction
 from models.spells import Spell, SpellAction
@@ -221,7 +222,27 @@ class Character:
         Returns True if hp <= 0 (not dead/death saves for now).
         """
         return self.hp <= 0
-    
+
+    def _feature(self, prefix: str) -> Optional[str]:
+        """Return the first class feature starting with prefix, e.g. 'Sneak Attack (3d6)'."""
+        return next((f for f in self.class_features if f.startswith(prefix)), None)
+
+    def attacks_per_action(self) -> int:
+        """Weapon attacks made with the Attack action: Extra Attack gives 2, 'Extra Attack (2)' gives 3."""
+        feature = self._feature('Extra Attack')
+        if not feature:
+            return 1
+        match = re.search(r'\((\d+)\)', feature)
+        return 1 + (int(match.group(1)) if match else 1)
+
+    def sneak_attack_dice(self) -> Optional[str]:
+        """Sneak Attack damage dice, e.g. '3d6', from the class feature or the rogue's level."""
+        feature = self._feature('Sneak Attack')
+        if not feature:
+            return None
+        match = re.search(r'\((\d+d\d+)\)', feature)
+        return match.group(1) if match else f"{(self.level + 1) // 2}d6"
+
     def spellcasting_ability(self) -> str:
         """
         Determine the spellcasting ability based on character class.

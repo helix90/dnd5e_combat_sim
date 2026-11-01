@@ -3,6 +3,7 @@ from typing import Any, List, Dict, Protocol, Callable, Optional
 import logging
 import random
 from models.spells import SpellAction
+from models.actions import AttackAction
 
 # Constants for AI behavior tuning
 LOW_HP_THRESHOLD = 0.25  # Heal allies below 25% HP
@@ -506,6 +507,15 @@ class PartyAIStrategy(AIStrategy):
 
         return 7.0  # Default estimate
 
+    @staticmethod
+    def _average_damage(action: Any) -> float:
+        """Average damage of a weapon action's dice, used to break ties between equally accurate weapons."""
+        try:
+            num, die, mod = AttackAction.parse_dice(action.damage_dice)
+            return num * (die + 1) / 2 + mod
+        except (AttributeError, TypeError, ValueError):
+            return 0.0
+
     def _try_attack_enemy(self, combatant: Any, enemies: List[Any], combat_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Attempt to attack an enemy.
@@ -579,6 +589,16 @@ class PartyAIStrategy(AIStrategy):
         # STANDARD SPELLCASTER STRATEGY
         # Spellcasters prefer cantrips (resource conservation)
         if is_spellcaster:
+            cantrips = [
+                s for s in getattr(combatant, 'spells', {}).values()
+                if getattr(s, 'level', None) == 0 and getattr(s, 'damage_dice', None)
+                and not getattr(s, 'healing', False)
+            ]
+            if cantrips:
+                cantrip = max(cantrips, key=self._estimate_spell_damage)
+                logger.info(f"[PartyAI] {combatant.name} casts {cantrip.name} vs {dangerous.name}")
+                return {'type': 'cast_spell', 'spell': SpellAction(cantrip), 'target': dangerous}
+
             spell_attacks = [
                 a for a in getattr(combatant, 'actions', [])
                 if hasattr(a, 'name') and a.name in DAMAGING_CANTRIPS
@@ -596,7 +616,7 @@ class PartyAIStrategy(AIStrategy):
         ]
 
         if attack_actions:
-            best_action = max(attack_actions, key=lambda a: a.hit_bonus(combatant))
+            best_action = max(attack_actions, key=lambda a: (a.hit_bonus(combatant), self._average_damage(a)))
             best_bonus = best_action.hit_bonus(combatant)
             logger.info(f"[PartyAI] {combatant.name} attacks with {best_action.name} (+{best_bonus}) vs {dangerous.name}")
             return {'type': 'attack', 'action': best_action, 'target': dangerous}

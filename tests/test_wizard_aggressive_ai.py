@@ -282,9 +282,9 @@ class TestWizardAggressiveAI:
         action = ai.choose_action(cleric, combat_state)
 
         # Cleric should NOT use aggressive strategy (has healing spells)
-        # Should use cantrip (Sacred Flame) instead of Cure Wounds
-        assert action['type'] == 'attack'
-        assert action['action'].name == 'Sacred Flame'
+        # Should cast the Sacred Flame cantrip instead of a levelled spell
+        assert action['type'] == 'cast_spell'
+        assert action['spell'].spell.name == 'Sacred Flame'
 
 
 if __name__ == '__main__':
