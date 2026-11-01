@@ -68,6 +68,11 @@ def has_disadvantage(creature: Any, *roll_keys: str) -> bool:
     return bool(buffs) and any(buffs.grants('disadvantage', key) for key in roll_keys)
 
 
+def attack_hits(natural_roll: int, total_attack: int, target_ac: int) -> bool:
+    """A natural 1 on the d20 always misses; otherwise the attack hits if the total meets the target's AC."""
+    return natural_roll != 1 and total_attack >= target_ac
+
+
 def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> D20Roll:
     """Roll an attack's d20, combining effects on the attacker and the target with any explicit sources."""
     return roll_d20(

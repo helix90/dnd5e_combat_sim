@@ -10,7 +10,7 @@ import re
 
 from models.buffs import BuffManager, create_paralyzed_condition, is_paralyzed
 from models.damage import apply_damage
-from models.rolls import attack_roll, roll_saving_throw
+from models.rolls import attack_hits, attack_roll, roll_saving_throw
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -236,7 +236,7 @@ class AttackAction(Action):
                     d20 = attack_roll(attacker, t, advantage, disadvantage)
                     total_attack = d20.result + bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
-                    hit = total_attack >= target_ac
+                    hit = attack_hits(d20.result, total_attack, target_ac)
                     critical = hit and self._is_auto_critical(t)
                     damage = (self.damage_roll(attacker, critical=True) if critical else base_damage) if hit else 0
 
@@ -280,7 +280,7 @@ class AttackAction(Action):
 
             total_attack = d20.result + bonus + buff_bonus
             target_ac = getattr(targets_list[0], 'ac', 10)
-            hit = total_attack >= target_ac
+            hit = attack_hits(d20.result, total_attack, target_ac)
             critical = hit and self._is_auto_critical(attack_target)
             damage = (self.damage_roll(attacker, critical=True) if critical else self.damage_roll(attacker)) if hit else 0
 
