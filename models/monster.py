@@ -40,7 +40,8 @@ class Monster:
         legendary_actions: Optional[List[str]] = None,
         multiattack: bool = False,
         actions: Optional[List] = None,
-        regeneration: Optional[Dict[str, Any]] = None
+        regeneration: Optional[Dict[str, Any]] = None,
+        damage_vulnerabilities: Optional[List[str]] = None
     ) -> None:
         """
         Initialize a new Monster instance.
@@ -58,6 +59,7 @@ class Monster:
             actions: List of actions
             regeneration: Optional regeneration rules, e.g. for a troll
                 {'hp': 10, 'suppressed_by': ['acid', 'fire'], 'revives_at_zero': True}
+            damage_vulnerabilities: Damage types that deal double damage to the monster
         Raises:
             ValueError: If ability scores are invalid
         """
@@ -74,6 +76,7 @@ class Monster:
         self.ability_scores = ability_scores.copy()
         self.damage_resistances = damage_resistances or []
         self.damage_immunities = damage_immunities or []
+        self.damage_vulnerabilities = damage_vulnerabilities or []
         self.special_abilities = special_abilities or []
         self.legendary_actions = legendary_actions or []
         self.multiattack = multiattack

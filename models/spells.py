@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Any, TYPE_CHECKING
 import random
 
 from models.actions import Action
+from models.damage import apply_damage
 from models.rolls import attack_roll as roll_attack, roll_saving_throw
 from utils.api_client import APIClient
 from utils.exceptions import APIError
@@ -384,15 +385,15 @@ class SpellAction(Action):
                                 'hp_after': t.hp
                             })
                         else:
-                            t.hp -= base_damage
-                            total_damage_dealt += base_damage
+                            dealt = apply_damage(t, base_damage, self.spell.damage_type)
+                            total_damage_dealt += dealt
                             target_results.append({
                                 'target': getattr(t, 'name', str(t)),
                                 'attack_roll': attack_roll,
                                 'total_attack': total_attack,
                                 'target_ac': target_ac,
                                 'hit': True,
-                                'damage': base_damage,
+                                'damage': dealt,
                                 'hp_after': t.hp
                             })
                     else:
@@ -454,7 +455,7 @@ class SpellAction(Action):
                         })
                     else:
                         damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                        targets_list[0].hp -= damage
+                        damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
                         result.update({
                             'damage': damage,
                             'damage_type': self.spell.damage_type,
@@ -489,7 +490,7 @@ class SpellAction(Action):
                         damage = damage // 2
 
                     # Apply damage
-                    t.hp -= damage
+                    damage = apply_damage(t, damage, self.spell.damage_type)
                     total_damage_dealt += damage
 
                     target_results.append({
@@ -532,7 +533,7 @@ class SpellAction(Action):
                     # Some spells do half damage on successful save
                     if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
                         damage = damage // 2
-                    targets_list[0].hp -= damage
+                    damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
                     result.update({
                         'damage': damage,
                         'damage_type': self.spell.damage_type,
@@ -558,7 +559,7 @@ class SpellAction(Action):
                         })
                     else:
                         damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                        t.hp -= damage
+                        damage = apply_damage(t, damage, self.spell.damage_type)
                         total_damage_dealt += damage
                         target_results.append({
                             'target': getattr(t, 'name', str(t)),
@@ -589,7 +590,7 @@ class SpellAction(Action):
                     })
                 else:
                     damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                    targets_list[0].hp -= damage
+                    damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
                     result.update({
                         'damage': damage,
                         'damage_type': self.spell.damage_type,

@@ -119,6 +119,7 @@ class BatchSimulationController:
                                         ability_scores=monster_data.get('ability_scores', {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}),
                                         damage_resistances=monster_data.get('damage_resistances', []),
                                         damage_immunities=monster_data.get('damage_immunities', []),
+                                        damage_vulnerabilities=monster_data.get('damage_vulnerabilities', []),
                                         special_abilities=monster_data.get('special_abilities', []),
                                         legendary_actions=monster_data.get('legendary_actions', []),
                                         multiattack=monster_data.get('multiattack', False),

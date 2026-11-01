@@ -12,6 +12,7 @@ from ai.tactical import TacticalAnalyzer
 from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
 from models.actions import AttackAction
+from models.damage import apply_damage
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
 
@@ -411,8 +412,7 @@ class Combat:
         num, die, _ = AttackAction.parse_dice(dice)
         if attack.get('critical'):
             num *= 2
-        damage = sum(random.randint(1, die) for _ in range(num))
-        target.hp -= damage
+        damage = apply_damage(target, sum(random.randint(1, die) for _ in range(num)), attack.get('damage_type'))
         attack['damage'] = attack.get('damage', 0) + damage
         attack['sneak_attack'] = damage
 

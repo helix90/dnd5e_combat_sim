@@ -26,6 +26,7 @@
       "special_abilities": ["Undead Fortitude"],
       "legendary_actions": [],
       "damage_resistances": ["poison"],
+      "damage_vulnerabilities": ["bludgeoning"],
       "damage_immunities": ["poison"],
       "multiattack": false,
       "actions": [
@@ -306,6 +307,7 @@
       "special_abilities": ["Mummy Rot"],
       "legendary_actions": [],
       "damage_resistances": ["bludgeoning", "piercing", "slashing"],
+      "damage_vulnerabilities": ["fire"],
       "damage_immunities": ["necrotic", "poison"],
       "multiattack": false,
       "actions": [
