@@ -4,11 +4,14 @@ Build Character objects from characters.json data.
 Shared by the single and batch simulation controllers so both get the same weapons,
 class features and spells.
 """
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any, Dict, List
 
 from models.actions import AttackAction
 from models.character import Character
 from models.weapons import weapon_type_for
+
+logger = logging.getLogger(__name__)
 
 
 def build_weapon_actions(action_dicts: List[Dict[str, Any]], character_class: str,
@@ -36,27 +39,31 @@ def build_weapon_actions(action_dicts: List[Dict[str, Any]], character_class: st
     return actions
 
 
-def build_character(data: Dict[str, Any], spell_manager: Any = None, level: Optional[int] = None) -> Character:
+def build_character(data: Dict[str, Any], spell_manager: Any = None) -> Character:
     """
-    Build a Character from a full characters.json entry.
+    Build a Character from a characters.json entry, as returned by PartyLoader.
+
+    The character's level comes from the data, so it always matches the HP, spell slots and
+    proficiency bonus it was written for. Entries with no 'actions' (e.g. a bare party member
+    whose full data wasn't found) get Character's default attacks.
 
     Args:
         data: The character's entry from characters.json
         spell_manager: Looks up Spell objects for the character's spell list
-        level: Overrides the level in the data (e.g. the selected party level)
     """
     character_class = data.get('character_class') or data.get('class', 'Fighter')
     spell_list = list(data.get('spell_list', []))
     character = Character(
         name=data.get('name', 'Unknown'),
-        level=level if level is not None else data.get('level', 1),
+        level=data.get('level', 1),
         character_class=character_class,
         race=data.get('race', 'Human'),
         ability_scores=data.get('ability_scores', {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}),
         hp=data.get('hp', 10),
         ac=data.get('ac', 10),
         proficiency_bonus=data.get('proficiency_bonus', 2),
-        actions=build_weapon_actions(data.get('actions', []), character_class, spell_list),
+        actions=(build_weapon_actions(data['actions'], character_class, spell_list)
+                 if 'actions' in data else None),
         equipment=data.get('equipment', []),
         spell_slots=data.get('spell_slots', {}),
         class_features=data.get('class_features', []),
@@ -76,3 +83,19 @@ def build_character(data: Dict[str, Any], spell_manager: Any = None, level: Opti
             if spell:
                 character.add_spell(spell)
     return character
+
+
+def build_party(party: List[Any], spell_manager: Any = None) -> List[Character]:
+    """
+    Turn a party from PartyLoader.get_party_with_level (character dicts, or already-built
+    Character objects) into Character objects. Anything else is skipped with a warning.
+    """
+    characters = []
+    for member in party or []:
+        if isinstance(member, Character):
+            characters.append(member)
+        elif isinstance(member, dict):
+            characters.append(build_character(member, spell_manager))
+        else:
+            logger.warning(f"Skipping party member with unexpected type: {type(member)}")
+    return characters

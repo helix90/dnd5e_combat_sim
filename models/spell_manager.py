@@ -11,13 +11,16 @@ from models.spells import Spell
 from utils.exceptions import APIError, ValidationError
 from utils.logging import log_exception
 
+# Resolved from this file, so spells load whatever directory the app is started from
+DEFAULT_SPELLS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'spells.json')
+
 
 class SpellManager:
     """
     Manages spell loading and provides utility methods for spell operations.
     """
     
-    def __init__(self, spells_file: str = "data/spells.json"):
+    def __init__(self, spells_file: str = DEFAULT_SPELLS_FILE):
         """
         Initialize the SpellManager.
         

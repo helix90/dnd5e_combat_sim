@@ -1,36 +1,29 @@
 import threading
-import json
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 from flask import session
 from models.combat import Combat
 from models.db import DatabaseManager
-from models.character import Character
 from models.monster import Monster
 from models.spell_manager import SpellManager
-from models.character_builder import build_character
+from models.character_builder import build_party
 from utils.exceptions import SimulationError, ValidationError
 from utils.logging import log_exception
 from models.actions import AttackAction, Action
 
 # Constants
 DEFAULT_PARTY_LEVEL = 5
-DEFAULT_CHARACTER_LEVEL = 1
 DEFAULT_HP = 10
 DEFAULT_AC = 10
-DEFAULT_PROFICIENCY_BONUS = 2
 DEFAULT_ABILITY_SCORES = {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}
 DEFAULT_DAMAGE_DICE = '1d6'
 DEFAULT_DAMAGE_TYPE = 'bludgeoning'
-DEFAULT_RACE = 'Human'
-DEFAULT_CLASS = 'Fighter'
 DEFAULT_CR = '1/4'
 UNKNOWN_NAME = 'Unknown'
 MIN_PARTY_LEVEL = 1
 MAX_PARTY_LEVEL = 20
 MAX_PARTY_SIZE = 20
 MAX_MONSTER_COUNT = 100
-CHARACTERS_DATA_FILE = 'data/characters.json'
 
 logger = logging.getLogger(__name__)
 
@@ -48,33 +41,6 @@ class SimulationController:
         self.simulation_threads: Dict[str, threading.Thread] = {}  # session_id -> thread
         self.simulation_states: Dict[str, Dict[str, Any]] = {}   # session_id -> state dict
         self.state_lock = threading.Lock()  # Thread safety for shared state
-        self.character_cache: Optional[Dict[Tuple[str, str, int], Dict[str, Any]]] = None
-        self._load_character_cache()
-
-    def _load_character_cache(self) -> None:
-        """
-        Load and cache character data from characters.json for fast lookups.
-        Creates an indexed cache: {(name, class, level): character_data}
-        """
-        try:
-            with open(CHARACTERS_DATA_FILE, 'r') as f:
-                characters_data = json.load(f)
-
-            self.character_cache = {}
-            for level_data in characters_data:
-                level = level_data.get('level')
-                for char in level_data.get('party', []):
-                    cache_key = (
-                        char.get('name'),
-                        char.get('character_class'),
-                        level
-                    )
-                    self.character_cache[cache_key] = char
-            logger.info(f"Loaded {len(self.character_cache)} character entries into cache")
-        except Exception as e:
-            log_exception(e)
-            logger.warning(f"Failed to load character cache: {e}")
-            self.character_cache = {}
 
     def _validate_simulation_inputs(
         self,
@@ -172,111 +138,6 @@ class SimulationController:
                     ))
         return actions
 
-    def _load_full_character_data(self, char_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """
-        Load full character data from cache based on name, class, and level.
-        Finds the highest available level <= requested, or fallback to lowest available.
-
-        Args:
-            char_data: Character data dictionary with name, class, and level
-
-        Returns:
-            Full character data dictionary, or None if not found
-        """
-        if self.character_cache is None:
-            return None
-
-        char_name = char_data.get('name', '')
-        char_class = char_data.get('class') or char_data.get('character_class') or ''
-        char_level = char_data.get('level', DEFAULT_CHARACTER_LEVEL)
-
-        logger.debug(f"Looking up character: name='{char_name}', class='{char_class}', level={char_level}")
-
-        # Gather all matching entries for this name/class
-        matches = []
-        for (cache_name, cache_class, cache_level), char in self.character_cache.items():
-            if cache_name == char_name and cache_class == char_class:
-                matches.append((cache_level, char))
-
-        if not matches:
-            logger.warning(f"No match found for character: name='{char_name}', class='{char_class}'")
-            return None
-
-        # Find the highest level <= requested
-        best = None
-        best_level = -1
-        for lvl, char in matches:
-            if lvl is not None and lvl <= char_level and lvl > best_level:
-                best = char
-                best_level = lvl
-
-        if best:
-            logger.debug(f"Found best match for {char_name} at level {best_level}")
-            return best
-
-        # Fallback: return the lowest available level
-        min_level, min_char = min(matches, key=lambda x: x[0] if x[0] is not None else 999)
-        logger.debug(f"Using fallback match for {char_name} at level {min_level}")
-        return min_char
-
-    def _convert_party_to_characters(
-        self,
-        party: List[Any],
-        party_level: int
-    ) -> List[Character]:
-        """
-        Convert party data (dicts or Character objects) to Character objects.
-
-        Args:
-            party: List of character data (dicts or Character objects)
-            party_level: Level to use for all characters
-
-        Returns:
-            List of Character objects
-        """
-        character_objects = []
-
-        for char_data in party:
-            if isinstance(char_data, Character):
-                character_objects.append(char_data)
-                continue
-
-            if not isinstance(char_data, dict):
-                logger.warning(f"Skipping character with unexpected type: {type(char_data)}")
-                continue
-
-            # Override level with selected party level
-            char_data = char_data.copy()
-            char_data['level'] = party_level
-
-            # Ensure both 'class' and 'character_class' are set for lookup
-            if 'class' in char_data:
-                char_data['character_class'] = char_data['class']
-            elif 'character_class' in char_data:
-                char_data['class'] = char_data['character_class']
-
-            # Load full character data from cache
-            full_char_data = self._load_full_character_data(char_data)
-
-            if full_char_data:
-                char = build_character(full_char_data, self.spell_manager, level=party_level)
-                character_objects.append(char)
-            else:
-                # Fallback to basic character creation
-                char = Character(
-                    name=char_data.get('name', UNKNOWN_NAME),
-                    level=char_data.get('level', DEFAULT_CHARACTER_LEVEL),
-                    character_class=char_data.get('class', DEFAULT_CLASS),
-                    race=char_data.get('race', DEFAULT_RACE),
-                    ability_scores=char_data.get('ability_scores', DEFAULT_ABILITY_SCORES),
-                    hp=char_data.get('hp', DEFAULT_HP),
-                    ac=char_data.get('ac', DEFAULT_AC),
-                    proficiency_bonus=char_data.get('proficiency_bonus', DEFAULT_PROFICIENCY_BONUS)
-                )
-                character_objects.append(char)
-
-        return character_objects
-
     def _convert_monsters_to_objects(self, monsters: List[Any]) -> List[Monster]:
         """
         Convert monster data (dicts or Monster objects) to Monster objects.
@@ -339,7 +200,7 @@ class SimulationController:
             logger.info(f"Starting simulation thread for session {session_id}, party level {party_level}")
 
             # Convert party and monsters to objects
-            character_objects = self._convert_party_to_characters(party, party_level)
+            character_objects = build_party(party, self.spell_manager)
             monster_objects = self._convert_monsters_to_objects(monsters)
 
             logger.info(f"Simulation setup: {len(character_objects)} characters vs {len(monster_objects)} monsters")
