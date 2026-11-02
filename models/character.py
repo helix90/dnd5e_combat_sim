@@ -12,6 +12,22 @@ from models.spells import Spell, SpellAction
 from models.buffs import BuffManager
 
 
+def normalize_spell_slots(spell_slots: Optional[Dict[Any, Any]]) -> Dict[int, int]:
+    """
+    Spell slots keyed by integer spell level with integer counts. JSON data stores both
+    as strings ({"1": 4}), so convert once here and every lookup can use plain ints.
+    """
+    if not isinstance(spell_slots, dict):
+        return {}
+    normalized = {}
+    for level, count in spell_slots.items():
+        try:
+            normalized[int(level)] = int(count)
+        except (TypeError, ValueError):
+            raise ValueError(f"Invalid spell slot entry {level!r}: {count!r}")
+    return normalized
+
+
 class Character:
     """
     A D&D 5e player character with combat-relevant attributes and methods.
@@ -27,7 +43,7 @@ class Character:
         proficiency_bonus (int): Proficiency bonus based on level
         actions (List[Action]): List of available actions
         equipment (List[str]): List of equipment, weapons, armor, items
-        spell_slots (Dict[int, int]): Spell slots by level (e.g., {1: 2, 2: 0})
+        spell_slots (Dict[int, int]): Spell slots by level (e.g., {1: 2, 2: 0}); string keys and counts from JSON are converted to ints
         class_features (List[str]): List of class features (e.g., 'Action Surge')
         spell_list (List[str]): List of known/prepared spells
         saving_throw_proficiencies (List[str]): List of proficient saving throws
@@ -93,12 +109,12 @@ class Character:
         self.ac = ac
         self.proficiency_bonus = proficiency_bonus
         self.equipment = equipment or []
-        self.spell_slots = spell_slots or {}
+        self.spell_slots = normalize_spell_slots(spell_slots)
         self.class_features = class_features or []
         self.spell_list = spell_list or []
         self.saving_throw_proficiencies = saving_throw_proficiencies or []
         self.spells = {}  # Dictionary to store Spell objects by name
-        self.spell_slots_remaining = spell_slots.copy() if spell_slots else {}
+        self.spell_slots_remaining = dict(self.spell_slots)
         self.features = features or []
         self.items = items or []
         self.reactions = reactions or []

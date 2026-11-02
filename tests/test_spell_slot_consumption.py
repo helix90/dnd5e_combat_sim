@@ -3,8 +3,11 @@ Test spell slot consumption to ensure characters can't cast more spells than the
 """
 import pytest
 from unittest.mock import MagicMock
-from models.character import Character
+from models.character import Character, normalize_spell_slots
+from models.character_builder import build_party
+from models.spell_manager import SpellManager
 from models.spells import Spell, SpellAction
+from utils.party_loader import PartyLoader
 
 
 class TestSpellSlotConsumption:
@@ -43,7 +46,7 @@ class TestSpellSlotConsumption:
         spell_action = SpellAction(spell, spell_slot_level=1)
 
         # Verify we have 2 slots
-        assert char.spell_slots_remaining['1'] == 2
+        assert char.spell_slots_remaining[1] == 2
 
         # Cast first spell
         target = MagicMock()
@@ -53,7 +56,7 @@ class TestSpellSlotConsumption:
 
         result1 = spell_action.execute(char, target)
         assert result1['success'] == True
-        assert char.spell_slots_remaining['1'] == 1  # Should have 1 slot left
+        assert char.spell_slots_remaining[1] == 1  # Should have 1 slot left
 
         # Reset target HP for second cast
         target.hp = 5
@@ -61,7 +64,7 @@ class TestSpellSlotConsumption:
         # Cast second spell
         result2 = spell_action.execute(char, target)
         assert result2['success'] == True
-        assert char.spell_slots_remaining['1'] == 0  # Should have 0 slots left
+        assert char.spell_slots_remaining[1] == 0  # Should have 0 slots left
 
     def test_cannot_cast_without_spell_slots(self):
         """Test that characters cannot cast spells when they have no slots left."""
@@ -103,7 +106,7 @@ class TestSpellSlotConsumption:
         # Cast first spell - should succeed
         result1 = spell_action.execute(char, target)
         assert result1['success'] == True
-        assert char.spell_slots_remaining['1'] == 0
+        assert char.spell_slots_remaining[1] == 0
 
         # Reset target
         target.hp = 5
@@ -112,7 +115,7 @@ class TestSpellSlotConsumption:
         result2 = spell_action.execute(char, target)
         assert result2['success'] == False
         assert result2['reason'] == 'No spell slot available'
-        assert char.spell_slots_remaining['1'] == 0  # Should still be 0
+        assert char.spell_slots_remaining[1] == 0  # Should still be 0
 
     def test_cantrips_dont_consume_slots(self):
         """Test that cantrips (level 0 spells) don't consume spell slots."""
@@ -157,7 +160,7 @@ class TestSpellSlotConsumption:
             result = spell_action.execute(char, target)
             assert result['success'] == True
             # Spell slots should NOT be consumed
-            assert char.spell_slots_remaining['1'] == 2
+            assert char.spell_slots_remaining[1] == 2
 
     def test_spell_slot_string_keys_compatibility(self):
         """Test that spell slots work with both string and integer keys (JSON compatibility)."""
@@ -174,10 +177,7 @@ class TestSpellSlotConsumption:
             spell_slots={'1': '3', '2': '2'}  # STRING VALUES from JSON
         )
 
-        # Convert string values to integers (as Character.__init__ should do)
-        for key in char.spell_slots_remaining:
-            if isinstance(char.spell_slots_remaining[key], str):
-                char.spell_slots_remaining[key] = int(char.spell_slots_remaining[key])
+        assert char.spell_slots_remaining == {1: 3, 2: 2}
 
         spell = Spell(
             name="Cure Wounds",
@@ -203,9 +203,7 @@ class TestSpellSlotConsumption:
         result = spell_action.execute(char, target)
         assert result['success'] == True
 
-        # Verify slot was consumed (whether key is string or int)
-        remaining = char.spell_slots_remaining.get(1, 0) or char.spell_slots_remaining.get('1', 0)
-        assert remaining == 2  # Started with 3, used 1
+        assert char.spell_slots_remaining[1] == 2  # Started with 3, used 1
 
     def test_multiple_spell_levels(self):
         """Test that different spell levels consume their respective slots."""
@@ -258,8 +256,8 @@ class TestSpellSlotConsumption:
         spell_action_1 = SpellAction(cure_wounds, spell_slot_level=1)
         result1 = spell_action_1.execute(char, target)
         assert result1['success'] == True
-        assert char.spell_slots_remaining['1'] == 3  # 4 -> 3
-        assert char.spell_slots_remaining['2'] == 3  # Unchanged
+        assert char.spell_slots_remaining[1] == 3  # 4 -> 3
+        assert char.spell_slots_remaining[2] == 3  # Unchanged
 
         # Reset target
         target.hp = 10
@@ -268,8 +266,8 @@ class TestSpellSlotConsumption:
         spell_action_2 = SpellAction(lesser_restoration, spell_slot_level=2)
         result2 = spell_action_2.execute(char, target)
         assert result2['success'] == True
-        assert char.spell_slots_remaining['1'] == 3  # Unchanged
-        assert char.spell_slots_remaining['2'] == 2  # 3 -> 2
+        assert char.spell_slots_remaining[1] == 3  # Unchanged
+        assert char.spell_slots_remaining[2] == 2  # 3 -> 2
 
     def test_upcasting_consumes_higher_slot(self):
         """Test that upcasting a spell consumes the higher level slot."""
@@ -310,8 +308,30 @@ class TestSpellSlotConsumption:
 
         result = spell_action.execute(char, target)
         assert result['success'] == True
-        assert char.spell_slots_remaining['1'] == 4  # 1st level slots unchanged
-        assert char.spell_slots_remaining['2'] == 2  # 2nd level slot consumed (3 -> 2)
+        assert char.spell_slots_remaining[1] == 4  # 1st level slots unchanged
+        assert char.spell_slots_remaining[2] == 2  # 2nd level slot consumed (3 -> 2)
+
+
+def test_spell_slots_from_json_use_int_keys_and_counts():
+    assert normalize_spell_slots({'1': '4', '2': 3}) == {1: 4, 2: 3}
+    assert normalize_spell_slots(None) == {}
+    with pytest.raises(ValueError):
+        normalize_spell_slots({'first': 2})
+
+
+def test_party_casters_can_cast_leveled_spells():
+    """Characters built from characters.json (string slot keys) can cast spells they have slots for."""
+    party = build_party(PartyLoader.get_party_with_level(1, 5)['characters'], SpellManager())
+    calyra = next(c for c in party if c.name == 'Calyra')
+    assert calyra.spell_slots == calyra.spell_slots_remaining == {1: 4, 2: 3, 3: 2}
+    assert calyra.spell_slots is not calyra.spell_slots_remaining
+    assert calyra.can_cast_spell('Fireball')
+    assert {'Magic Missile', 'Scorching Ray', 'Fireball'} <= set(calyra.get_available_spells())
+
+    calyra.spell_slots_remaining[3] = 0
+    assert not calyra.can_cast_spell('Fireball')
+    assert calyra.can_cast_spell('Fireball', spell_slot_level=3) is False
+    assert calyra.spell_slots[3] == 2  # the maximum is untouched
 
 
 if __name__ == '__main__':
