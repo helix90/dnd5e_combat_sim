@@ -4,6 +4,8 @@
       "name": "Kobold",
       "cr": "1/8",
       "type": "humanoid",
+      "size": "small",
+      "speed": {"walk": 30},
       "hp": 5,
       "ac": 12,
       "ability_scores": {"str": 7, "dex": 15, "con": 9, "int": 8, "wis": 7, "cha": 8},
@@ -13,13 +15,15 @@
       "damage_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Dagger", "type": "attack", "damage_dice": "1d4+2", "damage_type": "piercing", "weapon_type": "finesse"}
+        {"name": "Dagger", "type": "attack", "damage_dice": "1d4+2", "damage_type": "piercing", "weapon_type": "finesse", "reach": 5}
       ]
     },
     {
       "name": "Skeleton",
       "cr": "1/4",
       "type": "undead",
+      "size": "medium",
+      "speed": {"walk": 30},
       "hp": 13,
       "ac": 13,
       "ability_scores": {"str": 10, "dex": 14, "con": 15, "int": 6, "wis": 8, "cha": 5},
@@ -30,14 +34,16 @@
       "damage_immunities": ["poison"],
       "multiattack": false,
       "actions": [
-        {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing", "weapon_type": "finesse"},
-        {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing", "weapon_type": "ranged"}
+        {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing", "weapon_type": "finesse", "reach": 5},
+        {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing", "weapon_type": "ranged", "range": [80, 320]}
       ]
     },
     {
       "name": "Zombie",
       "cr": "1/4",
       "type": "undead",
+      "size": "medium",
+      "speed": {"walk": 20},
       "hp": 22,
       "ac": 8,
       "ability_scores": {"str": 13, "dex": 6, "con": 16, "int": 3, "wis": 6, "cha": 5},
@@ -47,13 +53,15 @@
       "damage_immunities": ["poison"],
       "multiattack": false,
       "actions": [
-        {"name": "Slam", "type": "attack", "damage_dice": "1d6+1", "damage_type": "bludgeoning", "weapon_type": "melee"}
+        {"name": "Slam", "type": "attack", "damage_dice": "1d6+1", "damage_type": "bludgeoning", "weapon_type": "melee", "reach": 5}
       ]
     },
     {
       "name": "Goblin",
       "cr": "1/4",
       "type": "humanoid",
+      "size": "small",
+      "speed": {"walk": 30},
       "hp": 7,
       "ac": 15,
       "ability_scores": {"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
@@ -63,14 +71,16 @@
       "damage_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Scimitar", "type": "attack", "damage_dice": "1d6+2", "damage_type": "slashing", "weapon_type": "finesse"},
-        {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing", "weapon_type": "ranged"}
+        {"name": "Scimitar", "type": "attack", "damage_dice": "1d6+2", "damage_type": "slashing", "weapon_type": "finesse", "reach": 5},
+        {"name": "Shortbow", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing", "weapon_type": "ranged", "range": [80, 320]}
       ]
     },
     {
       "name": "Wolf",
       "cr": "1/4",
       "type": "beast",
+      "size": "medium",
+      "speed": {"walk": 40},
       "hp": 11,
       "ac": 13,
       "ability_scores": {"str": 12, "dex": 15, "con": 12, "int": 3, "wis": 12, "cha": 6},
@@ -80,13 +90,15 @@
       "damage_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "weapon_type": "finesse", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."}
+        {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "weapon_type": "finesse", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.", "reach": 5}
       ]
     },
     {
       "name": "Ghoul",
       "cr": "1",
       "type": "undead",
+      "size": "medium",
+      "speed": {"walk": 30},
       "hp": 22,
       "ac": 12,
       "ability_scores": {"str": 13, "dex": 15, "con": 10, "int": 7, "wis": 10, "cha": 6},
@@ -96,14 +108,16 @@
       "damage_immunities": ["poison"],
       "multiattack": false,
       "actions": [
-        {"name": "Bite", "type": "attack", "damage_dice": "1d6+1", "damage_type": "piercing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}},
-        {"name": "Claws", "type": "attack", "damage_dice": "2d4+1", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}}
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+1", "damage_type": "piercing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}, "reach": 5},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d4+1", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}, "reach": 5}
       ]
     },
     {
       "name": "Orc",
       "cr": "1/2",
       "type": "humanoid",
+      "size": "medium",
+      "speed": {"walk": 30},
       "hp": 15,
       "ac": 13,
       "ability_scores": {"str": 16, "dex": 12, "con": 16, "int": 7, "wis": 11, "cha": 10},
@@ -113,14 +127,16 @@
       "damage_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Greataxe", "type": "attack", "damage_dice": "1d12+3", "damage_type": "slashing", "weapon_type": "melee"},
-        {"name": "Javelin", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "thrown"}
+        {"name": "Greataxe", "type": "attack", "damage_dice": "1d12+3", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
+        {"name": "Javelin", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "thrown", "reach": 5, "range": [30, 120]}
       ]
     },
     {
       "name": "Hobgoblin",
       "cr": "1/2",
       "type": "humanoid",
+      "size": "medium",
+      "speed": {"walk": 30},
       "hp": 11,
       "ac": 18,
       "ability_scores": {"str": 13, "dex": 12, "con": 12, "int": 10, "wis": 10, "cha": 9},
@@ -130,14 +146,16 @@
       "damage_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+1", "damage_type": "slashing", "weapon_type": "melee"},
-        {"name": "Longbow", "type": "attack", "damage_dice": "1d8+1", "damage_type": "piercing", "weapon_type": "ranged"}
+        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+1", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
+        {"name": "Longbow", "type": "attack", "damage_dice": "1d8+1", "damage_type": "piercing", "weapon_type": "ranged", "range": [150, 600]}
       ]
     },
     {
       "name": "Brown Bear",
       "cr": "1",
       "type": "beast",
+      "size": "large",
+      "speed": {"walk": 40, "climb": 30},
       "hp": 34,
       "ac": 11,
       "ability_scores": {"str": 19, "dex": 10, "con": 16, "int": 2, "wis": 13, "cha": 7},
@@ -148,14 +166,16 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The bear makes two attacks: one with its bite and one with its claws."},
-        {"name": "Bite", "type": "attack", "damage_dice": "1d8+4", "damage_type": "piercing", "weapon_type": "melee"},
-        {"name": "Claws", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing", "weapon_type": "melee"}
+        {"name": "Bite", "type": "attack", "damage_dice": "1d8+4", "damage_type": "piercing", "weapon_type": "melee", "reach": 5},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing", "weapon_type": "melee", "reach": 5}
       ]
     },
     {
       "name": "Wight",
       "cr": "3",
       "type": "undead",
+      "size": "medium",
+      "speed": {"walk": 30},
       "hp": 45,
       "ac": 14,
       "ability_scores": {"str": 15, "dex": 14, "con": 16, "int": 10, "wis": 13, "cha": 15},
@@ -166,14 +186,16 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The wight makes two longsword attacks or two longbow attacks."},
-        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+2", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken."},
-        {"name": "Longbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing", "weapon_type": "ranged"}
+        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+2", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5},
+        {"name": "Longbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing", "weapon_type": "ranged", "range": [150, 600]}
       ]
     },
     {
       "name": "Owlbear",
       "cr": "3",
       "type": "monstrosity",
+      "size": "large",
+      "speed": {"walk": 40},
       "hp": 59,
       "ac": 13,
       "ability_scores": {"str": 20, "dex": 12, "con": 17, "int": 3, "wis": 12, "cha": 7},
@@ -184,14 +206,16 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The owlbear makes two attacks: one with its beak and one with its claws."},
-        {"name": "Beak", "type": "attack", "damage_dice": "1d10+5", "damage_type": "piercing", "weapon_type": "melee"},
-        {"name": "Claws", "type": "attack", "damage_dice": "2d8+5", "damage_type": "slashing", "weapon_type": "melee"}
+        {"name": "Beak", "type": "attack", "damage_dice": "1d10+5", "damage_type": "piercing", "weapon_type": "melee", "reach": 5},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d8+5", "damage_type": "slashing", "weapon_type": "melee", "reach": 5}
       ]
     },
     {
       "name": "Minotaur",
       "cr": "3",
       "type": "monstrosity",
+      "size": "large",
+      "speed": {"walk": 40},
       "hp": 76,
       "ac": 14,
       "ability_scores": {"str": 18, "dex": 11, "con": 16, "int": 6, "wis": 16, "cha": 9},
@@ -201,14 +225,16 @@
       "damage_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Greataxe", "type": "attack", "damage_dice": "2d12+4", "damage_type": "slashing", "weapon_type": "melee"},
-        {"name": "Gore", "type": "attack", "damage_dice": "2d8+4", "damage_type": "piercing", "weapon_type": "melee"}
+        {"name": "Greataxe", "type": "attack", "damage_dice": "2d12+4", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
+        {"name": "Gore", "type": "attack", "damage_dice": "2d8+4", "damage_type": "piercing", "weapon_type": "melee", "reach": 5}
       ]
     },
     {
       "name": "Wraith",
       "cr": "5",
       "type": "undead",
+      "size": "medium",
+      "speed": {"walk": 0, "fly": 60, "hover": true},
       "hp": 67,
       "ac": 13,
       "ability_scores": {"str": 6, "dex": 16, "con": 16, "int": 12, "wis": 14, "cha": 15},
@@ -218,13 +244,15 @@
       "damage_immunities": ["necrotic", "poison"],
       "multiattack": false,
       "actions": [
-        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken."}
+        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5}
       ]
     },
     {
       "name": "Troll",
       "cr": "5",
       "type": "giant",
+      "size": "large",
+      "speed": {"walk": 30},
       "hp": 84,
       "ac": 15,
       "ability_scores": {"str": 18, "dex": 13, "con": 20, "int": 7, "wis": 9, "cha": 7},
@@ -236,14 +264,16 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The troll makes three attacks: one with its bite and two with its claws."},
-        {"name": "Bite", "type": "attack", "damage_dice": "1d6+4", "damage_type": "piercing", "weapon_type": "melee"},
-        {"name": "Claw", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing", "weapon_type": "melee"}
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+4", "damage_type": "piercing", "weapon_type": "melee", "reach": 5},
+        {"name": "Claw", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing", "weapon_type": "melee", "reach": 5}
       ]
     },
     {
       "name": "Hill Giant",
       "cr": "5",
       "type": "giant",
+      "size": "huge",
+      "speed": {"walk": 40},
       "hp": 105,
       "ac": 13,
       "ability_scores": {"str": 21, "dex": 8, "con": 19, "int": 5, "wis": 9, "cha": 6},
@@ -254,14 +284,16 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The giant makes two greatclub attacks."},
-        {"name": "Greatclub", "type": "attack", "damage_dice": "3d8+5", "damage_type": "bludgeoning", "weapon_type": "melee"},
-        {"name": "Rock", "type": "attack", "damage_dice": "4d10+5", "damage_type": "bludgeoning", "weapon_type": "thrown"}
+        {"name": "Greatclub", "type": "attack", "damage_dice": "3d8+5", "damage_type": "bludgeoning", "weapon_type": "melee", "reach": 10},
+        {"name": "Rock", "type": "attack", "damage_dice": "4d10+5", "damage_type": "bludgeoning", "weapon_type": "thrown", "range": [60, 240]}
       ]
     },
     {
       "name": "Young Dragon",
       "cr": "6",
       "type": "dragon",
+      "size": "large",
+      "speed": {"walk": 40, "climb": 40, "fly": 80},
       "hp": 178,
       "ac": 18,
       "ability_scores": {"str": 19, "dex": 10, "con": 17, "int": 12, "wis": 11, "cha": 15},
@@ -272,9 +304,9 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The dragon makes three attacks: one with its bite and two with its claws."},
-        {"name": "Bite", "type": "attack", "damage_dice": "2d10+4", "damage_type": "piercing", "weapon_type": "melee"},
-        {"name": "Claw", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing", "weapon_type": "melee"},
-        {"name": "Tail", "type": "attack", "damage_dice": "2d8+4", "damage_type": "bludgeoning", "weapon_type": "melee"},
+        {"name": "Bite", "type": "attack", "damage_dice": "2d10+4", "damage_type": "piercing", "weapon_type": "melee", "reach": 10},
+        {"name": "Claw", "type": "attack", "damage_dice": "2d6+4", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
+        {"name": "Tail", "type": "attack", "damage_dice": "2d8+4", "damage_type": "bludgeoning", "weapon_type": "melee", "reach": 10},
         {"name": "Fire Breath", "type": "special", "description": "The dragon exhales fire in a 30-foot cone. Each creature in that area must make a DC 17 Dexterity saving throw, taking 56 (16d6) fire damage on a failed save, or half as much on a successful one.", "damage_dice": "16d6", "save_dc": 17, "save_type": "dex", "damage_type": "fire"}
       ]
     },
@@ -282,6 +314,8 @@
       "name": "Vampire Spawn",
       "cr": "5",
       "type": "undead",
+      "size": "medium",
+      "speed": {"walk": 30, "climb": 30},
       "hp": 82,
       "ac": 15,
       "ability_scores": {"str": 16, "dex": 16, "con": 16, "int": 11, "wis": 10, "cha": 12},
@@ -293,14 +327,16 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The vampire spawn makes two attacks, only one of which can be a bite attack."},
-        {"name": "Claws", "type": "attack", "damage_dice": "2d4+3", "damage_type": "slashing", "weapon_type": "melee"},
-        {"name": "Bite", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "melee", "special": "The target's hit point maximum is reduced by an amount equal to the damage taken, and the vampire spawn regains hit points equal to that amount."}
+        {"name": "Claws", "type": "attack", "damage_dice": "2d4+3", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "melee", "special": "The target's hit point maximum is reduced by an amount equal to the damage taken, and the vampire spawn regains hit points equal to that amount.", "reach": 5}
       ]
     },
     {
       "name": "Mummy",
       "cr": "3",
       "type": "undead",
+      "size": "medium",
+      "speed": {"walk": 20},
       "hp": 58,
       "ac": 11,
       "ability_scores": {"str": 16, "dex": 8, "con": 15, "int": 6, "wis": 10, "cha": 12},
@@ -311,7 +347,7 @@
       "damage_immunities": ["necrotic", "poison"],
       "multiattack": false,
       "actions": [
-        {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot."}
+        {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot.", "reach": 5}
       ]
     }
   ]

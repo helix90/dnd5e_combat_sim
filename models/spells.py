@@ -6,6 +6,7 @@ Defines the Spell class and SpellAction subclass for spell casting in combat.
 
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 import random
+import re
 
 from models.actions import Action
 from models.damage import apply_damage
@@ -16,6 +17,28 @@ from utils.exceptions import APIError
 if TYPE_CHECKING:
     from models.character import Character
     from models.monster import Monster
+
+
+FEET_PER_MILE = 5280
+TOUCH_RANGE_FEET = 5
+
+
+def parse_range_feet(text: Optional[str]) -> Optional[int]:
+    """
+    A spell's range in feet from its text: "120 feet" -> 120, "Touch" -> 5, "Self" or
+    "Self (15-foot cone)" -> 0, "1 mile" -> 5280. Ranges that aren't a distance ("Sight",
+    "Unlimited", "Special") give None.
+    """
+    value = (text or '').strip().lower()
+    if value.startswith('self'):
+        return 0
+    if value == 'touch':
+        return TOUCH_RANGE_FEET
+    match = re.fullmatch(r'(\d+)\s*(feet|foot|ft\.?|miles?)', value)
+    if not match:
+        return None
+    amount = int(match.group(1))
+    return amount * FEET_PER_MILE if match.group(2).startswith('mile') else amount
 
 
 class Spell:
@@ -63,6 +86,7 @@ class Spell:
         self.is_buff_spell = is_buff_spell
         self.buff_data = buff_data or {}
         self.max_targets = max_targets
+        self.range_feet = parse_range_feet(range)  # None if the range isn't a distance
 
     @classmethod
     def from_api(cls, name, api_client=None):

@@ -8,6 +8,7 @@ in the D&D 5e system with all relevant attributes and methods for combat.
 import math
 from typing import Any, Dict, List, Optional
 from models.actions import AttackAction
+from models.arena import normalize_speed, size_in_squares
 from models.buffs import BuffManager
 from utils.api_client import APIClient
 from utils.exceptions import APIError
@@ -41,7 +42,9 @@ class Monster:
         multiattack: bool = False,
         actions: Optional[List] = None,
         regeneration: Optional[Dict[str, Any]] = None,
-        damage_vulnerabilities: Optional[List[str]] = None
+        damage_vulnerabilities: Optional[List[str]] = None,
+        size: str = 'medium',
+        speed: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Initialize a new Monster instance.
@@ -60,8 +63,10 @@ class Monster:
             regeneration: Optional regeneration rules, e.g. for a troll
                 {'hp': 10, 'suppressed_by': ['acid', 'fire'], 'revives_at_zero': True}
             damage_vulnerabilities: Damage types that deal double damage to the monster
+            size: Creature size ('tiny' to 'gargantuan'), which sets the squares it takes up
+            speed: Speeds in feet by movement mode, e.g. {'walk': 40, 'fly': 80}
         Raises:
-            ValueError: If ability scores are invalid
+            ValueError: If ability scores, size or speed are invalid
         """
         required_abilities = {'str', 'dex', 'con', 'int', 'wis', 'cha'}
         if not all(ability in ability_scores for ability in required_abilities):
@@ -81,6 +86,9 @@ class Monster:
         self.legendary_actions = legendary_actions or []
         self.multiattack = multiattack
         self.regeneration = regeneration
+        size_in_squares(size)
+        self.size = size.lower()
+        self.speed = normalize_speed(speed)
         # Results of abilities triggered outside the monster's own turn (e.g. Undead Fortitude),
         # waiting for the combat log
         self.pending_log_entries: List[Dict[str, Any]] = []

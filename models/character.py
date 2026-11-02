@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any
 from models.actions import AttackAction
 from models.spells import Spell, SpellAction
 from models.buffs import BuffManager
+from models.arena import normalize_speed, size_in_squares
 
 
 def normalize_spell_slots(spell_slots: Optional[Dict[Any, Any]]) -> Dict[int, int]:
@@ -71,7 +72,9 @@ class Character:
         reactions: Optional[List[Any]] = None,
         bonus_actions: Optional[List[Any]] = None,
         initiative_bonus: int = 0,
-        notes: str = ""
+        notes: str = "",
+        size: str = 'medium',
+        speed: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Initialize a new Character instance.
@@ -87,10 +90,12 @@ class Character:
             proficiency_bonus: Proficiency bonus
             spells: Spell objects the character can cast, as a list or a dict keyed by name;
                 each is added with add_spell, so it also joins spell_list
+            size: Creature size ('small' for halflings and gnomes, otherwise usually 'medium')
+            speed: Speeds in feet by movement mode, e.g. {'walk': 25}
 
         Raises:
-            ValueError: If level is not between 1 and 20, if ability scores are invalid, or if
-                spells contains something other than Spell objects
+            ValueError: If level is not between 1 and 20, if ability scores, size or speed are
+                invalid, or if spells contains something other than Spell objects
         """
         if not 1 <= level <= 20:
             raise ValueError("Level must be between 1 and 20")
@@ -128,6 +133,9 @@ class Character:
         self.bonus_actions = bonus_actions or []
         self.initiative_bonus = initiative_bonus
         self.notes = notes
+        size_in_squares(size)
+        self.size = size.lower()
+        self.speed = normalize_speed(speed)
         self.buffs = BuffManager()
 
         # Add default actions if not provided

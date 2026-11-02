@@ -7,6 +7,10 @@
         "level": 1,
         "character_class": "Fighter",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 14,
@@ -39,13 +43,18 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -54,6 +63,10 @@
         "level": 1,
         "character_class": "Cleric",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 14,
           "dex": 10,
@@ -94,7 +107,8 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -109,6 +123,10 @@
         "level": 1,
         "character_class": "Wizard",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -147,7 +165,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -162,6 +181,10 @@
         "level": 1,
         "character_class": "Rogue",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 16,
@@ -195,13 +218,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -210,6 +238,10 @@
         "level": 1,
         "character_class": "Sorcerer",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -247,7 +279,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -262,6 +295,10 @@
         "level": 1,
         "character_class": "Warlock",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -298,7 +335,12 @@
             "name": "Dagger",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           },
           {
             "name": "Eldritch Blast",
@@ -313,6 +355,10 @@
         "level": 1,
         "character_class": "Bard",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -350,7 +396,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -365,6 +412,10 @@
         "level": 1,
         "character_class": "Wizard",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -403,7 +454,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -418,6 +470,10 @@
         "level": 1,
         "character_class": "Paladin",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 10,
@@ -451,13 +507,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -466,6 +528,10 @@
         "level": 1,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 14,
@@ -506,7 +572,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -521,6 +588,10 @@
         "level": 1,
         "character_class": "Ranger",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -553,13 +624,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -568,6 +644,10 @@
         "level": 1,
         "character_class": "Druid",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -605,7 +685,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -620,6 +701,10 @@
         "level": 1,
         "character_class": "Rogue",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 16,
@@ -653,13 +738,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -668,6 +758,10 @@
         "level": 1,
         "character_class": "Ranger",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -700,13 +794,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -715,6 +814,10 @@
         "level": 1,
         "character_class": "Monk",
         "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 16,
@@ -746,13 +849,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -761,6 +866,10 @@
         "level": 1,
         "character_class": "Bard",
         "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -798,7 +907,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -813,6 +923,10 @@
         "level": 1,
         "character_class": "Barbarian",
         "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 17,
           "dex": 14,
@@ -845,13 +959,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -860,6 +980,10 @@
         "level": 1,
         "character_class": "Fighter",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 16,
           "dex": 12,
@@ -892,13 +1016,19 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Handaxe",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           }
         ]
       },
@@ -907,6 +1037,10 @@
         "level": 1,
         "character_class": "Paladin",
         "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 10,
@@ -939,13 +1073,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -954,6 +1094,10 @@
         "level": 1,
         "character_class": "Monk",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -985,13 +1129,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -1000,6 +1146,10 @@
         "level": 1,
         "character_class": "Druid",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -1039,7 +1189,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -1054,6 +1205,10 @@
         "level": 1,
         "character_class": "Ranger",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -1086,13 +1241,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -1101,6 +1261,10 @@
         "level": 1,
         "character_class": "Barbarian",
         "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -1133,13 +1297,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -1148,6 +1318,10 @@
         "level": 1,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 10,
@@ -1188,7 +1362,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -1208,6 +1383,10 @@
         "level": 2,
         "character_class": "Fighter",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 14,
@@ -1241,13 +1420,18 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -1256,6 +1440,10 @@
         "level": 2,
         "character_class": "Cleric",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 14,
           "dex": 10,
@@ -1296,7 +1484,8 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -1311,6 +1500,10 @@
         "level": 2,
         "character_class": "Wizard",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -1349,7 +1542,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -1364,6 +1558,10 @@
         "level": 2,
         "character_class": "Rogue",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 16,
@@ -1398,13 +1596,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -1413,6 +1616,10 @@
         "level": 2,
         "character_class": "Sorcerer",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -1452,7 +1659,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -1467,6 +1675,10 @@
         "level": 2,
         "character_class": "Warlock",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -1505,7 +1717,12 @@
             "name": "Dagger",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           },
           {
             "name": "Eldritch Blast",
@@ -1520,6 +1737,10 @@
         "level": 2,
         "character_class": "Bard",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -1559,7 +1780,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -1574,6 +1796,10 @@
         "level": 2,
         "character_class": "Wizard",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -1613,7 +1839,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -1628,6 +1855,10 @@
         "level": 2,
         "character_class": "Paladin",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 10,
@@ -1669,13 +1900,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -1684,6 +1921,10 @@
         "level": 2,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 14,
@@ -1725,7 +1966,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -1740,6 +1982,10 @@
         "level": 2,
         "character_class": "Ranger",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -1779,13 +2025,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -1794,6 +2045,10 @@
         "level": 2,
         "character_class": "Druid",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -1834,7 +2089,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -1849,6 +2105,10 @@
         "level": 2,
         "character_class": "Rogue",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 16,
@@ -1883,13 +2143,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -1898,6 +2163,10 @@
         "level": 2,
         "character_class": "Ranger",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -1937,13 +2206,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -1952,6 +2226,10 @@
         "level": 2,
         "character_class": "Monk",
         "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 12,
           "dex": 16,
@@ -1985,13 +2263,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -2000,6 +2280,10 @@
         "level": 2,
         "character_class": "Bard",
         "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -2040,7 +2324,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -2055,6 +2340,10 @@
         "level": 2,
         "character_class": "Barbarian",
         "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 17,
           "dex": 14,
@@ -2089,13 +2378,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -2104,6 +2399,10 @@
         "level": 2,
         "character_class": "Fighter",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 16,
           "dex": 12,
@@ -2137,13 +2436,19 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Handaxe",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           }
         ]
       },
@@ -2152,6 +2457,10 @@
         "level": 2,
         "character_class": "Paladin",
         "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 10,
@@ -2194,13 +2503,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -2209,6 +2524,10 @@
         "level": 2,
         "character_class": "Monk",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -2242,13 +2561,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -2257,6 +2578,10 @@
         "level": 2,
         "character_class": "Druid",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -2299,7 +2624,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -2314,6 +2640,10 @@
         "level": 2,
         "character_class": "Ranger",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -2353,13 +2683,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -2368,6 +2703,10 @@
         "level": 2,
         "character_class": "Barbarian",
         "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -2402,13 +2741,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -2417,6 +2762,10 @@
         "level": 2,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 10,
@@ -2458,7 +2807,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -2478,6 +2828,10 @@
         "level": 3,
         "character_class": "Fighter",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 14,
@@ -2512,13 +2866,18 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -2527,6 +2886,10 @@
         "level": 3,
         "character_class": "Cleric",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 14,
           "dex": 10,
@@ -2571,7 +2934,8 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -2586,6 +2950,10 @@
         "level": 3,
         "character_class": "Wizard",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -2627,7 +2995,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -2642,6 +3011,10 @@
         "level": 3,
         "character_class": "Rogue",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 16,
@@ -2677,13 +3050,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -2692,6 +3070,10 @@
         "level": 3,
         "character_class": "Sorcerer",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -2734,7 +3116,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -2749,6 +3132,10 @@
         "level": 3,
         "character_class": "Warlock",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -2789,7 +3176,12 @@
             "name": "Dagger",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           },
           {
             "name": "Eldritch Blast",
@@ -2804,6 +3196,10 @@
         "level": 3,
         "character_class": "Bard",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -2847,7 +3243,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -2862,6 +3259,10 @@
         "level": 3,
         "character_class": "Wizard",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -2903,7 +3304,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -2918,6 +3320,10 @@
         "level": 3,
         "character_class": "Paladin",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 10,
@@ -2962,13 +3368,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -2977,6 +3389,10 @@
         "level": 3,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 14,
@@ -3021,7 +3437,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -3036,6 +3453,10 @@
         "level": 3,
         "character_class": "Ranger",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -3078,13 +3499,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -3093,6 +3519,10 @@
         "level": 3,
         "character_class": "Druid",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -3136,7 +3566,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -3151,6 +3582,10 @@
         "level": 3,
         "character_class": "Rogue",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 16,
@@ -3186,13 +3621,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -3201,6 +3641,10 @@
         "level": 3,
         "character_class": "Ranger",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -3243,13 +3687,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -3258,6 +3707,10 @@
         "level": 3,
         "character_class": "Monk",
         "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 12,
           "dex": 16,
@@ -3293,13 +3746,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -3308,6 +3763,10 @@
         "level": 3,
         "character_class": "Bard",
         "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -3353,7 +3812,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -3368,6 +3828,10 @@
         "level": 3,
         "character_class": "Barbarian",
         "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 17,
           "dex": 14,
@@ -3403,13 +3867,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -3418,6 +3888,10 @@
         "level": 3,
         "character_class": "Fighter",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 16,
           "dex": 12,
@@ -3452,13 +3926,19 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Handaxe",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           }
         ]
       },
@@ -3467,6 +3947,10 @@
         "level": 3,
         "character_class": "Paladin",
         "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 16,
           "dex": 10,
@@ -3512,13 +3996,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -3527,6 +4017,10 @@
         "level": 3,
         "character_class": "Monk",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -3562,13 +4056,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -3577,6 +4073,10 @@
         "level": 3,
         "character_class": "Druid",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -3621,7 +4121,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -3636,6 +4137,10 @@
         "level": 3,
         "character_class": "Ranger",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 16,
@@ -3678,13 +4183,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -3693,6 +4203,10 @@
         "level": 3,
         "character_class": "Barbarian",
         "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -3728,13 +4242,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -3743,6 +4263,10 @@
         "level": 3,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 10,
@@ -3786,7 +4310,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -3806,6 +4331,10 @@
         "level": 4,
         "character_class": "Fighter",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -3841,13 +4370,18 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -3856,6 +4390,10 @@
         "level": 4,
         "character_class": "Cleric",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 14,
           "dex": 10,
@@ -3902,7 +4440,8 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -3917,6 +4456,10 @@
         "level": 4,
         "character_class": "Wizard",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 16,
@@ -3960,7 +4503,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -3975,6 +4519,10 @@
         "level": 4,
         "character_class": "Rogue",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 18,
@@ -4011,13 +4559,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -4026,6 +4579,10 @@
         "level": 4,
         "character_class": "Sorcerer",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -4069,7 +4626,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -4084,6 +4642,10 @@
         "level": 4,
         "character_class": "Warlock",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -4125,7 +4687,12 @@
             "name": "Dagger",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           },
           {
             "name": "Eldritch Blast",
@@ -4140,6 +4707,10 @@
         "level": 4,
         "character_class": "Bard",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -4184,7 +4755,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -4199,6 +4771,10 @@
         "level": 4,
         "character_class": "Wizard",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -4241,7 +4817,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -4256,6 +4833,10 @@
         "level": 4,
         "character_class": "Paladin",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 10,
@@ -4301,13 +4882,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -4316,6 +4903,10 @@
         "level": 4,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 14,
@@ -4361,7 +4952,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -4376,6 +4968,10 @@
         "level": 4,
         "character_class": "Ranger",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -4419,13 +5015,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -4434,6 +5035,10 @@
         "level": 4,
         "character_class": "Druid",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -4478,7 +5083,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -4493,6 +5099,10 @@
         "level": 4,
         "character_class": "Rogue",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 18,
@@ -4529,13 +5139,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -4544,6 +5159,10 @@
         "level": 4,
         "character_class": "Ranger",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -4587,13 +5206,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -4602,6 +5226,10 @@
         "level": 4,
         "character_class": "Monk",
         "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 12,
           "dex": 18,
@@ -4639,13 +5267,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -4654,6 +5284,10 @@
         "level": 4,
         "character_class": "Bard",
         "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -4700,7 +5334,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -4715,6 +5350,10 @@
         "level": 4,
         "character_class": "Barbarian",
         "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -4751,13 +5390,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -4766,6 +5411,10 @@
         "level": 4,
         "character_class": "Fighter",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 18,
           "dex": 12,
@@ -4801,13 +5450,19 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Handaxe",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           }
         ]
       },
@@ -4816,6 +5471,10 @@
         "level": 4,
         "character_class": "Paladin",
         "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 10,
@@ -4862,13 +5521,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -4877,6 +5542,10 @@
         "level": 4,
         "character_class": "Monk",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -4914,13 +5583,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -4929,6 +5600,10 @@
         "level": 4,
         "character_class": "Druid",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -4974,7 +5649,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -4989,6 +5665,10 @@
         "level": 4,
         "character_class": "Ranger",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -5032,13 +5712,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -5047,6 +5732,10 @@
         "level": 4,
         "character_class": "Barbarian",
         "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 20,
           "dex": 14,
@@ -5083,13 +5772,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -5098,6 +5793,10 @@
         "level": 4,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 10,
@@ -5142,7 +5841,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -5162,6 +5862,10 @@
         "level": 5,
         "character_class": "Fighter",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -5198,13 +5902,18 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -5213,6 +5922,10 @@
         "level": 5,
         "character_class": "Cleric",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 14,
           "dex": 10,
@@ -5261,7 +5974,8 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -5276,6 +5990,10 @@
         "level": 5,
         "character_class": "Wizard",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 16,
@@ -5321,7 +6039,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -5336,6 +6055,10 @@
         "level": 5,
         "character_class": "Rogue",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 18,
@@ -5373,13 +6096,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -5388,6 +6116,10 @@
         "level": 5,
         "character_class": "Barbarian",
         "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -5425,13 +6157,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -5440,6 +6178,10 @@
         "level": 5,
         "character_class": "Fighter",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 16,
           "dex": 12,
@@ -5477,13 +6219,19 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Handaxe",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           }
         ]
       },
@@ -5492,6 +6240,10 @@
         "level": 5,
         "character_class": "Paladin",
         "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 10,
@@ -5539,13 +6291,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -5554,6 +6312,10 @@
         "level": 5,
         "character_class": "Monk",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 12,
           "dex": 18,
@@ -5592,13 +6354,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -5607,6 +6371,10 @@
         "level": 5,
         "character_class": "Sorcerer",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -5652,7 +6420,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -5667,6 +6436,10 @@
         "level": 5,
         "character_class": "Warlock",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -5709,7 +6482,12 @@
             "name": "Dagger",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           },
           {
             "name": "Eldritch Blast",
@@ -5724,6 +6502,10 @@
         "level": 5,
         "character_class": "Bard",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -5771,7 +6553,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -5786,6 +6569,10 @@
         "level": 5,
         "character_class": "Wizard",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -5831,7 +6618,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -5846,6 +6634,10 @@
         "level": 5,
         "character_class": "Paladin",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 10,
@@ -5894,13 +6686,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -5909,6 +6707,10 @@
         "level": 5,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 14,
@@ -5957,7 +6759,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -5972,6 +6775,10 @@
         "level": 5,
         "character_class": "Ranger",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -6018,13 +6825,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -6033,6 +6845,10 @@
         "level": 5,
         "character_class": "Druid",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -6079,7 +6895,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -6094,6 +6911,10 @@
         "level": 5,
         "character_class": "Rogue",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 18,
@@ -6131,13 +6952,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -6146,6 +6972,10 @@
         "level": 5,
         "character_class": "Ranger",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -6192,13 +7022,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -6207,6 +7042,10 @@
         "level": 5,
         "character_class": "Monk",
         "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 12,
           "dex": 18,
@@ -6246,13 +7085,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -6261,6 +7102,10 @@
         "level": 5,
         "character_class": "Bard",
         "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -6311,7 +7156,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -6326,6 +7172,10 @@
         "level": 5,
         "character_class": "Druid",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -6373,7 +7223,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -6388,6 +7239,10 @@
         "level": 5,
         "character_class": "Ranger",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -6434,13 +7289,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -6449,6 +7309,10 @@
         "level": 5,
         "character_class": "Barbarian",
         "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 20,
           "dex": 14,
@@ -6487,13 +7351,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -6502,6 +7372,10 @@
         "level": 5,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 10,
@@ -6549,7 +7423,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -6569,6 +7444,10 @@
         "level": 6,
         "character_class": "Fighter",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -6606,13 +7485,18 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Light Crossbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -6621,6 +7505,10 @@
         "level": 6,
         "character_class": "Cleric",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 14,
           "dex": 10,
@@ -6669,7 +7557,8 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -6684,6 +7573,10 @@
         "level": 6,
         "character_class": "Wizard",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 16,
@@ -6730,7 +7623,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -6745,6 +7639,10 @@
         "level": 6,
         "character_class": "Rogue",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 18,
@@ -6783,13 +7681,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -6798,6 +7701,10 @@
         "level": 6,
         "character_class": "Sorcerer",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -6844,7 +7751,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -6859,6 +7767,10 @@
         "level": 6,
         "character_class": "Warlock",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -6902,7 +7814,12 @@
             "name": "Dagger",
             "type": "attack",
             "damage_dice": "1d4",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           },
           {
             "name": "Eldritch Blast",
@@ -6917,6 +7834,10 @@
         "level": 6,
         "character_class": "Bard",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -6966,7 +7887,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -6981,6 +7903,10 @@
         "level": 6,
         "character_class": "Wizard",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -7028,7 +7954,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -7043,6 +7970,10 @@
         "level": 6,
         "character_class": "Paladin",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 10,
@@ -7092,13 +8023,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -7107,6 +8044,10 @@
         "level": 6,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 14,
@@ -7155,7 +8096,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",
@@ -7170,6 +8112,10 @@
         "level": 6,
         "character_class": "Ranger",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -7216,13 +8162,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -7231,6 +8182,10 @@
         "level": 6,
         "character_class": "Druid",
         "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -7278,7 +8233,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -7293,6 +8249,10 @@
         "level": 6,
         "character_class": "Rogue",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 18,
@@ -7330,13 +8290,18 @@
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Shortbow",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
           }
         ]
       },
@@ -7345,6 +8310,10 @@
         "level": 6,
         "character_class": "Ranger",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -7391,13 +8360,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -7406,6 +8380,10 @@
         "level": 6,
         "character_class": "Monk",
         "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
         "ability_scores": {
           "str": 12,
           "dex": 18,
@@ -7446,13 +8424,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -7461,6 +8441,10 @@
         "level": 6,
         "character_class": "Bard",
         "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 8,
           "dex": 14,
@@ -7512,7 +8496,8 @@
             "name": "Rapier",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -7527,6 +8512,10 @@
         "level": 6,
         "character_class": "Barbarian",
         "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 18,
           "dex": 14,
@@ -7565,13 +8554,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -7580,6 +8575,10 @@
         "level": 6,
         "character_class": "Fighter",
         "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
         "ability_scores": {
           "str": 18,
           "dex": 12,
@@ -7616,13 +8615,19 @@
             "name": "Warhammer",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Handaxe",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
           }
         ]
       },
@@ -7631,6 +8636,10 @@
         "level": 6,
         "character_class": "Paladin",
         "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 18,
           "dex": 10,
@@ -7681,13 +8690,19 @@
             "name": "Longsword",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -7696,6 +8711,10 @@
         "level": 6,
         "character_class": "Monk",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -7736,13 +8755,15 @@
             "name": "Unarmed Strike",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           }
         ]
       },
@@ -7751,6 +8772,10 @@
         "level": 6,
         "character_class": "Druid",
         "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 10,
           "dex": 14,
@@ -7799,7 +8824,8 @@
             "name": "Quarterstaff",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Fire Bolt",
@@ -7814,6 +8840,10 @@
         "level": 6,
         "character_class": "Ranger",
         "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 14,
           "dex": 18,
@@ -7860,13 +8890,18 @@
             "name": "Longbow",
             "type": "attack",
             "damage_dice": "1d8",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
           },
           {
             "name": "Shortsword",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5
           }
         ]
       },
@@ -7875,6 +8910,10 @@
         "level": 6,
         "character_class": "Barbarian",
         "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
         "ability_scores": {
           "str": 20,
           "dex": 14,
@@ -7913,13 +8952,19 @@
             "name": "Greataxe",
             "type": "attack",
             "damage_dice": "1d12",
-            "damage_type": "slashing"
+            "damage_type": "slashing",
+            "reach": 5
           },
           {
             "name": "Javelin",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "piercing"
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
           }
         ]
       },
@@ -7928,6 +8973,10 @@
         "level": 6,
         "character_class": "Cleric",
         "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
         "ability_scores": {
           "str": 12,
           "dex": 10,
@@ -7975,7 +9024,8 @@
             "name": "Mace",
             "type": "attack",
             "damage_dice": "1d6",
-            "damage_type": "bludgeoning"
+            "damage_type": "bludgeoning",
+            "reach": 5
           },
           {
             "name": "Sacred Flame",

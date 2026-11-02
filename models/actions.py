@@ -4,7 +4,7 @@ Action system for D&D 5e Combat Simulator.
 Defines the Action base class and AttackAction subclass for use by characters and monsters.
 """
 
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, Sequence, Tuple, TYPE_CHECKING
 import random
 import re
 
@@ -52,7 +52,9 @@ class AttackAction(Action):
         area_effect: bool = False,  # True if this action affects multiple targets
         save_type: Optional[str] = None,  # 'str', 'dex', 'con', etc. for save-based attacks
         save_dc: Optional[int] = None,  # DC for the saving throw
-        on_hit: Optional[Dict[str, Any]] = None  # Save-or-condition rider, e.g. ghoul paralysis
+        on_hit: Optional[Dict[str, Any]] = None,  # Save-or-condition rider, e.g. ghoul paralysis
+        reach: Optional[int] = None,  # Melee reach in feet
+        range: Optional[Sequence[int]] = None  # (normal, long) range in feet for ranged/thrown attacks
     ) -> None:
         super().__init__(action_type="attack", name=name, description=description)
         self.weapon_name = weapon_name
@@ -66,6 +68,28 @@ class AttackAction(Action):
         # e.g. {'condition': 'paralyzed', 'save_type': 'con', 'save_dc': 10,
         #       'duration_rounds': 10, 'immune_races': ['Elf']}
         self.on_hit = on_hit
+        self.range = self._validate_range(range)
+        # Melee attacks reach 5 ft unless they say otherwise. A ranged-only attack has no reach;
+        # a thrown weapon like a javelin has both. Area effects (breath weapons) get their shape later.
+        if reach is None and weapon_type != 'ranged' and self.range is None and not area_effect:
+            reach = 5
+        if reach is not None and (not isinstance(reach, int) or isinstance(reach, bool) or reach < 5):
+            raise ValueError(f"Invalid reach for {name}: {reach!r}")
+        self.reach = reach
+
+    @staticmethod
+    def _validate_range(value: Optional[Sequence[int]]) -> Optional[Tuple[int, int]]:
+        """(normal, long) range in feet; attacks beyond normal range up to long range are at
+        disadvantage."""
+        if value is None:
+            return None
+        try:
+            normal, long = (int(v) for v in value)
+        except (TypeError, ValueError):
+            raise ValueError(f"Range must be [normal, long] in feet, got {value!r}")
+        if not 0 < normal <= long:
+            raise ValueError(f"Range must satisfy 0 < normal <= long, got {value!r}")
+        return normal, long
 
     def hit_bonus(self, attacker: Any) -> int:
         """

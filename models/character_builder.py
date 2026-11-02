@@ -35,6 +35,8 @@ def build_weapon_actions(action_dicts: List[Dict[str, Any]], character_class: st
             weapon_type=ad.get('weapon_type') or weapon_type_for(name, character_class),
             hit_bonus=ad.get('hit_bonus'),
             on_hit=ad.get('on_hit'),
+            reach=ad.get('reach'),
+            range=ad.get('range'),
         ))
     return actions
 
@@ -77,6 +79,8 @@ def build_character(data: Dict[str, Any], spell_manager: Any = None) -> Characte
         bonus_actions=data.get('bonus_actions', []),
         initiative_bonus=data.get('initiative_bonus', 0),
         notes=data.get('notes', ''),
+        size=data.get('size', 'medium'),
+        speed=data.get('speed'),
     )
 
 

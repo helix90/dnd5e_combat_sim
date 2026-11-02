@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from controllers.batch_simulation_controller import BatchSimulationController
+from models.monster_builder import build_monster_actions
 from models.actions import AttackAction
 from models.rolls import roll_saving_throw
 from models.buffs import create_paralyzed_condition, is_paralyzed
@@ -117,8 +117,7 @@ def test_paralysis_expires_after_one_minute():
 
 
 def test_ghoul_from_json_data_gets_paralysis():
-    controller = BatchSimulationController.__new__(BatchSimulationController)
-    actions = controller._build_actions_from_dicts([
+    actions = build_monster_actions([
         {'name': 'Claws', 'type': 'attack', 'damage_dice': '2d4+1', 'damage_type': 'slashing',
          'weapon_type': 'melee', 'on_hit': PARALYSIS}
     ])
