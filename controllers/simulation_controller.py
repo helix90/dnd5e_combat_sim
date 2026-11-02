@@ -2,6 +2,7 @@ import threading
 import logging
 from typing import Dict, List, Any, Optional
 from flask import session
+from models.arena_library import get_arena
 from models.combat import Combat
 from models.db import DatabaseManager
 from models.spell_manager import SpellManager
@@ -82,7 +83,8 @@ class SimulationController:
         party: List[Any],
         monsters: List[Any],
         session_id: str,
-        party_level: int
+        party_level: int,
+        arena: Optional[Any] = None
     ) -> None:
         """
         Run the simulation in a background thread.
@@ -92,6 +94,7 @@ class SimulationController:
             monsters: List of monster data
             session_id: Session identifier
             party_level: Level for the party
+            arena: Arena to fight on, or None
         """
         try:
             logger.info(f"Starting simulation thread for session {session_id}, party level {party_level}")
@@ -103,7 +106,7 @@ class SimulationController:
             logger.info(f"Simulation setup: {len(character_objects)} characters vs {len(monster_objects)} monsters")
 
             # Create combat with proper objects
-            combat = Combat(character_objects + monster_objects)
+            combat = Combat(character_objects + monster_objects, arena=arena)
 
             def progress_callback(state: Dict[str, Any]) -> None:
                 with self.state_lock:
@@ -150,7 +153,8 @@ class SimulationController:
         party: List[Any],
         monsters: List[Any],
         session_id: str,
-        party_level: int = DEFAULT_PARTY_LEVEL
+        party_level: int = DEFAULT_PARTY_LEVEL,
+        arena_name: Optional[str] = None
     ) -> None:
         """
         Execute a combat simulation in a background thread.
@@ -160,12 +164,17 @@ class SimulationController:
             monsters: List of monster data (dicts or Monster objects)
             session_id: Session identifier for tracking
             party_level: Level to use for all party members
+            arena_name: Name of a map in data/arenas.json, or None to fight without positions
 
         Raises:
             ValidationError: If input validation fails
         """
         # Input validation
         self._validate_simulation_inputs(party, monsters, session_id, party_level)
+        try:
+            arena = get_arena(arena_name)
+        except ValueError as e:
+            raise ValidationError(str(e))
 
         logger.info(f"Executing simulation for session {session_id}: {len(party)} party members at level {party_level} vs {len(monsters)} monsters")
 
@@ -187,7 +196,7 @@ class SimulationController:
         # Create and start thread
         t = threading.Thread(
             target=self._run_simulation_thread,
-            args=(party, monsters, session_id, party_level)
+            args=(party, monsters, session_id, party_level, arena)
         )
         t.daemon = True  # Allow program to exit even if thread is running
 

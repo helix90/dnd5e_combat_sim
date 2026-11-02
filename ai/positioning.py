@@ -1,0 +1,403 @@
+"""
+Arena movement for the AI.
+
+The strategies in ai/strategy.py decide what a creature wants to do (heal this ally, cast this
+cantrip, attack that enemy) without knowing where anyone is. On an arena, fit_plan turns that
+into something the creature can actually do this turn:
+
+- It picks the attack, weapon or spell and the square to use it from. Weapons are chosen by
+  distance, so a goblin out of scimitar reach uses its shortbow and a Hill Giant throws rocks.
+- It keeps the target the strategy chose when it can reach it this turn, and otherwise switches
+  to the best target it can reach.
+- Ranged attackers and casters stay out of melee and within normal range, moving as little as
+  they need to.
+- A creature that has to make do with a weaker attack from where it stands (a fighter's
+  crossbow) attacks and then moves toward its target ('move_after').
+- If nothing is in reach even after moving, the creature Dashes toward its target.
+"""
+from typing import Any, Dict, List, Optional, Tuple
+
+from models.actions import AttackAction
+from models.arena import SQUARE_FEET, Square
+from models.buffs import is_paralyzed
+from models.battlefield import (Battlefield, Situation, Threatened, attack_distances, judge_attack,
+                                judge_spell)
+from models.multiattack import parse_multiattack
+from models.spells import SpellAction
+
+# A target the strategy chose is worth this much more than another one
+PREFERRED_TARGET_WEIGHT = 1.3
+# Small tie-breakers: prefer shorter moves, then squares farther from the nearest enemy
+MOVE_PENALTY_PER_FT = 0.002
+DISTANCE_BONUS_PER_FT = 0.0005
+DISTANCE_BONUS_CAP_FT = 60
+# Chance a saving-throw spell does its damage, for comparing it with attacks
+SAVE_SPELL_SUCCESS = 0.6
+
+
+def _average(dice: Optional[str]) -> float:
+    try:
+        num, die, mod = AttackAction.parse_dice(str(dice))
+        return num * (die + 1) / 2 + mod
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _hit_chance(bonus: int, ac: int, disadvantage: bool) -> float:
+    chance = min(0.95, max(0.05, (21 + bonus - ac) / 20))
+    return chance * chance if disadvantage else chance
+
+
+def _max_distance(attacks: List[Any]) -> float:
+    """The farthest any of these attacks reaches (no limit if one has no reach or range data)."""
+    farthest = 0.0
+    for attack in attacks:
+        reach, attack_range = attack_distances(attack)
+        if reach is None and attack_range is None:
+            return float('inf')
+        farthest = max(farthest, reach or 0, attack_range[1] if attack_range else 0)
+    return farthest
+
+
+class _Weapon:
+    """A single-target attack: a weapon, natural weapon or thrown rock."""
+
+    def __init__(self, creature: Any, action: AttackAction) -> None:
+        self.action = action
+        self.count = creature.attacks_per_action() if hasattr(creature, 'attacks_per_action') else 1
+        self.average = _average(action.damage_dice)
+        self.bonus = action.hit_bonus(creature)
+        self.max_distance = _max_distance([action])
+
+    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened) -> Optional[float]:
+        situation = judge_attack(self.action, distance, threatened)
+        if not situation.in_range:
+            return None
+        return self.count * self.average * _hit_chance(self.bonus, getattr(target, 'ac', 10), situation.disadvantage)
+
+    def plan(self, target: Any) -> Dict[str, Any]:
+        return {'type': 'attack', 'action': self.action, 'target': target}
+
+
+class _Multiattack:
+    """A monster's Multiattack, which can switch routines with distance (e.g. a wight's longbows)."""
+
+    def __init__(self, creature: Any, action: Any) -> None:
+        self.action = action
+        self.attacks = [a for a in creature.actions
+                        if getattr(a, 'action_type', None) == 'attack' and not getattr(a, 'area_effect', False)]
+        self.max_distance = _max_distance(self.attacks)
+
+    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened) -> Optional[float]:
+        situations: Dict[Any, Situation] = {a: judge_attack(a, distance, threatened) for a in self.attacks}
+        attacks = parse_multiattack(getattr(self.action, 'description', ''), self.attacks,
+                                    usable=lambda a: situations[a].in_range)
+        if not attacks:
+            return None
+        ac = getattr(target, 'ac', 10)
+        return sum(_average(a.damage_dice) * _hit_chance(a.hit_bonus(creature), ac, situations[a].disadvantage)
+                   for a in attacks)
+
+    def plan(self, target: Any) -> Dict[str, Any]:
+        return {'type': 'special', 'action': self.action, 'target': target}
+
+
+class _Spell:
+    """A single-target spell. Healing and buffs are worth the same anywhere in range."""
+
+    def __init__(self, creature: Any, spell_action: SpellAction) -> None:
+        self.spell_action = spell_action
+        spell = spell_action.spell
+        self.spell = spell
+        self.average = _average(getattr(spell, 'damage_dice', None)) if not spell.healing else 0.0
+        self.bonus = creature.spell_attack_bonus() if hasattr(creature, 'spell_attack_bonus') else 0
+        range_feet = getattr(spell, 'range_feet', None)
+        self.max_distance = float('inf') if range_feet is None else range_feet
+
+    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened) -> Optional[float]:
+        situation = judge_spell(self.spell, distance, threatened)
+        if not situation.in_range:
+            return None
+        if not self.average:
+            return 1.0
+        if self.spell.is_attack_spell:
+            return self.average * _hit_chance(self.bonus, getattr(target, 'ac', 10), situation.disadvantage)
+        return self.average * SAVE_SPELL_SUCCESS
+
+    def plan(self, target: Any) -> Dict[str, Any]:
+        return {'type': 'cast_spell', 'spell': self.spell_action, 'target': target}
+
+
+def _attack_options(creature: Any) -> List[Any]:
+    options: List[Any] = []
+    for action in getattr(creature, 'actions', []):
+        if isinstance(action, AttackAction) and action.action_type == 'attack' and not action.area_effect:
+            options.append(_Weapon(creature, action))
+        elif getattr(action, 'action_type', None) == 'special' and getattr(action, 'name', '').lower() == 'multiattack':
+            options.append(_Multiattack(creature, action))
+    return options
+
+
+def _with_move(plan: Dict[str, Any], bf: Battlefield, creature: Any, square: Square) -> Dict[str, Any]:
+    if square != bf.position(creature):
+        plan['move_to'] = square
+    return plan
+
+
+class _Planner:
+    def __init__(self, bf: Battlefield, creature: Any) -> None:
+        self.bf = bf
+        self.creature = creature
+        self.here = bf.position(creature)
+        self._squares: Optional[Dict[Square, int]] = None
+        self._threatened: Dict[Square, bool] = {}
+        self.size = bf.placements[creature].size
+        enemies = bf.enemies_of(creature)
+        self._enemy_placements = [bf.placements[e] for e in enemies]
+        self._threat_placements = [bf.placements[e] for e in enemies if not is_paralyzed(e)]
+
+    def squares(self) -> Dict[Square, int]:
+        if self._squares is None:
+            self._squares = self.bf.reachable(self.creature, self.bf.speed(self.creature))
+        return self._squares
+
+    def evaluate(self, option: Any, target: Any, square: Square) -> Optional[float]:
+        """Value of an option against a target from a square (None if it can't reach)."""
+        return option.evaluate(self.creature, target, self.distance(target, square),
+                               lambda: self.threatened(square))
+
+    def distance(self, target: Any, square: Square) -> int:
+        if target is self.creature:
+            return 0
+        return self.bf.arena.distance_at(square, self.size, self.bf.placements[target])
+
+    def threatened(self, square: Square) -> bool:
+        """Is a non-incapacitated enemy within 5 ft of this square? Remembered for the turn."""
+        if square not in self._threatened:
+            self._threatened[square] = any(self.bf.arena.distance_at(square, self.size, p) <= SQUARE_FEET
+                                           for p in self._threat_placements)
+        return self._threatened[square]
+
+    def _nearest_enemy_bonus(self, square: Square) -> float:
+        distances = [self.bf.arena.distance_at(square, self.size, p) for p in self._enemy_placements]
+        return DISTANCE_BONUS_PER_FT * min(min(distances, default=0), DISTANCE_BONUS_CAP_FT)
+
+    def best(self, options: List[Any], targets: List[Any],
+             preferred: Optional[Any]) -> Optional[Tuple[Any, Any, Square]]:
+        """The best (option, target, square) reachable this turn, or None."""
+        # Leave out options that can't reach a target even after a full move
+        speed = self.bf.speed(self.creature)
+        pairs = [(t, [o for o in options if self.distance(t, self.here) <= o.max_distance + speed])
+                 for t in targets]
+        pairs = [(t, opts) for t, opts in pairs if opts]
+        if not pairs:
+            return None
+        weights = {t: PREFERRED_TARGET_WEIGHT if t is preferred else 1.0 for t, _ in pairs}
+        # No square can score more than this plus the distance bonus, minus its movement cost
+        ceiling = max(weights[t] * self._ideal_value(o, t) for t, opts in pairs for o in opts)
+        ceiling += DISTANCE_BONUS_PER_FT * DISTANCE_BONUS_CAP_FT
+        best_score, best = None, None
+        for square, cost in sorted(self.squares().items(), key=lambda item: (item[1], item[0])):
+            if best_score is not None and best_score >= ceiling - MOVE_PENALTY_PER_FT * cost:
+                break  # squares are in order of cost, so none of the rest can do better
+            bonus = None
+            threatened = lambda square=square: self.threatened(square)
+            for target, target_options in pairs:
+                distance = self.distance(target, square)
+                for option in target_options:
+                    value = option.evaluate(self.creature, target, distance, threatened)
+                    if value is None:
+                        continue
+                    if bonus is None:
+                        bonus = self._nearest_enemy_bonus(square)
+                    score = value * weights[target] - MOVE_PENALTY_PER_FT * cost + bonus
+                    if best_score is None or score > best_score:
+                        best_score, best = score, (option, target, square)
+        return best
+
+    def stay_put(self, options: List[Any], target: Any) -> Optional[Any]:
+        """
+        The best option that already works on the target from here without disadvantage, if it's
+        the best the creature could do against that target from anywhere. Saves searching for a
+        square on most turns once the fight is joined.
+        """
+        here, ideal = [], []
+        for option in options:
+            value = self.evaluate(option, target, self.here)
+            if value is not None:
+                here.append((value, option))
+            ideal.append(self._ideal_value(option, target))
+        if not here:
+            return None
+        value, option = max(here, key=lambda pair: pair[0])
+        return option if value >= max(ideal) - 1e-9 else None
+
+    def _ideal_value(self, option: Any, target: Any) -> float:
+        """Value of an option against a target with no distance penalties."""
+        if isinstance(option, _Weapon):
+            return option.count * option.average * _hit_chance(option.bonus, getattr(target, 'ac', 10), False)
+        if isinstance(option, _Multiattack):
+            ac = getattr(target, 'ac', 10)
+            routine = parse_multiattack(getattr(option.action, 'description', ''), option.attacks)
+            return sum(_average(a.damage_dice) * _hit_chance(a.hit_bonus(self.creature), ac, False) for a in routine)
+        if isinstance(option, _Spell):
+            if not option.average:
+                return 1.0
+            if option.spell.is_attack_spell:
+                return option.average * _hit_chance(option.bonus, getattr(target, 'ac', 10), False)
+            return option.average * SAVE_SPELL_SUCCESS
+        return 0.0
+
+    def choose(self, options: List[Any], preferred: Optional[Any],
+               others: List[Any]) -> Optional[Dict[str, Any]]:
+        """Plan for the preferred target if it can be reached this turn, otherwise another target."""
+        if not options:
+            return None
+        if preferred is not None:
+            option = self.stay_put(options, preferred)
+            if option is not None:
+                return option.plan(preferred)
+            found = self.best(options, [preferred], preferred)
+            if found:
+                option, target, square = found
+                if square == self.here:
+                    return self._advance_after(option.plan(target), option, options, target)
+                return _with_move(option.plan(target), self.bf, self.creature, square)
+        others = sorted((t for t in others if t is not preferred), key=lambda t: self.bf.distance(self.creature, t))
+        found = self.best(options, others, None) if others else None
+        if found:
+            option, target, square = found
+            if square == self.here:
+                return self._advance_after(option.plan(target), option, options, target)
+            return _with_move(option.plan(target), self.bf, self.creature, square)
+        return None
+
+    def _advance_after(self, plan: Dict[str, Any], used: Any, options: List[Any], target: Any) -> Dict[str, Any]:
+        """
+        A creature that had to make do with a weaker attack from where it stands (a fighter's
+        crossbow, a giant's rock) then moves toward the target, so it can use its best attack
+        next turn. Creatures whose ranged attack is as good as their melee one hold their ground.
+        """
+        ideal = {option: self._ideal_value(option, target) for option in options}
+        best = max(options, key=lambda option: ideal[option])
+        if ideal[best] <= ideal.get(used, 0.0) + 1e-9:
+            return plan
+        route = self._route_toward(target, [best], self.bf.speed(self.creature))
+        if route is not None:
+            plan['move_after'] = route[-1]
+            plan['path_after'] = route
+        return plan
+
+    def dash_toward(self, target: Any, options: List[Any]) -> Optional[Dict[str, Any]]:
+        """Dash along the shortest route to a square from which an option reaches the target."""
+        route = self._route_toward(target, options, 2 * self.bf.speed(self.creature))
+        if route is None:
+            return None
+        return {'type': 'dash', 'move_to': route[-1], 'path': route, 'target': target}
+
+    def _route_toward(self, target: Any, options: List[Any], budget: float) -> Optional[List[Square]]:
+        """
+        The route, within the budget, to the farthest square the creature can end on along the
+        shortest route to a square from which one of the options reaches the target. None if it
+        can't move closer.
+        """
+        path = self.bf.path_to_nearest(
+            self.creature, lambda square: any(self.evaluate(option, target, square) is not None for option in options))
+        if not path:
+            return None
+        stop = 0
+        for i in range(1, len(path)):
+            if self.bf.path_cost(self.creature, path[:i + 1]) > budget:
+                break
+            if self.bf.can_end_at(self.creature, path[i]):
+                stop = i
+        return path[:stop + 1] if stop else None
+
+
+def _enemies(bf: Battlefield, creature: Any) -> List[Any]:
+    return [e for e in bf.enemies_of(creature) if e.is_alive()]
+
+
+def _fit_attack(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str, Any]:
+    planner = _Planner(bf, creature)
+    target = plan.get('target')
+    enemies = _enemies(bf, creature)
+    if target is not None and not target.is_alive():
+        # A downed regenerator: only the attack the strategy picked (e.g. fire) finishes it
+        options = [_Weapon(creature, plan['action'])] if isinstance(plan.get('action'), AttackAction) else []
+        fitted = planner.choose(options, target, [])
+        if fitted:
+            return fitted
+        target = None
+    options = _attack_options(creature)
+    fitted = planner.choose(options, target, enemies)
+    if fitted:
+        return fitted
+    goal = target if target is not None and target.is_alive() else (
+        min(enemies, key=lambda e: bf.distance(creature, e)) if enemies else None)
+    if goal is not None and options:
+        dash = planner.dash_toward(goal, options)
+        if dash:
+            return dash
+    return {'type': 'defend'}
+
+
+def _fit_spell(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str, Any]:
+    spell_action: SpellAction = plan['spell']
+    spell = spell_action.spell
+    target = plan['target']
+    planner = _Planner(bf, creature)
+
+    if isinstance(target, list):
+        if spell.area_effect:
+            return plan  # aimed in phase 4
+        # Several targets (e.g. Bless): stand where the most of them are in range
+        best = None
+        for square, cost in sorted(planner.squares().items()):
+            in_range = bf.spell_targets_in_range(creature, target, spell, square)
+            if in_range and (best is None or (len(in_range), -cost) > (len(best[1]), -best[2])):
+                best = (square, in_range, cost)
+        if best is None:
+            return _fit_attack(bf, creature, {'type': 'attack', 'target': None})
+        square, in_range, _ = best
+        fitted = dict(plan, target=in_range if len(in_range) > 1 else in_range[0])
+        return _with_move(fitted, bf, creature, square)
+
+    if target is creature:
+        return plan
+    option = _Spell(creature, spell_action)
+    enemies = _enemies(bf, creature)
+    if spell.healing or getattr(spell, 'is_buff_spell', False):
+        fitted = planner.choose([option], target, [])
+        if fitted:
+            return fitted
+        if spell.healing:
+            dash = planner.dash_toward(target, [option])
+            if dash:
+                return dash
+        return _fit_attack(bf, creature, {'type': 'attack', 'target': None})
+    fitted = planner.choose([option], target, enemies)
+    if fitted:
+        return fitted
+    return _fit_attack(bf, creature, {'type': 'attack', 'target': target})
+
+
+def fit_plan(creature: Any, plan: Dict[str, Any], combat_state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Turn the strategy's plan into one the creature can carry out on the battlefield, adding a
+    'move_to' square when it needs to move first and a 'move_after' square when it should
+    advance after acting. Plans that don't involve a target (defend,
+    wait) and area effects (aimed in phase 4) are returned unchanged.
+    """
+    bf: Optional[Battlefield] = combat_state.get('battlefield')
+    if bf is None or creature not in bf.placements:
+        return plan
+    kind = plan.get('type')
+    action = plan.get('action')
+    if kind == 'attack' and not getattr(action, 'area_effect', False) and not isinstance(plan.get('target'), list):
+        return _fit_attack(bf, creature, plan)
+    if kind == 'special' and getattr(action, 'name', '').lower() == 'multiattack':
+        return _fit_attack(bf, creature, plan)
+    if kind == 'cast_spell':
+        return _fit_spell(bf, creature, plan)
+    return plan

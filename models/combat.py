@@ -9,9 +9,13 @@ from utils.exceptions import SimulationError
 from utils.logging import log_exception
 from ai.strategy import PartyAIStrategy, MonsterAIStrategy
 from ai.tactical import TacticalAnalyzer
+from ai.positioning import fit_plan
 from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
 from models.actions import AttackAction
+from models.arena import SQUARE_FEET
+from models.battlefield import MONSTERS, PARTY, Battlefield
+from models.multiattack import parse_multiattack
 from models.damage import apply_damage, has_ability
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
@@ -55,7 +59,13 @@ class Combat:
     """
     Optimized D&D 5e combat encounter management with efficient data structures and caching.
     """
-    def __init__(self, participants: List[Any]) -> None:
+    def __init__(self, participants: List[Any], arena: Optional[Any] = None) -> None:
+        """
+        Args:
+            participants: Characters and monsters
+            arena: An Arena to fight on, or None to fight without positions (everyone can reach
+                everyone, as before arenas existed)
+        """
         self.participants: List[Any] = participants[:]
         self.initiative_order: List[Any] = []
         self.current_round: int = 1
@@ -83,6 +93,15 @@ class Combat:
         self._regenerators = [p for p in participants if isinstance(getattr(p, 'regeneration', None), dict)]
         self._regen_suppressed: Dict[Any, set] = {}
         self._regen_dead: set = set()
+        # Positions on the arena, if there is one. Creatures that are down for good leave the map;
+        # a downed troll that will get back up stays on it.
+        self.battlefield: Optional[Battlefield] = None
+        if arena is not None:
+            sides = {p: PARTY if isinstance(p, Character) else MONSTERS for p in participants}
+            self.battlefield = Battlefield(arena, sides,
+                                           present=lambda c: c.is_alive() or self._will_regenerate(c))
+            self.battlefield.place_all()
+        self.start_positions = self.battlefield.snapshot() if self.battlefield else None
 
     def _get_alive_participants(self) -> List[Any]:
         """Get alive participants with caching for efficiency."""
@@ -234,8 +253,10 @@ class Combat:
                 if ai:
                     combat_state = self._build_combat_state(participant)
                     action_plan = ai.choose_action(participant, combat_state)
+                    if self.battlefield is not None:
+                        action_plan = fit_plan(participant, action_plan, combat_state)
                     hp_before = {c: c.hp for c in self._regenerators}
-                    result = self._execute_action(participant, action_plan)
+                    result = self._take_turn(participant, action_plan)
                     self._note_regeneration_damage(hp_before, result)
                     self.logger.log_action(participant, result, self.current_round)
                     self._log_pending_entries()
@@ -254,18 +275,20 @@ class Combat:
                 entries.clear()
                 self._alive_participants_cache = None
 
-    def _has_active_ally(self, participant: Any) -> bool:
+    def _has_active_ally(self, participant: Any, target: Any = None) -> bool:
         """
-        True if another member of the participant's side is up and not incapacitated. There's no
-        positioning, so this stands in for "an ally is within 5 feet of the target" (Sneak Attack,
-        Pack Tactics).
+        "An ally is within 5 feet of the target and isn't incapacitated" (Sneak Attack, Pack
+        Tactics). On an arena that's checked; without one, any other member of the participant's
+        side who is up and not incapacitated counts.
         """
+        if self.battlefield is not None and target is not None and not isinstance(target, list):
+            return self.battlefield.ally_next_to(target, participant)
         return any(a is not participant and not is_paralyzed(a)
                    for a in self._build_combat_state(participant)['allies'])
 
-    def _pack_tactics(self, participant: Any) -> bool:
+    def _pack_tactics(self, participant: Any, target: Any = None) -> bool:
         """Pack Tactics: advantage on attacks while an ally is next to the target."""
-        return has_ability(participant, 'Pack Tactics') and self._has_active_ally(participant)
+        return has_ability(participant, 'Pack Tactics') and self._has_active_ally(participant, target)
 
     def _paralyzed_turn(self, participant: Any) -> Dict[str, Any]:
         """Skip a paralyzed creature's turn and roll its end-of-turn save to end the condition."""
@@ -299,11 +322,99 @@ class Combat:
         downed_regenerators = [p for p in self._regenerators if
                                (p in self._original_characters) != is_character and self._will_regenerate(p)]
 
-        return {
+        state = {
             'allies': allies,
             'enemies': enemies,
             'downed_regenerators': downed_regenerators,
             'round': self.current_round
+        }
+        if self.battlefield is not None:
+            state['battlefield'] = self.battlefield
+        return state
+
+    # Arena turns
+
+    def _take_turn(self, participant: Any, action_plan: Dict[str, Any]) -> Dict[str, Any]:
+        """Move first if the plan says so (on an arena), then act."""
+        movement = None
+        if self.battlefield is not None and action_plan.get('move_to') is not None:
+            movement = self._move(participant, tuple(action_plan['move_to']),
+                                  dash=action_plan.get('type') == 'dash', path=action_plan.get('path'))
+        if action_plan.get('type') == 'dash':
+            target = action_plan.get('target')
+            result = {
+                'action': 'Dash',
+                'type': 'dash',
+                'target': getattr(target, 'name', '') if target is not None else '',
+                'description': 'Dashes' + (f" toward {target.name}" if target is not None else ''),
+            }
+        else:
+            result = self._execute_action(participant, action_plan)
+        if movement:
+            result['movement'] = movement
+        if self.battlefield is not None and action_plan.get('move_after') is not None and participant.is_alive():
+            used = movement['feet'] if movement else 0
+            after = self._move(participant, tuple(action_plan['move_after']),
+                               budget=self.battlefield.speed(participant) - used,
+                               path=action_plan.get('path_after'))
+            if after:
+                result['movement_after'] = after
+        return result
+
+    def _move(self, participant: Any, destination: Any, dash: bool = False,
+              budget: Optional[int] = None, path: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
+        """
+        Move if the participant's speed (doubled by Dash) allows it, along the planned path if
+        it's still clear, otherwise the cheapest one.
+        """
+        start = self.battlefield.position(participant)
+        if budget is None:
+            budget = self.battlefield.speed(participant) * (2 if dash else 1)
+        try:
+            feet = self.battlefield.move(participant, destination, budget,
+                                         path=[tuple(step) for step in path] if path else None)
+        except ValueError as e:
+            logger.warning(f"Move refused: {e}")
+            return None
+        if not feet:
+            return None
+        return {'from': list(start), 'to': list(destination), 'feet': feet}
+
+    def _attack_options(self, participant: Any, target: Any, action: Any,
+                        result_notes: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """
+        Keyword arguments for AttackAction.execute: Pack Tactics advantage, and on an arena,
+        disadvantage from long range or an adjacent enemy and whether the attacker is within
+        5 ft (paralysis crits). Returns None if the target is out of reach and range. Distance
+        and reasons for disadvantage are added to result_notes.
+        """
+        if self.battlefield is None:
+            return {'advantage': self._pack_tactics(participant)}
+        if isinstance(target, list):
+            return {}
+        situation = self.battlefield.attack_situation(participant, target, action)
+        if result_notes is not None:
+            result_notes['distance'] = situation.distance
+            if situation.disadvantage_reasons:
+                result_notes['disadvantage_reasons'] = situation.disadvantage_reasons
+        if not situation.in_range:
+            return None
+        return {'advantage': self._pack_tactics(participant, target),
+                'disadvantage': situation.disadvantage,
+                'within_5ft': situation.distance <= SQUARE_FEET}
+
+    @staticmethod
+    def _out_of_range(name: str, target: Any, distance: Optional[int]) -> Dict[str, Any]:
+        target_name = getattr(target, 'name', str(target))
+        away = f" ({distance} ft away)" if distance is not None else ''
+        return {
+            'action': name,
+            'type': 'wait',
+            'target': target_name,
+            'success': False,
+            'reason': 'out of range',
+            'distance': distance,
+            'description': f"can't reach {target_name}{away}",
         }
 
     def _execute_action(self, participant: Any, action_plan: Dict[str, Any]) -> Dict[str, Any]:
@@ -316,7 +427,12 @@ class Combat:
             if self._is_character_weapon_attack(participant, action, target):
                 result = self._execute_weapon_attacks(participant, action, target)
             elif isinstance(action, AttackAction):
-                result = action.execute(participant, target, advantage=self._pack_tactics(participant))
+                notes: Dict[str, Any] = {}
+                options = self._attack_options(participant, target, action, notes)
+                if options is None:
+                    return self._out_of_range(action.name, target, notes.get('distance'))
+                result = action.execute(participant, target, **options)
+                result.update(notes)
             else:
                 result = action.execute(participant, target)
             # Clear alive cache after damage-dealing action
@@ -328,7 +444,25 @@ class Combat:
         elif action_type == 'cast_spell':
             spell = action_plan['spell']
             target = action_plan['target']
-            result = spell.execute(participant, target)
+            notes = {}
+            disadvantage = False
+            if self.battlefield is not None and not getattr(spell.spell, 'area_effect', False):
+                if isinstance(target, list):
+                    target = self.battlefield.spell_targets_in_range(participant, target, spell.spell)
+                    if not target:
+                        return self._out_of_range(spell.name, action_plan['target'][0], None)
+                    target = target if len(target) > 1 else target[0]
+                else:
+                    situation = self.battlefield.spell_situation(participant, target, spell.spell)
+                    if not situation.in_range:
+                        return self._out_of_range(spell.name, target, situation.distance)
+                    disadvantage = situation.disadvantage
+                    notes['distance'] = situation.distance
+                    if situation.disadvantage_reasons:
+                        notes['disadvantage_reasons'] = situation.disadvantage_reasons
+            result = spell.execute(participant, target, disadvantage=disadvantage) if disadvantage \
+                else spell.execute(participant, target)
+            result.update(notes)
             # Clear alive cache after spell action
             # Check both 'damage' (single-target) and 'total_damage' (AoE)
             damage = result.get('total_damage', result.get('damage', 0))
@@ -390,11 +524,24 @@ class Combat:
             # The first attack goes where the AI aimed it, even at a downed troll it means to burn
             if i > 0 and not target.is_alive():
                 enemies = self._build_combat_state(participant)['enemies']
+                if self.battlefield is not None:
+                    enemies = self._enemies_in_range(participant, action, enemies)
                 if not enemies:
                     break
                 target = enemies[0]
-            attack = action.execute(participant, target)
-            if sneak_dice and self._can_sneak_attack(participant, action, attack):
+            if self.battlefield is None:
+                attack = action.execute(participant, target)
+            else:
+                notes: Dict[str, Any] = {}
+                options = self._attack_options(participant, target, action, notes)
+                if options is None:
+                    if attacks:
+                        break
+                    return self._out_of_range(action.name, target, notes.get('distance'))
+                options.pop('advantage', None)  # Pack Tactics is a monster trait
+                attack = action.execute(participant, target, **options)
+                attack.update(notes)
+            if sneak_dice and self._can_sneak_attack(participant, action, attack, target):
                 self._add_sneak_attack(attack, target, sneak_dice)
                 sneak_dice = None  # once per turn
             attacks.append(attack)
@@ -417,13 +564,30 @@ class Combat:
         sneak = sum(a.get('sneak_attack', 0) for a in attacks)
         if sneak:
             result['sneak_attack'] = sneak
+        result.update(self._combined_position_notes(attacks))
         return result
 
-    def _can_sneak_attack(self, participant: Any, action: Any, attack: Dict[str, Any]) -> bool:
+    @staticmethod
+    def _combined_position_notes(attacks: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Distance of the first attack and every reason for disadvantage, for a set of attacks."""
+        notes: Dict[str, Any] = {}
+        if attacks and attacks[0].get('distance') is not None:
+            notes['distance'] = attacks[0]['distance']
+        reasons = list(dict.fromkeys(r for a in attacks for r in a.get('disadvantage_reasons', [])))
+        if reasons:
+            notes['disadvantage_reasons'] = reasons
+        return notes
+
+    def _enemies_in_range(self, participant: Any, action: Any, enemies: List[Any]) -> List[Any]:
+        """Enemies the action can reach from where the participant stands, those without disadvantage first."""
+        situations = [(self.battlefield.attack_situation(participant, e, action), e) for e in enemies]
+        return [e for s, e in sorted(((s, e) for s, e in situations if s.in_range),
+                                     key=lambda pair: (pair[0].disadvantage, pair[0].distance))]
+
+    def _can_sneak_attack(self, participant: Any, action: Any, attack: Dict[str, Any], target: Any = None) -> bool:
         """
         Sneak Attack needs a hit with a finesse or ranged weapon, plus advantage or an ally next to
-        the target. There's no positioning, so any other party member who is up and not
-        incapacitated counts as that ally.
+        the target (see _has_active_ally).
         """
         if not attack.get('hit') or action.weapon_type not in ('finesse', 'ranged'):
             return False
@@ -431,7 +595,7 @@ class Combat:
             return True
         if attack.get('disadvantage'):
             return False
-        return self._has_active_ally(participant)
+        return self._has_active_ally(participant, target)
 
     @staticmethod
     def _add_sneak_attack(attack: Dict[str, Any], target: Any, dice: str) -> None:
@@ -446,40 +610,8 @@ class Combat:
 
     @staticmethod
     def _parse_multiattack(description: str, attack_actions: List[Any]) -> List[Any]:
-        """
-        Work out which attacks a Multiattack makes from its description, e.g.
-          "three attacks: one with its bite and two with its claws" -> Bite, Claw, Claw
-          "two greatclub attacks"                                    -> Greatclub, Greatclub
-          "two longsword attacks or two longbow attacks"             -> Longsword, Longsword
-          "two attacks, only one of which can be a bite attack"      -> 2 x the first attack
-        """
-        import re
-        counts = {'one': 1, 'two': 2, 'three': 3, 'four': 4, '1': 1, '2': 2, '3': 3, '4': 4}
-        count_words = '|'.join(counts)
-        # When the monster has a choice of attack routines, use the first
-        description = description.lower().split(' or ')[0]
-
-        def find_action(word: str) -> Optional[Any]:
-            singular = word.rstrip('s')
-            return next((a for a in attack_actions if word in a.name.lower() or singular in a.name.lower()), None)
-
-        attacks = []
-        # "one with its bite and two with its claws"
-        for count, word in re.findall(rf'\b({count_words})\s+(?:attacks?\s+)?with\s+(?:its\s+)?(\w+)', description):
-            action = find_action(word)
-            if action:
-                attacks.extend([action] * counts[count])
-        if not attacks:
-            # "two greatclub attacks"
-            for count, word in re.findall(rf'\b({count_words})\s+(\w+)\s+attacks?\b', description):
-                action = find_action(word)
-                if action:
-                    attacks.extend([action] * counts[count])
-        if not attacks and attack_actions:
-            # "makes two attacks" with no breakdown: repeat the primary attack
-            match = re.search(rf'\b({count_words})\s+attacks\b', description)
-            attacks = [attack_actions[0]] * (counts[match.group(1)] if match else 2)
-        return attacks
+        """The attacks a Multiattack makes; see models.multiattack.parse_multiattack."""
+        return parse_multiattack(description, attack_actions)
 
     def _execute_multiattack(self, participant: Any, target: Any, multiattack_action: Any) -> Dict[str, Any]:
         """
@@ -505,16 +637,29 @@ class Combat:
         # Map attack names to action objects
         attacks_by_name = {a.name.lower(): a for a in attack_actions}
 
-        attacks_to_perform = self._parse_multiattack(description, attack_actions)
-
         # Execute each attack
         attack_results = []
         total_damage = 0
         target_name = getattr(target, 'name', str(target)) if not isinstance(target, list) else ', '.join([getattr(t, 'name', str(t)) for t in target])
 
-        advantage = self._pack_tactics(participant)
+        if self.battlefield is None or isinstance(target, list):
+            attacks_to_perform = self._parse_multiattack(description, attack_actions)
+            options = {a: {'advantage': self._pack_tactics(participant)} for a in attacks_to_perform}
+            notes = {}
+        else:
+            # On an arena, use the routine whose attacks reach the target (a wight's longbows)
+            notes, options = {}, {}
+            for a in attack_actions:
+                options[a] = self._attack_options(participant, target, a, notes.setdefault(a, {}))
+            attacks_to_perform = parse_multiattack(description, attack_actions,
+                                                   usable=lambda a: options[a] is not None)
+            if not attacks_to_perform:
+                distance = next(iter(notes.values()), {}).get('distance')
+                return self._out_of_range('Multiattack', target, distance)
+
         for attack_action in attacks_to_perform:
-            attack_result = attack_action.execute(participant, target, advantage=advantage)
+            attack_result = attack_action.execute(participant, target, **options[attack_action])
+            attack_result.update(notes.get(attack_action, {}))
             attack_results.append(attack_result)
             total_damage += attack_result.get('damage', 0)
 
@@ -528,6 +673,8 @@ class Combat:
             'total_damage': total_damage,
             'attacks_performed': [getattr(a, 'name', 'Unknown') for a in attacks_to_perform]
         }
+        if self.battlefield is not None:
+            result.update(self._combined_position_notes(attack_results))
 
         return result
 
@@ -611,13 +758,17 @@ class Combat:
                     party_hp_remaining += participant.hp
             # Add party_level to result
             party_level = max((getattr(p, 'level', 1) for p in self._original_characters), default=1)
-            return {
+            result = {
                 'winner': winner,
                 'rounds': self.current_round,
                 'party_hp_remaining': party_hp_remaining,
                 'log': self.logger.get_combat_log(),
                 'party_level': party_level
             }
+            if self.battlefield is not None:
+                result['arena'] = self.battlefield.arena.name
+                result['start_positions'] = self.start_positions
+            return result
             
         except Exception as e:
             log_exception(e)
@@ -641,7 +792,15 @@ class Combat:
             elif entry['type'] == 'action':
                 actor = entry['actor']
                 result = entry['result']
-                if result.get('type') == 'condition':
+                start = len(lines)
+                if result.get('type') == 'dash':
+                    feet = result.get('movement', {}).get('feet', 0)
+                    toward = f" toward {result['target']}" if result.get('target') else ''
+                    lines.append(f"{actor} dashes {feet} ft{toward}.")
+                    continue
+                if result.get('reason') == 'out of range':
+                    lines.append(f"{actor} {result.get('description', 'is out of range')}.")
+                elif result.get('type') == 'condition':
                     lines.append(f"{actor} {result.get('description', '')}.")
                 elif 'action' in result:
                     action = result['action']
@@ -649,24 +808,49 @@ class Combat:
                     if 'spell' in result:
                         spell_name = result['spell']
                         if 'healing' in result and result['healing'] > 0:
-                            lines.append(f"{actor} casts {spell_name} on {result.get('target', '')}: heals {result['healing']} HP.")
+                            lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: heals {result['healing']} HP.")
                         elif 'damage' in result:
-                            lines.append(f"{actor} casts {spell_name} on {result.get('target', '')}: {result['damage']} damage.")
+                            lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: {result['damage']} damage.")
                         else:
-                            lines.append(f"{actor} casts {spell_name} on {result.get('target', '')}.")
+                            lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}.")
                     elif 'damage' in result:
                         crit = " (critical hit)" if result.get('critical') else ""
-                        line = f"{actor} uses {action} on {result.get('target', '')}: {result['damage']} damage{crit}."
+                        line = f"{actor} uses {action} on {self._target_text(result)}: {result['damage']} damage{crit}."
                         if result.get('condition_applied'):
-                            line += f" {result.get('target', '')} is {result['condition_applied'].lower()}!"
+                            line += f" {self._target_text(result)} is {result['condition_applied'].lower()}!"
                         lines.append(line)
+                    elif 'total_damage' in result:
+                        lines.append(f"{actor} uses {action} on {self._target_text(result)}: {result['total_damage']} damage.")
                     elif 'healing' in result:
-                        lines.append(f"{actor} uses {action} on {result.get('target', '')}: heals {result['healing']} HP.")
+                        lines.append(f"{actor} uses {action} on {self._target_text(result)}: heals {result['healing']} HP.")
                     else:
                         lines.append(f"{actor} uses {action}.")
                 else:
                     lines.append(f"{actor} takes an action.")
+                if len(lines) > start:
+                    lines[start] = self._with_position_notes(lines[start], actor, result)
         return lines
+
+    @staticmethod
+    def _target_text(result: Dict[str, Any]) -> str:
+        target = result.get('target', '')
+        return ', '.join(str(t) for t in target) if isinstance(target, list) else str(target)
+
+    @staticmethod
+    def _with_position_notes(line: str, actor: str, result: Dict[str, Any]) -> str:
+        """On an arena, say how far the actor moved and the distance and penalties of the attack."""
+        movement = result.get('movement')
+        if movement:
+            line = f"{actor} moves {movement['feet']} ft. " + line
+        if result.get('distance') and result.get('reason') != 'out of range':
+            note = f"{result['distance']} ft"
+            if result.get('disadvantage_reasons'):
+                note += ", disadvantage: " + ', '.join(result['disadvantage_reasons'])
+            line = line[:-1] + f" ({note})." if line.endswith('.') else line + f" ({note})"
+        after = result.get('movement_after')
+        if after:
+            line += f" Then moves {after['feet']} ft."
+        return line
 
     def pause(self):
         """Stub for future pause functionality."""

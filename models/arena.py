@@ -11,7 +11,7 @@ intersections in square units, so square (x, y) spans (x, y) to (x + 1, y + 1).
 """
 import heapq
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 SQUARE_FEET = 5
 
@@ -238,51 +238,76 @@ class Arena:
         Feet between the nearest squares of two footprints. Adjacent creatures are 5 ft apart,
         so a melee attack with 5-ft reach works at distance 5.
         """
-        ax2, ay2 = a.position[0] + a.size - 1, a.position[1] + a.size - 1
-        bx2, by2 = b.position[0] + b.size - 1, b.position[1] + b.size - 1
-        dx = max(0, b.position[0] - ax2, a.position[0] - bx2)
-        dy = max(0, b.position[1] - ay2, a.position[1] - by2)
+        return self.distance_at(a.position, a.size, b)
+
+    def distance_at(self, position: Square, size: int, b: Placement) -> int:
+        """distance() for a creature of this size at this position, without building a Placement."""
+        ax, ay = position
+        bx, by = b.position
+        dx = max(0, bx - (ax + size - 1), ax - (bx + b.size - 1))
+        dy = max(0, by - (ay + size - 1), ay - (by + b.size - 1))
+        if self.diagonals == DIAGONALS_FIVE:
+            return SQUARE_FEET * max(dx, dy)
         return int(self._feet(dx, dy))
 
     # Movement
 
-    def _search(self, mover: Placement, budget: Optional[float],
-                enemies: Iterable[Placement]) -> Tuple[Dict[Square, float], Dict[Any, Any], Dict[Square, Any]]:
+    def _search(self, mover: Placement, budget: Optional[float], enemies: Iterable[Placement],
+                goal: Optional[Callable[[Square], bool]] = None
+                ) -> Tuple[Dict[Square, float], Dict[Any, Any], Dict[Square, Any], Optional[Square]]:
         """
-        Cheapest movement cost to every position the mover can pass through. A state includes
-        whether the next diagonal is a 10-ft one, since the 5/10/5 rule depends on the count so far.
+        Cheapest movement cost to every position the mover can pass through, or until the
+        cheapest position for which goal(position) is true (returned last, else None). A state
+        includes whether the next diagonal is a 10-ft one, since the 5/10/5 rule depends on the
+        count so far.
         """
-        enemy_squares = set().union(*(e.squares() for e in enemies)) if enemies else set()
+        size = mover.size
+        offsets = [(dx, dy) for dx in range(size) for dy in range(size)]
+        blocked = {s for s, kind in self.terrain.items() if kind.impassable}
+        for enemy in enemies:
+            blocked |= enemy.squares()
+        difficult = {s for s, kind in self.terrain.items() if kind.difficult}
+        # Top-left positions where the whole footprint is on the map and not blocked
+        open_positions = {(x, y) for x in range(self.width - size + 1) for y in range(self.height - size + 1)}
+        for bx, by in blocked:
+            for dx, dy in offsets:
+                open_positions.discard((bx - dx, by - dy))
 
-        def passable(position: Square) -> bool:
-            placement = mover.moved_to(position)
-            return self.fits(placement) and not (placement.squares() & enemy_squares)
+        def enters_difficult(here: Square, there: Square) -> bool:
+            return any((there[0] + dx, there[1] + dy) in difficult
+                       and not (0 <= there[0] + dx - here[0] < size and 0 <= there[1] + dy - here[1] < size)
+                       for dx, dy in offsets)
 
+        alternating = self.diagonals == DIAGONALS_ALTERNATING
         start = (mover.position, False)
         costs = {start: 0.0}
         previous: Dict[Any, Any] = {start: None}
         best: Dict[Square, Any] = {mover.position: start}
         queue = [(0.0, mover.position, False)]
+        reached = None
         while queue:
             cost, position, odd = heapq.heappop(queue)
             if cost > costs.get((position, odd), float('inf')):
                 continue
+            if goal is not None and goal(position):
+                reached = position
+                best[position] = (position, odd)
+                break
+            px, py = position
             for dx, dy in _STEPS:
-                nxt = (position[0] + dx, position[1] + dy)
-                if not passable(nxt):
+                nxt = (px + dx, py + dy)
+                if nxt not in open_positions:
                     continue
                 diagonal = dx != 0 and dy != 0
                 # No squeezing between two blocked squares diagonally
-                if diagonal and not (passable((position[0] + dx, position[1]))
-                                     or passable((position[0], position[1] + dy))):
+                if diagonal and (px + dx, py) not in open_positions and (px, py + dy) not in open_positions:
                     continue
                 step = SQUARE_FEET
                 next_odd = odd
-                if diagonal and self.diagonals == DIAGONALS_ALTERNATING:
+                if diagonal and alternating:
                     step = 2 * SQUARE_FEET if odd else SQUARE_FEET
                     next_odd = not odd
-                entered = mover.moved_to(nxt).squares() - mover.moved_to(position).squares()
-                if any(self.terrain_at(s).difficult for s in entered):
+                if difficult and enters_difficult(position, nxt):
                     step *= 2
                 new_cost = cost + step
                 if budget is not None and new_cost > budget:
@@ -294,7 +319,7 @@ class Arena:
                     heapq.heappush(queue, (new_cost, nxt, next_odd))
                     if nxt not in best or new_cost < costs[best[nxt]]:
                         best[nxt] = state
-        return {square: costs[state] for square, state in best.items()}, previous, best
+        return {square: costs[state] for square, state in best.items()}, previous, best, reached
 
     def _can_end_at(self, placement: Placement, occupied: Iterable[Placement]) -> bool:
         return not any(placement.squares() & other.squares() for other in occupied)
@@ -308,10 +333,10 @@ class Arena:
         terrain costs double. The starting position is included at cost 0.
         """
         allies, enemies = list(allies), list(enemies)
-        costs, _, _ = self._search(mover, movement_ft, enemies)
+        costs, _, _, _ = self._search(mover, movement_ft, enemies)
+        occupied = set().union(*(other.squares() for other in allies + enemies))
         return {square: int(cost) for square, cost in costs.items()
-                if square == mover.position
-                or self._can_end_at(mover.moved_to(square), allies + enemies)}
+                if square == mover.position or not (mover.moved_to(square).squares() & occupied)}
 
     def path_to(self, mover: Placement, destination: Square, allies: Iterable[Placement] = (),
                 enemies: Iterable[Placement] = ()) -> Optional[List[Square]]:
@@ -323,10 +348,25 @@ class Arena:
         if destination != mover.position and not self._can_end_at(mover.moved_to(destination),
                                                                   allies + enemies):
             return None
-        _, previous, best = self._search(mover, None, enemies)
-        if destination not in best:
+        return self.path_to_nearest(mover, lambda position: position == destination, allies, enemies)
+
+    def path_to_nearest(self, mover: Placement, goal: Callable[[Square], bool],
+                        allies: Iterable[Placement] = (),
+                        enemies: Iterable[Placement] = ()) -> Optional[List[Square]]:
+        """
+        The cheapest route to the nearest position for which goal(position) is true and where the
+        mover can end its move, or None if there isn't one.
+        """
+        allies, enemies = list(allies), list(enemies)
+        occupied = set().union(*(other.squares() for other in allies + enemies))
+
+        def reachable_goal(position: Square) -> bool:
+            return goal(position) and (position == mover.position
+                                       or not (mover.moved_to(position).squares() & occupied))
+        _, previous, best, reached = self._search(mover, None, enemies, goal=reachable_goal)
+        if reached is None:
             return None
-        path, state = [], best[destination]
+        path, state = [], best[reached]
         while state is not None:
             path.append(state[0])
             state = previous[state]

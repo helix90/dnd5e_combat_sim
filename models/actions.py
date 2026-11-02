@@ -149,9 +149,14 @@ class AttackAction(Action):
         return max(0, total)
 
 
-    def _is_auto_critical(self, target: Any) -> bool:
-        """Melee hits against a paralyzed creature are critical hits (we assume melee is within 5 ft)."""
-        return self.weapon_type != 'ranged' and is_paralyzed(target)
+    def _is_auto_critical(self, target: Any, within_5ft: Optional[bool] = None) -> bool:
+        """
+        Hits against a paralyzed creature from within 5 ft are critical hits. Without positions
+        (within_5ft is None), melee attacks are assumed to be within 5 ft and ranged ones not.
+        """
+        if within_5ft is None:
+            within_5ft = self.weapon_type != 'ranged'
+        return within_5ft and is_paralyzed(target)
 
     def _apply_on_hit_effect(self, attacker: Any, target: Any) -> Dict[str, Any]:
         """Apply this attack's on-hit condition (currently paralysis) to a target that was hit."""
@@ -176,7 +181,8 @@ class AttackAction(Action):
             result['condition_applied'] = 'Paralyzed'
         return result
 
-    def execute(self, attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> dict:
+    def execute(self, attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
+                within_5ft: Optional[bool] = None) -> dict:
         """
         Execute the attack: roll d20 + hit_bonus vs target AC, roll damage if hit.
         Args:
@@ -184,6 +190,8 @@ class AttackAction(Action):
             target: The target character or monster (or list of targets for area effects)
             advantage: Extra situational advantage on the attack roll(s), on top of active effects
             disadvantage: Extra situational disadvantage on the attack roll(s)
+            within_5ft: Whether the attacker is within 5 ft of a single target (on an arena);
+                None to assume melee attacks are and ranged ones aren't
         Returns:
             dict: Result of the attack
         """
@@ -305,7 +313,7 @@ class AttackAction(Action):
             total_attack = d20.result + bonus + buff_bonus
             target_ac = getattr(targets_list[0], 'ac', 10)
             hit = attack_hits(d20.result, total_attack, target_ac)
-            critical = hit and self._is_auto_critical(attack_target)
+            critical = hit and self._is_auto_critical(attack_target, within_5ft)
             damage = (self.damage_roll(attacker, critical=True) if critical else self.damage_roll(attacker)) if hit else 0
 
             # Apply damage to target HP if hit and target has hp

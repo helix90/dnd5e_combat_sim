@@ -15,7 +15,7 @@ class WoundingCombat:
     """Stands in for Combat: records each run's starting HP and slots, then wounds everyone."""
     starts = []
 
-    def __init__(self, participants):
+    def __init__(self, participants, arena=None):
         self.participants = participants
 
     def run(self):
