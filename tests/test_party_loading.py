@@ -135,3 +135,38 @@ def test_batch_with_unloadable_party_reports_the_reason(client):
     rv = client.post('/batch/start', json={'num_runs': 2, 'batch_name': 'test'})
     assert rv.status_code == 400
     assert 'Could not load the selected party' in rv.get_json()['error']
+
+
+def _fire_bolt():
+    from models.spells import Spell
+    return Spell(name='Fire Bolt', level=0, school='Evocation', casting_time='1 action',
+                 range='120 feet', duration='Instantaneous',
+                 components={'verbal': True, 'somatic': True, 'material': False},
+                 damage_dice='1d10', damage_type='fire')
+
+
+def _caster(**kwargs):
+    return Character('Mage', 1, 'Wizard', 'Elf',
+                     {'str': 10, 'dex': 10, 'con': 10, 'int': 16, 'wis': 10, 'cha': 10},
+                     hp=8, ac=12, proficiency_bonus=2, **kwargs)
+
+
+@pytest.mark.parametrize('as_dict', [True, False])
+def test_character_spells_argument_is_used(as_dict):
+    fire_bolt = _fire_bolt()
+    spells = {'Fire Bolt': fire_bolt} if as_dict else [fire_bolt]
+    mage = _caster(spells=spells)
+    assert mage.get_spell('Fire Bolt') is fire_bolt
+    assert mage.spell_list == ['Fire Bolt'] and mage.can_cast_spell('Fire Bolt')
+
+
+def test_character_spells_argument_rejects_non_spells():
+    with pytest.raises(ValueError, match='Spell objects'):
+        _caster(spells={'Fire Bolt': {'damage_dice': '1d10'}})
+
+
+def test_character_does_not_change_the_callers_spell_list():
+    spell_list = ['Magic Missile']
+    mage = _caster(spell_list=spell_list, spells=[_fire_bolt()])
+    assert spell_list == ['Magic Missile']
+    assert mage.spell_list == ['Magic Missile', 'Fire Bolt']

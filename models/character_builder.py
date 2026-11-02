@@ -53,7 +53,8 @@ def build_character(data: Dict[str, Any], spell_manager: Any = None) -> Characte
     """
     character_class = data.get('character_class') or data.get('class', 'Fighter')
     spell_list = list(data.get('spell_list', []))
-    character = Character(
+    spells = [spell_manager.get_spell(name) for name in spell_list] if spell_manager is not None else []
+    return Character(
         name=data.get('name', 'Unknown'),
         level=data.get('level', 1),
         character_class=character_class,
@@ -71,18 +72,12 @@ def build_character(data: Dict[str, Any], spell_manager: Any = None) -> Characte
         saving_throw_proficiencies=data.get('saving_throw_proficiencies', []),
         features=data.get('features', []),
         items=data.get('items', []),
-        spells=data.get('spells', {}),
+        spells=[spell for spell in spells if spell],
         reactions=data.get('reactions', []),
         bonus_actions=data.get('bonus_actions', []),
         initiative_bonus=data.get('initiative_bonus', 0),
         notes=data.get('notes', ''),
     )
-    if spell_manager is not None:
-        for spell_name in spell_list:
-            spell = spell_manager.get_spell(spell_name)
-            if spell:
-                character.add_spell(spell)
-    return character
 
 
 def build_party(party: List[Any], spell_manager: Any = None) -> List[Character]:
