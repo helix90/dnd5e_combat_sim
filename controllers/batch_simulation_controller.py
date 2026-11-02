@@ -1,14 +1,11 @@
 import threading
 import time
-import json
-import re
 from typing import List, Dict, Any, Optional
 from models.combat import Combat
 from models.db import DatabaseManager
-from models.character import Character
 from models.monster import Monster
 from models.spell_manager import SpellManager
-from models.character_builder import build_character
+from models.character_builder import build_party
 from models.actions import AttackAction, Action
 from utils.exceptions import SimulationError, BatchSimulationError
 from utils.logging import log_exception
@@ -20,8 +17,6 @@ class BatchSimulationController:
         self.batch_threads = {}  # batch_id -> thread
         self.batch_states = {}   # batch_id -> state dict
         self.state_lock = threading.Lock()  # Thread safety for shared state
-        self.character_cache = None  # Cache for character data
-        self._load_character_cache()
 
     def execute_batch_simulation(self, party, monsters, num_runs: int, batch_name: str, session_id: str):
         """
@@ -77,31 +72,8 @@ class BatchSimulationController:
                 for run_number in range(1, num_runs + 1):
                     logger.debug(f"Batch {batch_id}: Starting run {run_number}/{num_runs}")
                     try:
-                        # Convert party dictionaries to Character objects
-                        character_objects = []
-                        if party:
-                            for char_data in party:
-                                if isinstance(char_data, dict):
-                                    # Load full character data from characters.json
-                                    full_char_data = self._load_full_character_data(char_data)
-                                    if full_char_data:
-                                        char = build_character(full_char_data, self.spell_manager)
-                                        character_objects.append(char)
-                                    else:
-                                        # Fallback to basic character creation
-                                        char = Character(
-                                            name=char_data.get('name', 'Unknown'),
-                                            level=char_data.get('level', 1),
-                                            character_class=char_data.get('class', 'Fighter'),
-                                            race=char_data.get('race', 'Human'),
-                                            ability_scores=char_data.get('ability_scores', {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}),
-                                            hp=char_data.get('hp', 10),
-                                            ac=char_data.get('ac', 10),
-                                            proficiency_bonus=char_data.get('proficiency_bonus', 2)
-                                        )
-                                        character_objects.append(char)
-                                elif isinstance(char_data, Character):
-                                    character_objects.append(char_data)
+                        # Fresh Character objects each run, since combat changes HP, slots and buffs
+                        character_objects = build_party(party, self.spell_manager)
                         
                         # Convert monster dictionaries to Monster objects
                         monster_objects = []
@@ -216,44 +188,6 @@ class BatchSimulationController:
         self.batch_threads[batch_id] = t
         logger.info(f"Batch {batch_id}: Thread started, is_alive={t.is_alive()}")
         return batch_id
-
-    def _load_character_cache(self):
-        """
-        Load and cache character data from characters.json for fast lookups.
-        Creates an indexed cache: {(name, class, level): character_data}
-        """
-        try:
-            with open('data/characters.json', 'r') as f:
-                characters_data = json.load(f)
-
-            self.character_cache = {}
-            for level_data in characters_data:
-                level = level_data.get('level')
-                for char in level_data.get('party', []):
-                    cache_key = (
-                        char.get('name'),
-                        char.get('character_class'),
-                        level
-                    )
-                    self.character_cache[cache_key] = char
-        except Exception as e:
-            log_exception(e)
-            self.character_cache = {}
-
-    def _load_full_character_data(self, char_data):
-        """
-        Load full character data from cache based on name, class, and level.
-        """
-        if self.character_cache is None:
-            return None
-
-        char_name = char_data.get('name', '')
-        # Try both 'class' and 'character_class' for compatibility
-        char_class = char_data.get('character_class') or char_data.get('class', '')
-        char_level = char_data.get('level', 1)
-
-        cache_key = (char_name, char_class, char_level)
-        return self.character_cache.get(cache_key)
 
     def _build_actions_from_dicts(self, action_dicts: Optional[List[Dict[str, Any]]]) -> List[Action]:
         """

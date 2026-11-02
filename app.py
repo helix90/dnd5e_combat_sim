@@ -203,7 +203,8 @@ def load_party_from_session() -> Tuple[List[Any], int]:
     Load party data from session.
 
     Returns:
-        Tuple of (party characters list, party level)
+        Tuple of (party characters list, party level). The level is the one the character data
+        was loaded at, which can be lower than the selected level if there's no data for it.
 
     Raises:
         ValidationError: If party data cannot be loaded
@@ -211,10 +212,12 @@ def load_party_from_session() -> Tuple[List[Any], int]:
     selected_party_id = session.get('selected_party_id', DEFAULT_PARTY_ID)
     selected_party_level = session.get('selected_party_level', DEFAULT_PARTY_LEVEL)
 
+    party_level = selected_party_level
     try:
         party_obj = PartyLoader.get_party_with_level(selected_party_id, selected_party_level)
         if party_obj:
             party = party_obj.get('characters', [])
+            party_level = party_obj.get('level', selected_party_level)
         else:
             logger.warning(f"Party {selected_party_id} not found, using empty party")
             party = []
@@ -222,7 +225,7 @@ def load_party_from_session() -> Tuple[List[Any], int]:
         logger.error(f"Error loading party {selected_party_id}: {e}")
         party = []
 
-    return party, selected_party_level
+    return party, party_level
 
 def load_monsters_from_session() -> List[Any]:
     """
@@ -651,16 +654,18 @@ def api_current_party() -> Any:
 
         if party:
             characters = party.get('characters', [])
-            # Override all character levels with selected_party_level for display
+            # Report the level the simulation will actually use, which falls back to the
+            # closest level with character data
+            party_level = PartyLoader.resolve_level(selected_party_level)
             display_characters = []
             for char in characters:
                 char_copy = char.copy()
-                char_copy['level'] = selected_party_level
+                char_copy['level'] = party_level
                 display_characters.append(char_copy)
 
             return jsonify({
                 'party_id': selected_party_id,
-                'party_level': selected_party_level,
+                'party_level': party_level,
                 'party_size': len(characters),
                 'characters': display_characters
             })

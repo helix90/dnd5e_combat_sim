@@ -318,6 +318,27 @@ class PartyLoader:
             return cls._character_index.get(key)
 
     @classmethod
+    def resolve_level(cls, level: int) -> int:
+        """
+        The character level actually used for a requested level: the level itself if there is
+        character data for it, otherwise the closest lower level (or the lowest level if all
+        available levels are higher).
+
+        Raises:
+            ValidationError: If no character data is available
+        """
+        cls._ensure_caches_loaded()
+        with cls._cache_lock:
+            available_levels = sorted(cls._characters_cache.keys())
+        if not available_levels:
+            logger.error("No character data found for any level")
+            raise ValidationError("No character data available")
+        if level in available_levels:
+            return level
+        lower = [lvl for lvl in available_levels if lvl <= level]
+        return lower[-1] if lower else available_levels[0]
+
+    @classmethod
     def get_party_with_level(cls, party_id: int, level: int) -> Dict[str, Any]:
         """
         Get a party by ID, enriching each character with full data for the given level.
@@ -348,32 +369,12 @@ class PartyLoader:
         # Get base party
         party = cls.get_party_by_id(party_id)
 
-        # Check if level data exists, fall back to closest level if not
-        actual_level = level
-        with cls._cache_lock:
-            if level not in cls._characters_cache:
-                # Find the closest available level (prefer lower levels to avoid overpowering)
-                available_levels = sorted(cls._characters_cache.keys())
-                if not available_levels:
-                    logger.error("No character data found for any level")
-                    raise ValidationError("No character data available")
-
-                # Find closest level <= requested level, or highest available if all are lower
-                closest_level = None
-                for avail_level in reversed(available_levels):
-                    if avail_level <= level:
-                        closest_level = avail_level
-                        break
-
-                if closest_level is None:
-                    # All available levels are higher than requested, use the lowest
-                    closest_level = available_levels[0]
-
-                actual_level = closest_level
-                logger.warning(
-                    f"Level {level} not found in character data, "
-                    f"using closest available level {actual_level}"
-                )
+        actual_level = cls.resolve_level(level)
+        if actual_level != level:
+            logger.warning(
+                f"Level {level} not found in character data, "
+                f"using closest available level {actual_level}"
+            )
 
         # Enrich party with full character data
         full_party = []
