@@ -9,6 +9,7 @@ from app import app as flask_app, load_party_from_session
 from models.character import Character
 from models.character_builder import build_party
 from models.spell_manager import SpellManager
+from utils.exceptions import ValidationError
 from utils.party_loader import PartyLoader
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -73,3 +74,64 @@ def test_party_loads_from_any_working_directory(tmp_path):
     out = subprocess.run([sys.executable, '-c', script], cwd=tmp_path, capture_output=True, text=True,
                          env={**os.environ, 'PYTHONPATH': ROOT}, check=True).stdout
     assert out.strip().splitlines()[-1] == "Wizard True ['Quarterstaff']"
+
+
+def _selected(client):
+    with client.session_transaction() as sess:
+        return sess.get('selected_party_id'), sess.get('selected_party_level')
+
+
+@pytest.mark.parametrize('form, message', [
+    ({'party_id': 1, 'party_level': 0}, b'level must be between 1 and 20'),
+    ({'party_id': 1, 'party_level': 99}, b'level must be between 1 and 20'),
+    ({'party_id': 999, 'party_level': 5}, b'Party with ID 999 not found'),
+    ({'party_id': 1, 'party_level': 'abc'}, b'must be whole numbers'),
+    ({'party_id': 1, 'party_level': 5, 'extra': 'x'}, b'Invalid field: extra'),
+    ({'party_id': 1, 'party_level': '5;'}, b'Invalid characters'),
+])
+def test_invalid_party_selection_is_rejected(client, form, message):
+    """A bad party POST shows the party page with an error and keeps the previous selection."""
+    client.post('/party', data={'party_id': 2, 'party_level': 3})
+    rv = client.post('/party', data=form)
+    assert rv.status_code == 400
+    assert b'Invalid party selection' in rv.data and message in rv.data
+    assert _selected(client) == (2, 3)
+
+
+def test_valid_party_selection_is_saved(client):
+    rv = client.post('/party', data={'party_id': 2, 'party_level': 3})
+    assert rv.status_code == 302 and rv.location.endswith('/encounter')
+    assert _selected(client) == (2, 3)
+
+
+def _corrupt_session(client):
+    with client.session_transaction() as sess:
+        sess['selected_party_id'] = 1
+        sess['selected_party_level'] = 0
+        sess['encounter_monsters'] = [{'name': 'Goblin'}]
+
+
+def test_load_party_from_session_raises_instead_of_returning_no_party(client):
+    _corrupt_session(client)
+    with client.session_transaction() as sess:
+        session_data = dict(sess)
+    with flask_app.test_request_context():
+        from flask import session
+        session.update(session_data)
+        with pytest.raises(ValidationError, match='Could not load the selected party'):
+            load_party_from_session()
+
+
+def test_simulate_with_unloadable_party_sends_user_back_to_party_page(client):
+    _corrupt_session(client)
+    rv = client.get('/simulate')
+    assert rv.status_code == 302 and rv.location.endswith('/party')
+    page = client.get('/party').data
+    assert b'Could not load the selected party' in page and b'alert-danger' in page
+
+
+def test_batch_with_unloadable_party_reports_the_reason(client):
+    _corrupt_session(client)
+    rv = client.post('/batch/start', json={'num_runs': 2, 'batch_name': 'test'})
+    assert rv.status_code == 400
+    assert 'Could not load the selected party' in rv.get_json()['error']

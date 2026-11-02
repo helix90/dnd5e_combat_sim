@@ -212,20 +212,16 @@ def load_party_from_session() -> Tuple[List[Any], int]:
     selected_party_id = session.get('selected_party_id', DEFAULT_PARTY_ID)
     selected_party_level = session.get('selected_party_level', DEFAULT_PARTY_LEVEL)
 
-    party_level = selected_party_level
     try:
         party_obj = PartyLoader.get_party_with_level(selected_party_id, selected_party_level)
-        if party_obj:
-            party = party_obj.get('characters', [])
-            party_level = party_obj.get('level', selected_party_level)
-        else:
-            logger.warning(f"Party {selected_party_id} not found, using empty party")
-            party = []
-    except Exception as e:
-        logger.error(f"Error loading party {selected_party_id}: {e}")
-        party = []
+    except ValidationError as e:
+        logger.error(f"Error loading party {selected_party_id} at level {selected_party_level}: {e}")
+        raise ValidationError(f"Could not load the selected party: {e}. Please choose a party again.")
 
-    return party, party_level
+    party = party_obj.get('characters', [])
+    if not party:
+        raise ValidationError(f"Party {selected_party_id} has no characters. Please choose a party again.")
+    return party, party_obj.get('level', selected_party_level)
 
 def load_monsters_from_session() -> List[Any]:
     """
@@ -318,27 +314,24 @@ def party() -> str:
     available_levels = PartyLoader.get_available_levels()
 
     if request.method == 'POST':
-        # Validate party selection
+        # Validate party selection: the party must exist and the level must be loadable
         try:
             party_data = validate_input(
                 request.form.to_dict(),
                 allowed_fields=['party_id', 'party_level']
             )
-            selected_party_id = int(party_data.get('party_id', DEFAULT_PARTY_ID))
-            selected_party_level = int(party_data.get('party_level', DEFAULT_PARTY_LEVEL))
-        except (TypeError, ValueError) as e:
-            logger.warning(f"Invalid party selection data: {e}")
-            selected_party_id = DEFAULT_PARTY_ID
-            selected_party_level = DEFAULT_PARTY_LEVEL
-
-        # Verify party exists
-        try:
-            if not PartyLoader.get_party_by_id(selected_party_id):
-                logger.warning(f"Party {selected_party_id} not found, using default")
-                selected_party_id = DEFAULT_PARTY_ID
-        except Exception as e:
-            logger.error(f"Error verifying party: {e}")
-            selected_party_id = DEFAULT_PARTY_ID
+            try:
+                selected_party_id = int(party_data.get('party_id', DEFAULT_PARTY_ID))
+                selected_party_level = int(party_data.get('party_level', DEFAULT_PARTY_LEVEL))
+            except (TypeError, ValueError):
+                raise ValidationError("party and level must be whole numbers")
+            PartyLoader.get_party_with_level(selected_party_id, selected_party_level)
+        except ValidationError as e:
+            logger.warning(f"Invalid party selection {request.form.to_dict()}: {e}")
+            flash(f'Invalid party selection: {e}', 'danger')
+            return render_template(
+                'party.html', parties=parties, available_levels=available_levels
+            ), 400
 
         session['selected_party_id'] = selected_party_id
         session['selected_party_level'] = selected_party_level
@@ -715,7 +708,11 @@ def simulate() -> Any:
             logger.info(f"Cleared old simulation_id from session for new simulation")
 
         # Load party and monsters from session
-        party, party_level = load_party_from_session()
+        try:
+            party, party_level = load_party_from_session()
+        except ValidationError as e:
+            flash(str(e), 'danger')
+            return redirect(url_for('party'))
         monsters = load_monsters_from_session()
 
         try:
