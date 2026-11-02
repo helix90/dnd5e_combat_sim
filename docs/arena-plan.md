@@ -1,6 +1,6 @@
 # Arena Plan: positions, distance, cover and ranged attacks
 
-Status: phase 1 done; phase 2 next.
+Status: phases 1 and 2 done; phase 3 next.
 
 ## Why
 
@@ -120,8 +120,41 @@ Each phase is its own branch, merged only when the full test suite passes.
   results.
 - Performance: a 1,000-run arena batch stays acceptably fast.
 
+## Phase 2 as built
+
+- `models/battlefield.py`: `Battlefield` holds each creature's placement on an `Arena` and the
+  rules that depend on it: `attack_situation` and `spell_situation` (in reach or range, long
+  range, enemy within 5 ft), `ally_next_to` (Sneak Attack, Pack Tactics), movement, and placing
+  each side in its start zone (front-liners nearest the enemy, back-line classes 10 ft behind).
+- `ai/positioning.py`: `fit_plan` turns the strategy's plan into one the creature can carry out.
+  It scores each attack, weapon or spell from every square the creature can reach this turn
+  (expected damage, the strategy's target counting 30% more, then shorter moves and more
+  distance from enemies), keeps the strategy's target when it can, and otherwise picks another.
+  A creature that has to use a weaker attack where it stands (a fighter's crossbow, a giant's
+  rock) attacks and then moves toward its target (`move_after`). A creature that can't reach
+  anyone Dashes. Creatures whose ranged and melee attacks are equally good (goblins, skeletons)
+  stay at range and shoot.
+- Combat: `Combat(participants, arena=None)`. Plans may carry `move_to`, `move_after` and a
+  planned `path`; Combat checks paths against speed and enemies. Attacks and spells out of reach
+  or range don't happen (and spend no spell slot). Multiattack picks the routine whose attacks
+  reach (a wight's longbows). Results and log entries include `movement`, `distance` and
+  `disadvantage_reasons`; the fight's result includes `arena` and `start_positions`.
+- Maps: `data/arenas.json` has the Open Field (28 x 20 squares, sides about 55 ft apart),
+  loaded by `models/arena_library.py`.
+- App: an Arena choice on the encounter page (saved in the session by `POST /encounter/arena`),
+  used by single and batch simulations; the arena name is stored with simulations and batches
+  (new `arena` columns, added to existing databases on startup) and shown on the batch and results
+  pages.
+- Without an arena nothing changes: a 3,000-run Kobold Mob check gives 8.6% party wins on `main`
+  and 8.1% on the branch.
+- Speed: an arena fight takes about 40-80 ms against about 5 ms without one, so a 1,000-run
+  arena batch takes around a minute.
+
 ## Simplifications
 
-- Flying creatures move like walking ones until phase 2 decides how flying works on the grid.
+- Flying is treated like walking (no elevation); a creature moves at its best speed, so the
+  wraith moves 60 ft.
+- Area effects (Fireball, breath weapons) still hit every enemy wherever they are, until phase 4.
+- Moving away from an adjacent enemy is free until opportunity attacks arrive in phase 5.
 - Squeezing, and moving through a hostile creature two sizes larger, aren't modelled.
 - Facing, elevation and light/vision aren't modelled.

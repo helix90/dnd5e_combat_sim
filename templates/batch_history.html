@@ -18,6 +18,7 @@
                   <th>Batch Name</th>
                   <th>Party Level</th>
                   <th>Encounter Type</th>
+                  <th>Arena</th>
                   <th>Total Runs</th>
                   <th>Party Wins</th>
                   <th>Monster Wins</th>
@@ -33,6 +34,7 @@
                   <td>{{ batch.batch_name }}</td>
                   <td>{{ batch.party_level }}</td>
                   <td>{{ batch.encounter_type }}</td>
+                  <td>{{ batch.arena or 'None' }}</td>
                   <td>{{ batch.total_runs }}</td>
                   <td>{{ batch.party_wins }}</td>
                   <td>{{ batch.monster_wins }}</td>

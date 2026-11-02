@@ -28,7 +28,9 @@
               <label class="form-label">Current Setup</label>
               <div class="alert alert-info">
                 <strong>Party:</strong> <span id="currentParty">Loading...</span><br>
-                <strong>Encounter:</strong> <span id="currentEncounter">Loading...</span>
+                <strong>Encounter:</strong> <span id="currentEncounter">Loading...</span><br>
+                <strong>Arena:</strong> <span id="currentArena">{{ session.get('arena') or 'No arena' }}</span>
+                <a href="{{ url_for('encounter_selection') }}" class="small ms-1">change</a>
               </div>
             </div>
             

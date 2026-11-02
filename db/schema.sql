@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS simulations (
     result TEXT,
     rounds INTEGER DEFAULT 0,
     party_hp_remaining INTEGER DEFAULT 0,
+    arena TEXT,  -- map name, NULL for a fight without an arena
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS batch_simulations (
     monster_wins INTEGER DEFAULT 0,
     average_rounds REAL DEFAULT 0.0,
     average_party_hp_remaining REAL DEFAULT 0.0,
+    arena TEXT,  -- map name, NULL for batches without an arena
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

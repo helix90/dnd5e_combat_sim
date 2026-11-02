@@ -28,6 +28,7 @@ from controllers.batch_simulation_controller import BatchSimulationController
 from controllers.encounter_controller import EncounterController
 from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
+from models.arena_library import arena_choices
 from models.db import DatabaseManager
 from utils.exceptions import (
     AppError, ValidationError
@@ -224,6 +225,16 @@ def load_party_from_session() -> Tuple[List[Any], int]:
         raise ValidationError(f"Party {selected_party_id} has no characters. Please choose a party again.")
     return party, party_obj.get('level', selected_party_level)
 
+def load_arena_from_session() -> Optional[str]:
+    """Name of the arena chosen on the encounter page, or None for no arena."""
+    return session.get('arena') or None
+
+def render_encounter_page(tab: Optional[str] = None) -> str:
+    """The encounter page, with the arena choices and the current one."""
+    kwargs = {'tab': tab} if tab else {}
+    return render_template('encounter_selection.html', arenas=arena_choices(),
+                           selected_arena=load_arena_from_session() or '', **kwargs)
+
 def load_monsters_from_session() -> List[Any]:
     """
     Load monster data from session.
@@ -355,7 +366,7 @@ def encounter_selection() -> str:
     Returns:
         Rendered HTML template
     """
-    return render_template('encounter_selection.html')
+    return render_encounter_page()
 
 @app.route('/encounter/custom', methods=['GET', 'POST'])
 def encounter_custom() -> Any:
@@ -392,7 +403,7 @@ def encounter_custom() -> Any:
         except (ValueError, TypeError) as e:
             raise ValidationError(f"Invalid input data: {e}")
 
-    return render_template('encounter_selection.html', tab='custom')
+    return render_encounter_page('custom')
 
 @app.route('/encounter/prebuilt', methods=['GET', 'POST'])
 def encounter_prebuilt() -> Any:
@@ -425,7 +436,29 @@ def encounter_prebuilt() -> Any:
         except (ValueError, TypeError) as e:
             raise ValidationError(f"Invalid input data: {e}")
 
-    return render_template('encounter_selection.html', tab='prebuilt')
+    return render_encounter_page('prebuilt')
+
+@app.route('/encounter/arena', methods=['POST'])
+def encounter_arena() -> Tuple[Any, int]:
+    """
+    Choose the arena (battle map) for the next simulations, or no arena with an empty name.
+
+    Returns:
+        JSON response with the chosen arena, or an error for an unknown map
+    """
+    data = request.get_json(silent=True)
+    name = (data.get('arena') if isinstance(data, dict) else None) or ''
+    if not isinstance(name, str):
+        return jsonify({'error': 'arena must be a map name'}), 400
+    # The name must be one of the maps, which also rules out anything unsafe
+    if name and name not in {a['name'] for a in arena_choices()}:
+        return jsonify({'error': f'Unknown arena: {name}'}), 400
+    if name:
+        session['arena'] = name
+    else:
+        session.pop('arena', None)
+    logger.info(f"Arena set to {name or 'none'}")
+    return jsonify({'success': True, 'arena': name or None}), 200
 
 @app.route('/encounter/clear', methods=['POST'])
 def encounter_clear() -> Tuple[Any, int]:
@@ -718,7 +751,8 @@ def simulate() -> Any:
 
         try:
             simulation_controller.execute_simulation(
-                party, monsters, session_id, party_level=party_level
+                party, monsters, session_id, party_level=party_level,
+                arena_name=load_arena_from_session()
             )
         except ValidationError as e:
             flash(f'Validation error: {str(e)}', 'danger')
@@ -822,7 +856,8 @@ def batch_simulation_start() -> Tuple[Any, int]:
         # Start batch simulation
         logger.info(f"Starting batch simulation: {num_runs} runs, {len(party)} party members, {len(monsters)} monsters")
         batch_id = batch_simulation_controller.execute_batch_simulation(
-            party, monsters, num_runs, batch_name, session_id
+            party, monsters, num_runs, batch_name, session_id,
+            arena_name=load_arena_from_session()
         )
 
         logger.info(f"Started batch simulation {batch_id} with {num_runs} runs")
@@ -955,7 +990,8 @@ def results() -> str:
             )
 
     # sim_id can come from the query string, so only show simulations owned by this session
-    if not _session_owns(db.get_simulation(sim_id)):
+    record = db.get_simulation(sim_id)
+    if not _session_owns(record):
         logger.warning(f"/results: simulation {sim_id} not found for session {session['session_id']}")
         return render_template(
             'results.html',
@@ -976,7 +1012,8 @@ def results() -> str:
             summary=summary.get('simulation', {}),
             statistics=statistics,
             log=log,
-            sim_id=sim_id
+            sim_id=sim_id,
+            arena=record.get('arena')
         )
     except AppError as e:
         # Application errors (validation, database, etc.) should return 400

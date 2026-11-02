@@ -2,6 +2,7 @@ import copy
 import threading
 import time
 from typing import List, Dict, Any
+from models.arena_library import get_arena
 from models.combat import Combat
 from models.db import DatabaseManager
 from models.spell_manager import SpellManager
@@ -18,10 +19,11 @@ class BatchSimulationController:
         self.batch_states = {}   # batch_id -> state dict
         self.state_lock = threading.Lock()  # Thread safety for shared state
 
-    def execute_batch_simulation(self, party, monsters, num_runs: int, batch_name: str, session_id: str):
+    def execute_batch_simulation(self, party, monsters, num_runs: int, batch_name: str, session_id: str,
+                                 arena_name: str = None):
         """
-        Start a batch combat simulation in a background thread.
-        Returns the batch_id for tracking.
+        Start a batch combat simulation in a background thread, on the named arena (a map in
+        data/arenas.json) or without one. Returns the batch_id for tracking.
         """
         from utils.logging import logger
 
@@ -37,6 +39,7 @@ class BatchSimulationController:
             raise ValueError("party cannot be empty")
         if not monsters or len(monsters) == 0:
             raise ValueError("monsters cannot be empty")
+        arena = get_arena(arena_name)  # ValueError for an unknown map
 
         logger.info("Input validation passed")
 
@@ -45,7 +48,8 @@ class BatchSimulationController:
                           for char in party)
         encounter_type = 'custom'  # Could be enhanced to detect prebuilt encounters
         logger.info(f"Creating batch simulation record: party_level={party_level}, encounter_type={encounter_type}")
-        batch_id = self.db.create_batch_simulation(session_id, batch_name, party_level, encounter_type)
+        batch_id = self.db.create_batch_simulation(session_id, batch_name, party_level, encounter_type,
+                                                   arena=arena_name or None)
         logger.info(f"Created batch simulation with ID: {batch_id}")
 
         # Initialize state BEFORE starting thread so it's immediately available for progress polling
@@ -82,7 +86,7 @@ class BatchSimulationController:
 
                         # Create combat and run simulation
                         logger.debug(f"Batch {batch_id} run {run_number}: Creating combat with {len(character_objects)} characters and {len(monster_objects)} monsters")
-                        combat = Combat(character_objects + monster_objects)
+                        combat = Combat(character_objects + monster_objects, arena=arena)
                         logger.debug(f"Batch {batch_id} run {run_number}: Running combat simulation")
                         result = combat.run()
                         logger.debug(f"Batch {batch_id} run {run_number}: Combat finished, winner={result.get('winner', 'unknown')}, rounds={result.get('rounds', 0)}")

@@ -1,0 +1,16 @@
+{
+  "arenas": [
+    {
+      "name": "Open Field",
+      "description": "Flat open ground with nothing to hide behind. The two sides start about 55 ft apart.",
+      "width": 28,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [],
+      "start_zones": {
+        "party": {"rect": [3, 5, 7, 14]},
+        "monsters": {"rect": [18, 4, 24, 15]}
+      }
+    }
+  ]
+}
