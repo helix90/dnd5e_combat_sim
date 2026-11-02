@@ -1,5 +1,5 @@
 """Tests for monster Regeneration (Troll, Vampire Spawn)."""
-from controllers.simulation_controller import SimulationController
+from models.monster_builder import build_monsters
 from models.character import Character
 from models.combat import Combat
 from models.monster import Monster
@@ -119,11 +119,10 @@ def test_troll_cant_be_killed_without_fire_or_acid():
     assert any('gets back up' in r['description'] for r in regen_entries(combat))
 
 
-def test_controllers_build_monsters_with_regeneration():
+def test_monster_builder_keeps_regeneration():
     data = {'name': 'Troll', 'cr': '5', 'hp': 84, 'ac': 15, 'ability_scores': SCORES,
             'regeneration': TROLL_REGEN, 'actions': []}
-    sim = SimulationController.__new__(SimulationController)
-    assert sim._convert_monsters_to_objects([data])[0].regeneration == TROLL_REGEN
+    assert build_monsters([data])[0].regeneration == TROLL_REGEN
 
 
 def test_wizard_burns_downed_troll_with_fire_bolt():

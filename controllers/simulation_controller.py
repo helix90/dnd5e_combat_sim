@@ -4,22 +4,14 @@ from typing import Dict, List, Any, Optional
 from flask import session
 from models.combat import Combat
 from models.db import DatabaseManager
-from models.monster import Monster
 from models.spell_manager import SpellManager
 from models.character_builder import build_party
+from models.monster_builder import build_monsters
 from utils.exceptions import SimulationError, ValidationError
 from utils.logging import log_exception
-from models.actions import AttackAction, Action
 
 # Constants
 DEFAULT_PARTY_LEVEL = 5
-DEFAULT_HP = 10
-DEFAULT_AC = 10
-DEFAULT_ABILITY_SCORES = {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}
-DEFAULT_DAMAGE_DICE = '1d6'
-DEFAULT_DAMAGE_TYPE = 'bludgeoning'
-DEFAULT_CR = '1/4'
-UNKNOWN_NAME = 'Unknown'
 MIN_PARTY_LEVEL = 1
 MAX_PARTY_LEVEL = 20
 MAX_PARTY_SIZE = 20
@@ -85,101 +77,6 @@ class SimulationController:
         if party_level < MIN_PARTY_LEVEL or party_level > MAX_PARTY_LEVEL:
             raise ValidationError(f"party_level must be between {MIN_PARTY_LEVEL} and {MAX_PARTY_LEVEL}")
 
-    def _build_actions_from_dicts(self, action_dicts: Optional[List[Dict[str, Any]]]) -> List[Action]:
-        """
-        Convert action dictionaries to Action/AttackAction objects.
-        Handles both regular attacks and special actions (including breath weapons).
-
-        Args:
-            action_dicts: List of action dictionaries from JSON
-
-        Returns:
-            List of Action objects
-        """
-        actions = []
-        for ad in action_dicts or []:
-            if ad.get('type') == 'attack':
-                actions.append(AttackAction(
-                    name=ad.get('name', 'Attack'),
-                    description=ad.get('description', ad.get('name', 'Attack')),
-                    weapon_name=ad.get('name', 'Weapon'),
-                    damage_dice=ad.get('damage_dice', DEFAULT_DAMAGE_DICE),
-                    damage_type=ad.get('damage_type', DEFAULT_DAMAGE_TYPE),
-                    weapon_type=ad.get('weapon_type', 'melee'),
-                    hit_bonus=ad.get('hit_bonus'),
-                    area_effect=ad.get('area_effect', False),
-                    save_type=ad.get('save_type'),
-                    save_dc=ad.get('save_dc'),
-                    on_hit=ad.get('on_hit')
-                ))
-            elif ad.get('type') == 'special':
-                # Check if this is a breath weapon or other damaging special ability
-                # Breath weapons have damage_dice and save_dc in their JSON
-                if 'damage_dice' in ad and 'save_dc' in ad:
-                    # This is a breath weapon - create as AttackAction with area_effect=True
-                    actions.append(AttackAction(
-                        name=ad.get('name', 'Special'),
-                        description=ad.get('description', ad.get('name', 'Special')),
-                        weapon_name=ad.get('name', 'Special'),
-                        damage_dice=ad.get('damage_dice', DEFAULT_DAMAGE_DICE),
-                        damage_type=ad.get('damage_type', 'fire'),
-                        weapon_type='melee',  # Not used for save-based attacks
-                        hit_bonus=ad.get('hit_bonus'),
-                        area_effect=True,  # Breath weapons are always area effects
-                        save_type=ad.get('save_type', 'dex'),
-                        save_dc=ad.get('save_dc', 10)
-                    ))
-                else:
-                    # Regular special action (like Multiattack)
-                    actions.append(Action(
-                        action_type='special',
-                        name=ad.get('name', 'Special'),
-                        description=ad.get('description', ad.get('name', 'Special'))
-                    ))
-        return actions
-
-    def _convert_monsters_to_objects(self, monsters: List[Any]) -> List[Monster]:
-        """
-        Convert monster data (dicts or Monster objects) to Monster objects.
-
-        Args:
-            monsters: List of monster data (dicts or Monster objects)
-
-        Returns:
-            List of Monster objects
-        """
-        monster_objects = []
-
-        for i, monster_data in enumerate(monsters):
-            if isinstance(monster_data, Monster):
-                monster_objects.append(monster_data)
-                continue
-
-            if not isinstance(monster_data, dict):
-                logger.warning(f"Skipping monster {i+1} with unexpected type: {type(monster_data)}")
-                continue
-
-            actions = self._build_actions_from_dicts(monster_data.get('actions', []))
-
-            monster = Monster(
-                name=monster_data.get('name', UNKNOWN_NAME),
-                challenge_rating=monster_data.get('cr', DEFAULT_CR),
-                hp=monster_data.get('hp', DEFAULT_HP),
-                ac=monster_data.get('ac', DEFAULT_AC),
-                ability_scores=monster_data.get('ability_scores', DEFAULT_ABILITY_SCORES),
-                damage_resistances=monster_data.get('damage_resistances', []),
-                damage_immunities=monster_data.get('damage_immunities', []),
-                damage_vulnerabilities=monster_data.get('damage_vulnerabilities', []),
-                special_abilities=monster_data.get('special_abilities', []),
-                legendary_actions=monster_data.get('legendary_actions', []),
-                multiattack=monster_data.get('multiattack', False),
-                regeneration=monster_data.get('regeneration'),
-                actions=actions
-            )
-            monster_objects.append(monster)
-
-        return monster_objects
-
     def _run_simulation_thread(
         self,
         party: List[Any],
@@ -201,7 +98,7 @@ class SimulationController:
 
             # Convert party and monsters to objects
             character_objects = build_party(party, self.spell_manager)
-            monster_objects = self._convert_monsters_to_objects(monsters)
+            monster_objects = build_monsters(monsters)
 
             logger.info(f"Simulation setup: {len(character_objects)} characters vs {len(monster_objects)} monsters")
 
