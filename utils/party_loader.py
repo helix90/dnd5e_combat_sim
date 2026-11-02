@@ -1,5 +1,4 @@
 import json
-import os
 import copy
 import logging
 import threading
@@ -7,11 +6,11 @@ from typing import List, Dict, Any, Tuple
 
 from utils.exceptions import ValidationError
 from utils.logging import log_exception
+from utils.paths import data_path
 
 # Constants
 PARTY_JSON_FILENAME = 'parties.json'
 CHARACTER_JSON_FILENAME = 'characters.json'
-DATA_DIR = 'data'
 MIN_PARTY_ID = 1
 MAX_PARTY_ID = 1000
 MIN_LEVEL = 1
@@ -50,9 +49,8 @@ class PartyLoader:
     def _initialize_paths(cls) -> None:
         """Initialize file paths if not already set."""
         if cls._party_json_path is None:
-            base_dir = os.path.dirname(os.path.dirname(__file__))
-            cls._party_json_path = os.path.join(base_dir, DATA_DIR, PARTY_JSON_FILENAME)
-            cls._character_json_path = os.path.join(base_dir, DATA_DIR, CHARACTER_JSON_FILENAME)
+            cls._party_json_path = data_path(PARTY_JSON_FILENAME)
+            cls._character_json_path = data_path(CHARACTER_JSON_FILENAME)
 
     @classmethod
     def _load_parties_from_disk(cls) -> List[Dict[str, Any]]:

@@ -34,6 +34,7 @@ from utils.exceptions import (
 )
 from utils.logging import log_exception
 from utils.party_loader import PartyLoader
+from utils.paths import data_path
 
 # Constants - Application Configuration
 DEFAULT_SECRET_KEY = 'dev-secret-key'
@@ -59,7 +60,7 @@ MIN_BATCH_RUNS = 1
 MAX_BATCH_RUNS = 1000
 
 # Constants - File Paths
-ENCOUNTER_TEMPLATES_FILE = 'data/encounter_templates.json'
+ENCOUNTER_TEMPLATES_FILE = data_path('encounter_templates.json')
 
 # Constants - Default Values
 DEFAULT_PARTY_ID = 1

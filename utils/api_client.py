@@ -5,9 +5,10 @@ import time
 from threading import Lock
 from utils.exceptions import APIError
 from utils.logging import log_exception
+from utils.paths import CONFIG_DIR, data_path
 
 class APIClient:
-    def __init__(self, config_path="config/api_config.json", fallback_handler=None):
+    def __init__(self, config_path=os.path.join(CONFIG_DIR, 'api_config.json'), fallback_handler=None):
         with open(config_path) as f:
             self.config = json.load(f)
         self.spell_endpoint = self.config["open5e_spell_endpoint"]
@@ -62,8 +63,8 @@ class APIClient:
 class LocalDataFallback:
     def __init__(self):
         self.local_paths = {
-            "spells": "data/spells.json",
-            "monsters": "data/monsters.json"
+            "spells": data_path("spells.json"),
+            "monsters": data_path("monsters.json")
         }
         self.cache = {"spells": {}, "monsters": {}}
         self.lock = Lock()
@@ -79,7 +80,10 @@ class LocalDataFallback:
                 return None
             with open(path) as f:
                 try:
-                    data_list = json.load(f)
+                    data = json.load(f)
+                    # monsters.json is {"monsters": [...]}, spells.json groups lists by level
+                    data_list = ([entry for group in data.values() if isinstance(group, list) for entry in group]
+                                 if isinstance(data, dict) else data)
                     for entry in data_list:
                         if entry.get("name", "").lower().replace(" ", "-") == key:
                             self.cache[data_type][key] = entry

@@ -1,6 +1,10 @@
 import json
 from typing import List, Dict, Any
 
+from utils.paths import data_path
+
+MONSTERS_FILE = data_path('monsters.json')
+
 # Standard 5e XP thresholds for 4 characters (per character: easy/med/hard/deadly)
 XP_THRESHOLDS = {
     1: [25, 50, 75, 100],
@@ -23,7 +27,7 @@ class EncounterBuilder:
     """
     Builds and validates combat encounters using monster data and party info.
     """
-    def __init__(self, monsters_file: str = "data/monsters.json"):
+    def __init__(self, monsters_file: str = MONSTERS_FILE):
         with open(monsters_file) as f:
             self.monster_data = json.load(f)["monsters"]
         self.monsters_by_cr = self._group_by_cr()

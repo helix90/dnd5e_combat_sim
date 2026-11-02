@@ -6,8 +6,8 @@ from contextlib import contextmanager
 import time
 from utils.exceptions import DatabaseError
 from utils.logging import log_exception
+from utils.paths import PROJECT_ROOT
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SCHEMA_PATH = os.path.join(PROJECT_ROOT, 'db', 'schema.sql')
 DEFAULT_DATABASE_URL = 'sqlite:///data/app.db'
 

@@ -6,6 +6,7 @@ import logging
 from typing import Dict, List, Any, Optional
 from utils.exceptions import ValidationError, APIError
 from utils.logging import log_exception
+from utils.paths import data_path
 
 # Constants
 BALANCED_ENCOUNTER_MESSAGE = "Encounter is balanced."
@@ -24,7 +25,8 @@ class EncounterController:
     Handles both custom and prebuilt encounters with session management.
     """
 
-    def __init__(self, monsters_file: str = "data/monsters.json", templates_file: str = "data/encounter_templates.json"):
+    def __init__(self, monsters_file: str = data_path('monsters.json'),
+                 templates_file: str = data_path('encounter_templates.json')):
         """
         Initialize the encounter controller.
 
