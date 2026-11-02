@@ -82,10 +82,12 @@ def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantag
 
 
 def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
-                      advantage: bool = False, disadvantage: bool = False) -> Dict[str, Any]:
+                      advantage: bool = False, disadvantage: bool = False,
+                      cover_bonus: int = 0) -> Dict[str, Any]:
     """
-    Roll a saving throw for a creature, including buff bonuses (e.g. Bless) and
-    advantage/disadvantage. A paralyzed creature automatically fails STR and DEX saves.
+    Roll a saving throw for a creature, including buff bonuses (e.g. Bless), advantage/
+    disadvantage and, for DEX saves, a cover bonus. A paralyzed creature automatically fails
+    STR and DEX saves.
     """
     keys = (SAVING_THROWS, f'{SAVING_THROWS}:{save_type}')
     d20 = roll_d20(
@@ -94,9 +96,9 @@ def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
     )
     save_bonus = creature.saving_throw_bonus(save_type) if hasattr(creature, 'saving_throw_bonus') else 0
     buff_bonus = creature.buffs.calculate_total_bonus('saving_throws') if hasattr(creature, 'buffs') else 0
-    total_save = d20.result + save_bonus + buff_bonus
+    total_save = d20.result + save_bonus + buff_bonus + cover_bonus
     auto_fail = save_type in ('str', 'dex') and is_paralyzed(creature)
-    return {
+    result = {
         'save_roll': d20.result,
         'save_rolls': d20.rolls,
         'advantage': d20.advantage,
@@ -107,3 +109,6 @@ def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
         'save_success': not auto_fail and total_save >= save_dc,
         'auto_fail': auto_fail,
     }
+    if cover_bonus:
+        result['cover_bonus'] = cover_bonus
+    return result

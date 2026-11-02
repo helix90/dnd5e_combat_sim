@@ -277,7 +277,8 @@ class SpellAction(Action):
                 healing += caster.ability_modifier(ability)
         return healing
 
-    def execute(self, caster: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> Dict[str, Any]:
+    def execute(self, caster: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
+                ac_bonus: int = 0, save_bonus: int = 0) -> Dict[str, Any]:
         """
         Execute the spell: handle attack rolls, saving throws, and damage/healing.
 
@@ -286,6 +287,8 @@ class SpellAction(Action):
             target: The target (Character, Monster, or list of targets for multi-target spells)
             advantage: Extra situational advantage on spell attack rolls, on top of active effects
             disadvantage: Extra situational disadvantage on spell attack rolls
+            ac_bonus: Added to a single target's AC against a spell attack (cover)
+            save_bonus: Added to a single target's saving throw (cover, for DEX saves)
 
         Returns:
             dict: Result of the spell cast
@@ -454,7 +457,7 @@ class SpellAction(Action):
                     buff_bonus = caster.buffs.calculate_total_bonus('attack_rolls')
 
                 total_attack = attack_roll + attack_bonus + buff_bonus
-                target_ac = getattr(targets_list[0], 'ac', 10)
+                target_ac = getattr(targets_list[0], 'ac', 10) + ac_bonus
                 hit = attack_hits(attack_roll, total_attack, target_ac)
 
                 result.update({
@@ -535,7 +538,7 @@ class SpellAction(Action):
 
             else:
                 # Single target saving throw spell
-                save = roll_saving_throw(targets_list[0], self.spell.save_type, save_dc)
+                save = roll_saving_throw(targets_list[0], self.spell.save_type, save_dc, cover_bonus=save_bonus)
                 save_success = save['save_success']
 
                 result.update({

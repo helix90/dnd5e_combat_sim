@@ -10,7 +10,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from models.actions import AttackAction
-from models.arena import SQUARE_FEET, Arena, Placement, Square, size_in_squares
+from models.arena import (COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Arena, Placement, Square,
+                          size_in_squares)
 from models.buffs import is_paralyzed
 
 PARTY = 'party'
@@ -28,10 +29,26 @@ class Situation:
     distance: int
     melee: bool = False
     disadvantage_reasons: List[str] = field(default_factory=list)
+    cover: str = COVER_NONE
 
     @property
     def disadvantage(self) -> bool:
         return bool(self.disadvantage_reasons)
+
+    @property
+    def ac_bonus(self) -> int:
+        """What the target's cover adds to its AC (and to DEX saves)."""
+        return COVER_AC_BONUS.get(self.cover, 0)
+
+
+# Spells whose target gains no benefit from cover (our spell text is shortened, so list them)
+SPELLS_IGNORING_COVER = {'Sacred Flame'}
+
+
+def ignores_cover(spell: Any) -> bool:
+    """Spells like Sacred Flame say the target gains no benefit from cover."""
+    return (getattr(spell, 'name', None) in SPELLS_IGNORING_COVER
+            or 'no benefit from cover' in (getattr(spell, 'description', '') or '').lower())
 
 
 def movement_speed(creature: Any) -> int:
@@ -284,17 +301,44 @@ class Battlefield:
         return any(not is_paralyzed(a) and self.distance(a, target) <= SQUARE_FEET
                    for a in self.allies_of(attacker))
 
+    def cover(self, attacker: Any, target: Any, at: Optional[Square] = None) -> str:
+        """
+        Cover the target has against the attacker (standing at `at`, or where it is), from terrain
+        and from every other creature on the map.
+        """
+        if target is attacker:
+            return COVER_NONE
+        others = [self.placements[c] for c in self.creatures() if c is not attacker and c is not target]
+        return self.arena.cover(self.placement(attacker, at), self.placements[target], others)
+
+    def _with_cover(self, situation: Situation, attacker: Any, target: Any, at: Optional[Square]) -> Situation:
+        """Add the target's cover; total cover means it can't be targeted at all."""
+        if situation.in_range:
+            situation.cover = self.cover(attacker, target, at)
+            if situation.cover == COVER_TOTAL:
+                situation.in_range = False
+        return situation
+
     def attack_situation(self, attacker: Any, target: Any, action: Any,
                          at: Optional[Square] = None) -> Situation:
-        """Can the attacker hit the target with this attack, from `at` or where it stands? See judge_attack."""
-        return judge_attack(action, self.distance(attacker, target, at),
-                            lambda: bool(self.enemies_within_5ft(attacker, at)))
+        """
+        Can the attacker hit the target with this attack, from `at` or where it stands, and what
+        cover does the target have? See judge_attack. Area effects ignore cover until phase 4.
+        """
+        situation = judge_attack(action, self.distance(attacker, target, at),
+                                 lambda: bool(self.enemies_within_5ft(attacker, at)))
+        if getattr(action, 'area_effect', False):
+            return situation
+        return self._with_cover(situation, attacker, target, at)
 
     def spell_situation(self, caster: Any, target: Any, spell: Any,
                         at: Optional[Square] = None) -> Situation:
-        """Can the caster target this creature with the spell? See judge_spell."""
+        """Can the caster target this creature with the spell, and what cover does it have? See judge_spell."""
         distance = 0 if target is caster else self.distance(caster, target, at)
-        return judge_spell(spell, distance, lambda: bool(self.enemies_within_5ft(caster, at)))
+        situation = judge_spell(spell, distance, lambda: bool(self.enemies_within_5ft(caster, at)))
+        if getattr(spell, 'area_effect', False) or target is caster:
+            return situation
+        return self._with_cover(situation, caster, target, at)
 
     def spell_targets_in_range(self, caster: Any, targets: Iterable[Any], spell: Any,
                                at: Optional[Square] = None) -> List[Any]:

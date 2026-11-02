@@ -346,6 +346,8 @@ class DatabaseManager:
             text = f"Moves {_as_int(movement.get('feet'))} ft; " + text[:1].lower() + text[1:]
         if result.get('distance') and result.get('reason') != 'out of range':
             note = f"{result['distance']} ft"
+            if result.get('cover'):
+                note += f", {result['cover'].replace('_', '-')} cover"
             if result.get('disadvantage_reasons'):
                 note += ", disadvantage: " + ', '.join(result['disadvantage_reasons'])
             text += f" ({note})"

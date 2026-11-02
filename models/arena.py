@@ -172,6 +172,7 @@ class Arena:
         self.height = height
         self.diagonals = diagonals
         self.terrain = dict(terrain or {})
+        self._cover_squares = [s for s, kind in self.terrain.items() if kind.cover != COVER_NONE]
         self.start_zones = {side: list(squares) for side, squares in (start_zones or {}).items()}
         for square in list(self.terrain) + [s for zone in self.start_zones.values() for s in zone]:
             if not self.in_bounds(square):
@@ -189,7 +190,7 @@ class Arena:
                          {"squares": [[9, 6]], "cover": "half"}],
              "start_zones": {"party": {"rect": [0, 4, 2, 7]}, "monsters": {"squares": [[17, 5]]}}}
 
-        A "rect" is [x1, y1, x2, y2] with both corners included.
+        A "rect" is [x1, y1, x2, y2] with both corners included; "rects" is a list of them.
         """
         terrain = {}
         for entry in data.get('terrain', []):
@@ -205,11 +206,11 @@ class Arena:
     @staticmethod
     def _squares_from(entry: Dict[str, Any]) -> List[Square]:
         squares = [tuple(s) for s in entry.get('squares', [])]
-        if 'rect' in entry:
-            x1, y1, x2, y2 = entry['rect']
+        rects = entry.get('rects', []) + ([entry['rect']] if 'rect' in entry else [])
+        for x1, y1, x2, y2 in rects:
             squares += [(x, y) for y in range(min(y1, y2), max(y1, y2) + 1)
                         for x in range(min(x1, x2), max(x1, x2) + 1)]
-        return squares
+        return list(dict.fromkeys(squares))
 
     # Squares
 
@@ -404,14 +405,26 @@ class Arena:
         a row of half-cover walls never gives three-quarters cover.
         """
         own = attacker.squares() | target.squares()
+        # Every line stays inside the box around both creatures, so only blockers there matter
+        # (plus one square around it, for lines running along the box's edge between two blockers)
+        x1 = min(attacker.position[0], target.position[0]) - 1
+        y1 = min(attacker.position[1], target.position[1]) - 1
+        x2 = max(attacker.position[0] + attacker.size, target.position[0] + target.size)
+        y2 = max(attacker.position[1] + attacker.size, target.position[1] + target.size)
+
+        def inside(square: Square) -> bool:
+            return x1 <= square[0] <= x2 and y1 <= square[1] <= y2 and square not in own
         blockers: Dict[Square, str] = {}
-        for square, kind in self.terrain.items():
-            if kind.cover != COVER_NONE and square not in own:
-                blockers[square] = kind.cover
+        if self._cover_squares:
+            for square in self._cover_squares:
+                if inside(square):
+                    blockers[square] = self.terrain[square].cover
         for creature in others:
-            for square in creature.squares() - own:
-                if _cover_rank(blockers.get(square, COVER_NONE)) < _cover_rank(COVER_HALF):
+            for square in creature.squares():
+                if inside(square) and _cover_rank(blockers.get(square, COVER_NONE)) < _cover_rank(COVER_HALF):
                     blockers[square] = COVER_HALF
+        if not blockers:
+            return COVER_NONE
 
         best = COVER_TOTAL
         for corner in attacker.corners():
@@ -427,7 +440,13 @@ class Arena:
         lines = []
         for end in _square_corners(target_square):
             strongest = _seam_blocker(corner, end, blockers)
+            ax, bx = sorted((corner[0], end[0]))
+            ay, by = sorted((corner[1], end[1]))
             for square, level in blockers.items():
+                # A square can only be crossed if it overlaps the line's span (cheap check first)
+                if square[0] >= bx or square[0] + 1 <= ax or square[1] >= by or square[1] + 1 <= ay:
+                    if not (ax == bx or ay == by):
+                        continue
                 if (strongest is None or _cover_rank(level) > _cover_rank(strongest)) \
                         and _crosses_interior(corner, end, square):
                     strongest = level

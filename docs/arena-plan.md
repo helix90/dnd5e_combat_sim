@@ -1,6 +1,6 @@
 # Arena Plan: positions, distance, cover and ranged attacks
 
-Status: phases 1 and 2 done; phase 3 next.
+Status: phases 1-3 done; phase 4 next.
 
 ## Why
 
@@ -149,6 +149,24 @@ Each phase is its own branch, merged only when the full test suite passes.
   and 8.1% on the branch.
 - Speed: an arena fight takes about 40-80 ms against about 5 ms without one, so a 1,000-run
   arena batch takes around a minute.
+
+## Phase 3 as built
+
+- Cover: `Arena.cover` uses the DMG corner-to-corner lines; `Battlefield.cover` also counts other
+  creatures as obstacles (half cover). Half cover adds +2 and three-quarters +5 to AC and to DEX
+  saves; total cover means the target can't be targeted. Melee targets next to the attacker,
+  area effects and Sacred Flame ignore cover. Results carry `cover` (and `cover_bonus` for
+  saves), and the log shows it, e.g. "(30 ft, half cover)".
+- AI: attacks are scored against the target's cover from each square, so creatures move for a
+  clearer line and never aim at a target in total cover. On maps with cover terrain, a creature
+  attacking from range also values shelter from the three nearest enemies. Cover is costly to
+  work out, so only the 12 best squares from a rough pass are rescored with it.
+- Maps: `data/arenas.json` has four generic maps (Open Field, Forest, Corridor, Ruins) and a map
+  for each pre-built encounter, which names it in `encounter_templates.json` (`"arena"`). Only
+  that field was added to the templates; their monsters are unchanged. Terrain may be given as
+  rectangles (`"rects"`) and carries a `kind` for drawing later.
+- App: the arena choice adds "The encounter's own map" (`@encounter`); a custom encounter has no
+  map, so it gets the Open Field.
 
 ## Simplifications
 

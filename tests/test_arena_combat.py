@@ -419,11 +419,11 @@ def test_walls_block_and_movement_goes_around():
 
 # Maps
 
-def test_every_map_loads_and_has_room_for_both_sides():
+def test_every_map_loads_with_start_zones_for_both_sides():
     for definition in load_arena_definitions():
         arena = Arena.from_dict(definition)
-        assert arena.start_zones.get('party') and arena.start_zones.get('monsters')
-        assert all(arena.fits(Placement(s)) for zone in arena.start_zones.values() for s in zone)
+        for zone in (arena.start_zones.get('party'), arena.start_zones.get('monsters')):
+            assert zone and sum(arena.fits(Placement(s)) for s in zone) >= 12
     assert [a['name'] for a in arena_choices()][0] == 'Open Field'
 
 

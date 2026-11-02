@@ -13,8 +13,8 @@ from ai.positioning import fit_plan
 from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
 from models.actions import AttackAction
-from models.arena import SQUARE_FEET
-from models.battlefield import MONSTERS, PARTY, Battlefield
+from models.arena import COVER_NONE, COVER_TOTAL, SQUARE_FEET
+from models.battlefield import MONSTERS, PARTY, Battlefield, ignores_cover
 from models.multiattack import parse_multiattack
 from models.damage import apply_damage, has_ability
 import logging
@@ -394,28 +394,44 @@ class Combat:
             return {}
         situation = self.battlefield.attack_situation(participant, target, action)
         if result_notes is not None:
-            result_notes['distance'] = situation.distance
-            if situation.disadvantage_reasons:
-                result_notes['disadvantage_reasons'] = situation.disadvantage_reasons
+            self._note_situation(result_notes, situation)
         if not situation.in_range:
             return None
-        return {'advantage': self._pack_tactics(participant, target),
-                'disadvantage': situation.disadvantage,
-                'within_5ft': situation.distance <= SQUARE_FEET}
+        options = {'advantage': self._pack_tactics(participant, target),
+                   'disadvantage': situation.disadvantage,
+                   'within_5ft': situation.distance <= SQUARE_FEET}
+        if situation.ac_bonus:
+            options['ac_bonus'] = situation.ac_bonus
+        return options
 
     @staticmethod
-    def _out_of_range(name: str, target: Any, distance: Optional[int]) -> Dict[str, Any]:
+    def _note_situation(notes: Dict[str, Any], situation: Any) -> None:
+        """Distance, reasons for disadvantage and the target's cover, for the log."""
+        notes['distance'] = situation.distance
+        if situation.disadvantage_reasons:
+            notes['disadvantage_reasons'] = situation.disadvantage_reasons
+        if situation.cover != COVER_NONE:
+            notes['cover'] = situation.cover
+
+    @staticmethod
+    def _out_of_range(name: str, target: Any, distance: Optional[int], cover: str = COVER_NONE) -> Dict[str, Any]:
         target_name = getattr(target, 'name', str(target))
-        away = f" ({distance} ft away)" if distance is not None else ''
-        return {
+        if cover == COVER_TOTAL:
+            description = f"can't see {target_name} (total cover)"
+        else:
+            description = f"can't reach {target_name}" + (f" ({distance} ft away)" if distance is not None else '')
+        result = {
             'action': name,
             'type': 'wait',
             'target': target_name,
             'success': False,
             'reason': 'out of range',
             'distance': distance,
-            'description': f"can't reach {target_name}{away}",
+            'description': description,
         }
+        if cover != COVER_NONE:
+            result['cover'] = cover
+        return result
 
     def _execute_action(self, participant: Any, action_plan: Dict[str, Any]) -> Dict[str, Any]:
         """Execute action with optimized result handling."""
@@ -430,7 +446,7 @@ class Combat:
                 notes: Dict[str, Any] = {}
                 options = self._attack_options(participant, target, action, notes)
                 if options is None:
-                    return self._out_of_range(action.name, target, notes.get('distance'))
+                    return self._out_of_range(action.name, target, notes.get('distance'), notes.get('cover', COVER_NONE))
                 result = action.execute(participant, target, **options)
                 result.update(notes)
             else:
@@ -445,7 +461,7 @@ class Combat:
             spell = action_plan['spell']
             target = action_plan['target']
             notes = {}
-            disadvantage = False
+            options: Dict[str, Any] = {}
             if self.battlefield is not None and not getattr(spell.spell, 'area_effect', False):
                 if isinstance(target, list):
                     target = self.battlefield.spell_targets_in_range(participant, target, spell.spell)
@@ -455,13 +471,18 @@ class Combat:
                 else:
                     situation = self.battlefield.spell_situation(participant, target, spell.spell)
                     if not situation.in_range:
-                        return self._out_of_range(spell.name, target, situation.distance)
-                    disadvantage = situation.disadvantage
-                    notes['distance'] = situation.distance
-                    if situation.disadvantage_reasons:
-                        notes['disadvantage_reasons'] = situation.disadvantage_reasons
-            result = spell.execute(participant, target, disadvantage=disadvantage) if disadvantage \
-                else spell.execute(participant, target)
+                        return self._out_of_range(spell.name, target, situation.distance, situation.cover)
+                    self._note_situation(notes, situation)
+                    if situation.disadvantage:
+                        options['disadvantage'] = True
+                    if situation.ac_bonus and not ignores_cover(spell.spell):
+                        if getattr(spell.spell, 'is_attack_spell', False):
+                            options['ac_bonus'] = situation.ac_bonus
+                        elif getattr(spell.spell, 'save_type', None) == 'dex':
+                            options['save_bonus'] = situation.ac_bonus
+                    if ignores_cover(spell.spell):
+                        notes.pop('cover', None)
+            result = spell.execute(participant, target, **options)
             result.update(notes)
             # Clear alive cache after spell action
             # Check both 'damage' (single-target) and 'total_damage' (AoE)
@@ -537,7 +558,7 @@ class Combat:
                 if options is None:
                     if attacks:
                         break
-                    return self._out_of_range(action.name, target, notes.get('distance'))
+                    return self._out_of_range(action.name, target, notes.get('distance'), notes.get('cover', COVER_NONE))
                 options.pop('advantage', None)  # Pack Tactics is a monster trait
                 attack = action.execute(participant, target, **options)
                 attack.update(notes)
@@ -573,6 +594,8 @@ class Combat:
         notes: Dict[str, Any] = {}
         if attacks and attacks[0].get('distance') is not None:
             notes['distance'] = attacks[0]['distance']
+        if attacks and attacks[0].get('cover'):
+            notes['cover'] = attacks[0]['cover']
         reasons = list(dict.fromkeys(r for a in attacks for r in a.get('disadvantage_reasons', [])))
         if reasons:
             notes['disadvantage_reasons'] = reasons
@@ -654,8 +677,8 @@ class Combat:
             attacks_to_perform = parse_multiattack(description, attack_actions,
                                                    usable=lambda a: options[a] is not None)
             if not attacks_to_perform:
-                distance = next(iter(notes.values()), {}).get('distance')
-                return self._out_of_range('Multiattack', target, distance)
+                first = next(iter(notes.values()), {})
+                return self._out_of_range('Multiattack', target, first.get('distance'), first.get('cover', COVER_NONE))
 
         for attack_action in attacks_to_perform:
             attack_result = attack_action.execute(participant, target, **options[attack_action])
@@ -844,6 +867,8 @@ class Combat:
             line = f"{actor} moves {movement['feet']} ft. " + line
         if result.get('distance') and result.get('reason') != 'out of range':
             note = f"{result['distance']} ft"
+            if result.get('cover'):
+                note += f", {result['cover'].replace('_', '-')} cover"
             if result.get('disadvantage_reasons'):
                 note += ", disadvantage: " + ', '.join(result['disadvantage_reasons'])
             line = line[:-1] + f" ({note})." if line.endswith('.') else line + f" ({note})"
