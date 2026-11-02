@@ -5,14 +5,14 @@ Handles loading and managing spells from JSON data files.
 """
 
 import json
-import os
 from typing import Dict, List, Optional
 from models.spells import Spell
 from utils.exceptions import APIError, ValidationError
 from utils.logging import log_exception
+from utils.paths import data_path
 
 # Resolved from this file, so spells load whatever directory the app is started from
-DEFAULT_SPELLS_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'spells.json')
+DEFAULT_SPELLS_FILE = data_path('spells.json')
 
 
 class SpellManager:

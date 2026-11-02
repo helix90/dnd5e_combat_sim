@@ -170,3 +170,21 @@ def test_character_does_not_change_the_callers_spell_list():
     mage = _caster(spell_list=spell_list, spells=[_fire_bolt()])
     assert spell_list == ['Magic Missile']
     assert mage.spell_list == ['Magic Missile', 'Fire Bolt']
+
+
+def test_app_data_loads_from_any_working_directory(tmp_path):
+    """Monsters, encounter templates and the API client config are found from any folder."""
+    script = (
+        "from app import app, encounter_controller\n"
+        "from utils.api_client import APIClient, LocalDataFallback\n"
+        "client = app.test_client()\n"
+        "monsters = client.get('/api/monsters').get_json()\n"
+        "prebuilt = client.get('/api/encounters/prebuilt')\n"
+        "print(len(monsters) > 0, prebuilt.status_code, len(prebuilt.get_json()) > 0,\n"
+        "      len(encounter_controller.templates) > 0, bool(APIClient().config),\n"
+        "      LocalDataFallback().get_local_data('monsters', 'Goblin') is not None,\n"
+        "      LocalDataFallback().get_local_data('spells', 'Fire Bolt') is not None)\n"
+    )
+    out = subprocess.run([sys.executable, '-c', script], cwd=tmp_path, capture_output=True, text=True,
+                         env={**os.environ, 'PYTHONPATH': ROOT}, check=True).stdout
+    assert out.strip().splitlines()[-1] == 'True 200 True True True True True'
