@@ -14,9 +14,18 @@
   <label for="arena-select" class="form-label mb-0 fw-semibold">Arena</label>
   <select id="arena-select" class="form-select form-select-sm" style="max-width: 14rem">
     <option value="" {% if not selected_arena %}selected{% endif %}>No arena (everyone in reach)</option>
-    {% for arena in arenas or [] %}
-    <option value="{{ arena.name }}" title="{{ arena.description }}" {% if arena.name == selected_arena %}selected{% endif %}>{{ arena.name }}</option>
-    {% endfor %}
+    <option value="{{ encounter_map }}" {% if selected_arena == encounter_map %}selected{% endif %}
+            title="Each pre-built encounter is fought on its own map; custom encounters use the Open Field.">The encounter's own map</option>
+    <optgroup label="Maps for any encounter">
+      {% for arena in (arenas or []) if arena.generic %}
+      <option value="{{ arena.name }}" title="{{ arena.description }}" {% if arena.name == selected_arena %}selected{% endif %}>{{ arena.name }}</option>
+      {% endfor %}
+    </optgroup>
+    <optgroup label="Pre-built encounter maps">
+      {% for arena in (arenas or []) if not arena.generic %}
+      <option value="{{ arena.name }}" title="{{ arena.description }}" {% if arena.name == selected_arena %}selected{% endif %}>{{ arena.name }}</option>
+      {% endfor %}
+    </optgroup>
   </select>
   <small class="text-muted" id="arena-description"></small>
   <small class="text-danger d-none" id="arena-error"></small>
@@ -337,7 +346,8 @@ function renderPrebuiltDetails(name, result) {
   const template = prebuiltEncounters.find(e => e.name === name) || {};
   let html = `<h5 class="mb-1">${escapeHtml(name)}</h5>
     <div class="small text-muted mb-2">Level ${escapeHtml(template.level)} · ${escapeHtml(capitalize(template.type))}
-      · your party: level ${escapeHtml(currentParty.party_level)}, ${escapeHtml(currentParty.party_size)} characters</div>`;
+      · your party: level ${escapeHtml(currentParty.party_level)}, ${escapeHtml(currentParty.party_size)} characters
+      ${template.arena ? `<br>Map: ${escapeHtml(template.arena)} (used when the arena is “The encounter's own map”)` : ''}</div>`;
 
   if (result.balance) {
     const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;

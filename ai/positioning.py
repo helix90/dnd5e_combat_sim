@@ -14,14 +14,16 @@ into something the creature can actually do this turn:
 - A creature that has to make do with a weaker attack from where it stands (a fighter's
   crossbow) attacks and then moves toward its target ('move_after').
 - If nothing is in reach even after moving, the creature Dashes toward its target.
+- Cover counts: the AI avoids shooting at targets behind cover (and can't target one with total
+  cover), and creatures attacking from range prefer squares where they have cover themselves.
 """
 from typing import Any, Dict, List, Optional, Tuple
 
 from models.actions import AttackAction
-from models.arena import SQUARE_FEET, Square
+from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Square
 from models.buffs import is_paralyzed
-from models.battlefield import (Battlefield, Situation, Threatened, attack_distances, judge_attack,
-                                judge_spell)
+from models.battlefield import (Battlefield, Situation, Threatened, attack_distances, ignores_cover,
+                                judge_attack, judge_spell)
 from models.multiattack import parse_multiattack
 from models.spells import SpellAction
 
@@ -33,6 +35,12 @@ DISTANCE_BONUS_PER_FT = 0.0005
 DISTANCE_BONUS_CAP_FT = 60
 # Chance a saving-throw spell does its damage, for comparing it with attacks
 SAVE_SPELL_SUCCESS = 0.6
+# What standing in cover is worth to a creature attacking from range, by the cover it has against
+# its nearest enemies (in the same units as expected damage)
+SHELTER_VALUE = {COVER_NONE: 0.0, 'half': 0.5, 'three_quarters': 1.0, COVER_TOTAL: 1.5}
+SHELTER_ENEMIES = 3
+# How many of the best-looking squares are rescored with cover
+RESCORED = 12
 
 
 def _average(dice: Optional[str]) -> float:
@@ -69,11 +77,13 @@ class _Weapon:
         self.bonus = action.hit_bonus(creature)
         self.max_distance = _max_distance([action])
 
-    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened) -> Optional[float]:
+    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened,
+                 ac_bonus: int = 0) -> Optional[float]:
         situation = judge_attack(self.action, distance, threatened)
         if not situation.in_range:
             return None
-        return self.count * self.average * _hit_chance(self.bonus, getattr(target, 'ac', 10), situation.disadvantage)
+        return self.count * self.average * _hit_chance(self.bonus, getattr(target, 'ac', 10) + ac_bonus,
+                                                       situation.disadvantage)
 
     def plan(self, target: Any) -> Dict[str, Any]:
         return {'type': 'attack', 'action': self.action, 'target': target}
@@ -88,13 +98,14 @@ class _Multiattack:
                         if getattr(a, 'action_type', None) == 'attack' and not getattr(a, 'area_effect', False)]
         self.max_distance = _max_distance(self.attacks)
 
-    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened) -> Optional[float]:
+    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened,
+                 ac_bonus: int = 0) -> Optional[float]:
         situations: Dict[Any, Situation] = {a: judge_attack(a, distance, threatened) for a in self.attacks}
         attacks = parse_multiattack(getattr(self.action, 'description', ''), self.attacks,
                                     usable=lambda a: situations[a].in_range)
         if not attacks:
             return None
-        ac = getattr(target, 'ac', 10)
+        ac = getattr(target, 'ac', 10) + ac_bonus
         return sum(_average(a.damage_dice) * _hit_chance(a.hit_bonus(creature), ac, situations[a].disadvantage)
                    for a in attacks)
 
@@ -114,14 +125,19 @@ class _Spell:
         range_feet = getattr(spell, 'range_feet', None)
         self.max_distance = float('inf') if range_feet is None else range_feet
 
-    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened) -> Optional[float]:
+    def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened,
+                 ac_bonus: int = 0) -> Optional[float]:
         situation = judge_spell(self.spell, distance, threatened)
         if not situation.in_range:
             return None
         if not self.average:
             return 1.0
+        if ignores_cover(self.spell):
+            ac_bonus = 0
         if self.spell.is_attack_spell:
-            return self.average * _hit_chance(self.bonus, getattr(target, 'ac', 10), situation.disadvantage)
+            return self.average * _hit_chance(self.bonus, getattr(target, 'ac', 10) + ac_bonus, situation.disadvantage)
+        if getattr(self.spell, 'save_type', None) == 'dex':
+            return self.average * max(0.05, SAVE_SPELL_SUCCESS - 0.05 * ac_bonus)
         return self.average * SAVE_SPELL_SUCCESS
 
     def plan(self, target: Any) -> Dict[str, Any]:
@@ -155,6 +171,11 @@ class _Planner:
         enemies = bf.enemies_of(creature)
         self._enemy_placements = [bf.placements[e] for e in enemies]
         self._threat_placements = [bf.placements[e] for e in enemies if not is_paralyzed(e)]
+        self._enemies = enemies
+        self._cover: Dict[Tuple[Square, Any], str] = {}
+        self._shelter: Dict[Square, float] = {}
+        # Seeking cover only matters on maps with cover terrain; creatures alone move too much
+        self.seeks_cover = bf.arena.has_cover
 
     def squares(self) -> Dict[Square, int]:
         if self._squares is None:
@@ -162,9 +183,41 @@ class _Planner:
         return self._squares
 
     def evaluate(self, option: Any, target: Any, square: Square) -> Optional[float]:
-        """Value of an option against a target from a square (None if it can't reach)."""
-        return option.evaluate(self.creature, target, self.distance(target, square),
-                               lambda: self.threatened(square))
+        """
+        Value of an option against a target from a square, counting the target's cover (None if
+        it can't reach or the target has total cover).
+        """
+        distance = self.distance(target, square)
+        threatened = lambda: self.threatened(square)
+        if option.evaluate(self.creature, target, distance, threatened) is None:
+            return None
+        cover = self.cover(target, square)
+        if cover == COVER_TOTAL:
+            return None
+        return option.evaluate(self.creature, target, distance, threatened, COVER_AC_BONUS[cover])
+
+    def cover(self, target: Any, square: Square) -> str:
+        """
+        Cover the target has against the creature standing on this square, from terrain. Creatures
+        in the way are left out: they can't be cached, and checking them on every square the AI
+        considers is too slow (attacks themselves do count them).
+        """
+        key = (square, target)
+        if key not in self._cover:
+            self._cover[key] = self.bf.cover(self.creature, target, square, creatures=False)
+        return self._cover[key]
+
+    def shelter(self, square: Square) -> float:
+        """What this square's terrain cover against the nearest enemies is worth to a ranged attacker."""
+        if not self.seeks_cover:
+            return 0.0
+        if square not in self._shelter:
+            here = self.bf.placement(self.creature, square)
+            nearest = sorted(self._enemies, key=lambda e: self.bf.arena.distance(here, self.bf.placements[e]))
+            values = [SHELTER_VALUE[self.bf.arena.cover(self.bf.placements[enemy], here)]
+                      for enemy in nearest[:SHELTER_ENEMIES]]
+            self._shelter[square] = sum(values) / len(values) if values else 0.0
+        return self._shelter[square]
 
     def distance(self, target: Any, square: Square) -> int:
         if target is self.creature:
@@ -184,7 +237,11 @@ class _Planner:
 
     def best(self, options: List[Any], targets: List[Any],
              preferred: Optional[Any]) -> Optional[Tuple[Any, Any, Square]]:
-        """The best (option, target, square) reachable this turn, or None."""
+        """
+        The best (option, target, square) reachable this turn, or None. A first pass scores every
+        square without cover; then the most promising are rescored with the target's cover and,
+        for attacks from range, the cover the square gives the attacker.
+        """
         # Leave out options that can't reach a target even after a full move
         speed = self.bf.speed(self.creature)
         pairs = [(t, [o for o in options if self.distance(t, self.here) <= o.max_distance + speed])
@@ -193,33 +250,45 @@ class _Planner:
         if not pairs:
             return None
         weights = {t: PREFERRED_TARGET_WEIGHT if t is preferred else 1.0 for t, _ in pairs}
-        # No square can score more than this plus the distance bonus, minus its movement cost
-        ceiling = max(weights[t] * self._ideal_value(o, t) for t, opts in pairs for o in opts)
-        ceiling += DISTANCE_BONUS_PER_FT * DISTANCE_BONUS_CAP_FT
-        best_score, best = None, None
-        for square, cost in sorted(self.squares().items(), key=lambda item: (item[1], item[0])):
-            if best_score is not None and best_score >= ceiling - MOVE_PENALTY_PER_FT * cost:
-                break  # squares are in order of cost, so none of the rest can do better
-            bonus = None
+        candidates = []
+        for square, cost in self.squares().items():
             threatened = lambda square=square: self.threatened(square)
             for target, target_options in pairs:
                 distance = self.distance(target, square)
+                found = None
                 for option in target_options:
                     value = option.evaluate(self.creature, target, distance, threatened)
-                    if value is None:
-                        continue
-                    if bonus is None:
-                        bonus = self._nearest_enemy_bonus(square)
-                    score = value * weights[target] - MOVE_PENALTY_PER_FT * cost + bonus
-                    if best_score is None or score > best_score:
-                        best_score, best = score, (option, target, square)
+                    if value is not None and (found is None or value > found[0]):
+                        found = (value, option)
+                if found:
+                    rough = found[0] * weights[target] - MOVE_PENALTY_PER_FT * cost
+                    candidates.append((rough, cost, square, target, found[1]))
+        candidates.sort(key=lambda c: (-c[0], c[1], c[2]))
+        # Cover only lowers a value, and only shelter can raise it by more than the small
+        # distance tie-breaker, so stop once no later candidate can win by more than that
+        # (or after the most promising RESCORED squares that can see their target)
+        top_bonus = max(SHELTER_VALUE.values()) if self.seeks_cover else 0.0
+        best_score, best, rescored = None, None, 0
+        for rough, cost, square, target, option in candidates:
+            if best_score is not None and (rough + top_bonus < best_score or rescored >= RESCORED):
+                break
+            value = self.evaluate(option, target, square)
+            if value is None:
+                continue
+            rescored += 1
+            score = value * weights[target] - MOVE_PENALTY_PER_FT * cost + self._nearest_enemy_bonus(square)
+            if self.distance(target, square) > SQUARE_FEET:
+                score += self.shelter(square)
+            if best_score is None or score > best_score:
+                best_score, best = score, (option, target, square)
         return best
 
     def stay_put(self, options: List[Any], target: Any) -> Optional[Any]:
         """
-        The best option that already works on the target from here without disadvantage, if it's
-        the best the creature could do against that target from anywhere. Saves searching for a
-        square on most turns once the fight is joined.
+        The best option that already works on the target from here without disadvantage or cover,
+        if it's the best the creature could do against that target from anywhere (and, attacking
+        from range on a map with cover, the creature is already in total cover from its nearest
+        enemies). Saves searching for a square on most turns once the fight is joined.
         """
         here, ideal = [], []
         for option in options:
@@ -230,7 +299,13 @@ class _Planner:
         if not here:
             return None
         value, option = max(here, key=lambda pair: pair[0])
-        return option if value >= max(ideal) - 1e-9 else None
+        if value < max(ideal) - 1e-9:
+            return None
+        # Attacking from range out in the open: look for a square with cover first
+        if self.seeks_cover and self.distance(target, self.here) > SQUARE_FEET and \
+                not self.shelter(self.here):
+            return None
+        return option
 
     def _ideal_value(self, option: Any, target: Any) -> float:
         """Value of an option against a target with no distance penalties."""

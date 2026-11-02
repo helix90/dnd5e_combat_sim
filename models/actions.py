@@ -182,7 +182,7 @@ class AttackAction(Action):
         return result
 
     def execute(self, attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
-                within_5ft: Optional[bool] = None) -> dict:
+                within_5ft: Optional[bool] = None, ac_bonus: int = 0) -> dict:
         """
         Execute the attack: roll d20 + hit_bonus vs target AC, roll damage if hit.
         Args:
@@ -192,6 +192,7 @@ class AttackAction(Action):
             disadvantage: Extra situational disadvantage on the attack roll(s)
             within_5ft: Whether the attacker is within 5 ft of a single target (on an arena);
                 None to assume melee attacks are and ranged ones aren't
+            ac_bonus: Added to a single target's AC (cover: +2 half, +5 three-quarters)
         Returns:
             dict: Result of the attack
         """
@@ -311,7 +312,7 @@ class AttackAction(Action):
                 buff_bonus = attacker.buffs.calculate_total_bonus('attack_rolls')
 
             total_attack = d20.result + bonus + buff_bonus
-            target_ac = getattr(targets_list[0], 'ac', 10)
+            target_ac = getattr(targets_list[0], 'ac', 10) + ac_bonus
             hit = attack_hits(d20.result, total_attack, target_ac)
             critical = hit and self._is_auto_critical(attack_target, within_5ft)
             damage = (self.damage_roll(attacker, critical=True) if critical else self.damage_roll(attacker)) if hit else 0

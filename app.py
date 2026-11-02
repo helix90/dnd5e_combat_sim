@@ -28,7 +28,7 @@ from controllers.batch_simulation_controller import BatchSimulationController
 from controllers.encounter_controller import EncounterController
 from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
-from models.arena_library import arena_choices
+from models.arena_library import ENCOUNTER_MAP, arena_choices, resolve_arena_choice
 from models.db import DatabaseManager
 from utils.exceptions import (
     AppError, ValidationError
@@ -226,14 +226,19 @@ def load_party_from_session() -> Tuple[List[Any], int]:
     return party, party_obj.get('level', selected_party_level)
 
 def load_arena_from_session() -> Optional[str]:
-    """Name of the arena chosen on the encounter page, or None for no arena."""
-    return session.get('arena') or None
+    """
+    Name of the map to fight on, from the arena chosen on the encounter page: None for no arena,
+    or for "the encounter's own map" the selected pre-built encounter's map.
+    """
+    name = session.get('selected_encounter')
+    template = next((t for t in encounter_controller.templates if t.get('name') == name), None) if name else None
+    return resolve_arena_choice(session.get('arena'), template)
 
 def render_encounter_page(tab: Optional[str] = None) -> str:
     """The encounter page, with the arena choices and the current one."""
     kwargs = {'tab': tab} if tab else {}
-    return render_template('encounter_selection.html', arenas=arena_choices(),
-                           selected_arena=load_arena_from_session() or '', **kwargs)
+    return render_template('encounter_selection.html', arenas=arena_choices(), encounter_map=ENCOUNTER_MAP,
+                           selected_arena=session.get('arena') or '', **kwargs)
 
 def load_monsters_from_session() -> List[Any]:
     """
@@ -441,7 +446,8 @@ def encounter_prebuilt() -> Any:
 @app.route('/encounter/arena', methods=['POST'])
 def encounter_arena() -> Tuple[Any, int]:
     """
-    Choose the arena (battle map) for the next simulations, or no arena with an empty name.
+    Choose the arena (battle map) for the next simulations: a map name, ENCOUNTER_MAP for each
+    pre-built encounter's own map, or an empty name for no arena.
 
     Returns:
         JSON response with the chosen arena, or an error for an unknown map
@@ -451,7 +457,7 @@ def encounter_arena() -> Tuple[Any, int]:
     if not isinstance(name, str):
         return jsonify({'error': 'arena must be a map name'}), 400
     # The name must be one of the maps, which also rules out anything unsafe
-    if name and name not in {a['name'] for a in arena_choices()}:
+    if name and name != ENCOUNTER_MAP and name not in {a['name'] for a in arena_choices()}:
         return jsonify({'error': f'Unknown arena: {name}'}), 400
     if name:
         session['arena'] = name
@@ -820,7 +826,7 @@ def batch_simulation() -> str:
     Returns:
         Rendered HTML template
     """
-    return render_template('batch_simulation.html')
+    return render_template('batch_simulation.html', arena=load_arena_from_session())
 
 @app.route('/batch/start', methods=['POST'])
 def batch_simulation_start() -> Tuple[Any, int]:

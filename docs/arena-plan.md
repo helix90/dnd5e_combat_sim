@@ -1,6 +1,6 @@
 # Arena Plan: positions, distance, cover and ranged attacks
 
-Status: phases 1 and 2 done; phase 3 next.
+Status: phases 1-3 done; phase 4 next.
 
 ## Why
 
@@ -149,6 +149,33 @@ Each phase is its own branch, merged only when the full test suite passes.
   and 8.1% on the branch.
 - Speed: an arena fight takes about 40-80 ms against about 5 ms without one, so a 1,000-run
   arena batch takes around a minute.
+
+## Phase 3 as built
+
+- Cover: `Arena.cover` uses the DMG corner-to-corner lines; `Battlefield.cover` also counts other
+  creatures as obstacles (half cover). Half cover adds +2 and three-quarters +5 to AC and to DEX
+  saves; total cover means the target can't be targeted. Melee targets next to the attacker,
+  area effects and Sacred Flame ignore cover. Results carry `cover` (and `cover_bonus` for
+  saves), and the log shows it, e.g. "(30 ft, half cover)".
+- AI: attacks are scored against the target's cover from each square, so creatures move for a
+  clearer line and never aim at a target in total cover. On maps with cover terrain, a creature
+  attacking from range also values shelter from the three nearest enemies. The AI judges cover
+  from terrain only (creatures in the way move too often to be worth the time); the attack itself
+  counts them. Only the 12 best squares from a rough pass are rescored with cover.
+- Speed: terrain cover is cached per line and per pair of squares on the Arena, which a batch
+  reuses for every run. In a 200-run sweep, fights on the encounter maps took 46-666 ms (mean
+  about 200 ms; the big undead fights in the Catacombs and the Field of Bones are the slowest)
+  and on the Open Field 41-184 ms, so a 1,000-run batch takes from under a minute to 11 minutes.
+- Sweep (party win %, 200 runs, no arena / Open Field / own map): melee swarms get much easier
+  on a map (Kobold Mob 5 / 61 / 64, Wolf Pack 24 / 61 / 66, Orc Raiders 47.5 / 50.5 / 79), while
+  archers and undead mobs get harder (Goblin Ambush 51.5 / 36 / 34, Undead Crypt 23.5 / 5 / 11,
+  Skeleton Horde 11.5 / 4 / 3.5). Most other encounters move by less than 10 points.
+- Maps: `data/arenas.json` has four generic maps (Open Field, Forest, Corridor, Ruins) and a map
+  for each pre-built encounter, which names it in `encounter_templates.json` (`"arena"`). Only
+  that field was added to the templates; their monsters are unchanged. Terrain may be given as
+  rectangles (`"rects"`) and carries a `kind` for drawing later.
+- App: the arena choice adds "The encounter's own map" (`@encounter`); a custom encounter has no
+  map, so it gets the Open Field.
 
 ## Simplifications
 

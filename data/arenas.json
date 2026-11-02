@@ -7,10 +7,392 @@
       "height": 20,
       "diagonals": "5",
       "terrain": [],
-      "start_zones": {
-        "party": {"rect": [3, 5, 7, 14]},
-        "monsters": {"rect": [18, 4, 24, 15]}
-      }
+      "start_zones": {"party": {"rects": [[3, 5, 7, 14]]}, "monsters": {"rects": [[18, 4, 24, 15]]}},
+      "generic": true
+    },
+    {
+      "name": "Forest",
+      "description": "Woodland: tree trunks give three-quarters cover and patches of undergrowth slow movement.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tree", "impassable": true, "cover": "three_quarters", "squares": [[9, 0], [9, 4], [9, 8], [9, 12], [9, 16], [13, 2], [13, 6], [13, 10], [13, 14], [13, 18], [17, 0], [17, 4], [17, 8], [17, 12], [17, 16], [21, 2], [21, 6], [21, 10], [21, 14], [21, 18]]},
+        {"kind": "brush", "difficult": true, "rects": [[10, 9, 12, 11], [18, 1, 20, 3], [18, 15, 20, 17]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[23, 5, 27, 14]]}},
+      "generic": true
+    },
+    {
+      "name": "Corridor",
+      "description": "A dungeon corridor 25 ft wide, with pillars along the walls and nowhere to spread out.",
+      "width": 36,
+      "height": 9,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[0, 0, 35, 1], [0, 7, 35, 8]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[10, 2], [10, 6], [18, 2], [18, 6], [26, 2], [26, 6]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 2, 5, 6]]}, "monsters": {"rects": [[29, 2, 34, 6]]}},
+      "generic": true
+    },
+    {
+      "name": "Ruins",
+      "description": "Broken walls give total cover from some angles, low walls half cover, and rubble slows movement.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[10, 3, 10, 7], [10, 3, 13, 3], [17, 12, 20, 12], [20, 12, 20, 16]]},
+        {"kind": "low_wall", "difficult": true, "cover": "half", "rects": [[14, 7, 17, 7], [9, 13, 12, 13], [21, 4, 21, 7]]},
+        {"kind": "rubble", "difficult": true, "rects": [[11, 4, 13, 6], [17, 13, 19, 15], [14, 9, 16, 10]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[6, 2], [6, 17], [24, 9]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[23, 5, 27, 15]]}},
+      "generic": true
+    },
+    {
+      "name": "Kobold Warren",
+      "description": "Twisting cave tunnels around rock columns, where kobolds swarm from the dark.",
+      "width": 30,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "rock", "impassable": true, "cover": "total", "rects": [[10, 0, 13, 5], [10, 12, 13, 17], [17, 6, 19, 11], [0, 0, 3, 2], [0, 15, 3, 17]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[7, 8], [22, 2], [22, 15], [15, 3], [15, 14]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 11]]}, "monsters": {"rects": [[23, 3, 28, 14]]}}
+    },
+    {
+      "name": "Forest Road",
+      "description": "A road through thick woods. The goblins wait among the trees on both sides.",
+      "width": 32,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tree", "impassable": true, "cover": "three_quarters", "squares": [[1, 0], [1, 3], [1, 6], [1, 15], [1, 18], [5, 1], [5, 4], [5, 13], [5, 16], [5, 19], [9, 0], [9, 3], [9, 6], [9, 15], [9, 18], [13, 1], [13, 4], [13, 13], [13, 16], [13, 19], [17, 0], [17, 6], [21, 13], [21, 19], [25, 0], [25, 3], [25, 6], [25, 15], [25, 18], [29, 1], [29, 4], [29, 13], [29, 16], [29, 19]]},
+        {"kind": "brush", "difficult": true, "rects": [[8, 6, 12, 6], [8, 13, 12, 13], [24, 6, 28, 6], [24, 13, 28, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 8, 7, 11]]}, "monsters": {"rects": [[14, 1, 22, 4], [14, 15, 22, 18]]}}
+    },
+    {
+      "name": "Crypt Hall",
+      "description": "A long pillared hall under a temple. The pillars block sight lines.",
+      "width": 30,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[8, 4], [8, 5], [9, 4], [9, 5], [8, 12], [8, 13], [9, 12], [9, 13], [14, 4], [14, 5], [15, 4], [15, 5], [14, 12], [14, 13], [15, 12], [15, 13], [20, 4], [20, 5], [21, 4], [21, 5], [20, 12], [20, 13], [21, 12], [21, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 5, 11]]}, "monsters": {"rects": [[24, 3, 28, 14]]}}
+    },
+    {
+      "name": "Village Square",
+      "description": "A square between cottages with a well in the middle and garden fences.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "house", "impassable": true, "cover": "total", "rects": [[9, 0, 13, 4], [17, 0, 21, 4], [9, 15, 13, 19], [17, 15, 21, 19]]},
+        {"kind": "well", "impassable": true, "cover": "half", "rects": [[15, 9, 15, 10]]},
+        {"kind": "fence", "difficult": true, "cover": "half", "rects": [[7, 6, 7, 8], [7, 11, 7, 13], [23, 6, 23, 8], [23, 11, 23, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 4, 13]]}, "monsters": {"rects": [[25, 5, 28, 14]]}}
+    },
+    {
+      "name": "Forest Clearing",
+      "description": "A clearing ringed by trees. The pack circles in from the woods.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tree", "impassable": true, "cover": "three_quarters", "squares": [[1, 0], [1, 3], [1, 15], [1, 18], [4, 1], [4, 4], [4, 7], [4, 10], [4, 13], [4, 16], [4, 19], [7, 0], [7, 3], [7, 6], [7, 9], [7, 12], [7, 15], [7, 18], [10, 1], [10, 4], [10, 16], [10, 19], [13, 0], [13, 3], [13, 15], [13, 18], [16, 1], [16, 4], [16, 16], [16, 19], [19, 0], [19, 3], [19, 15], [19, 18], [22, 1], [22, 4], [22, 7], [22, 10], [22, 13], [22, 16], [22, 19], [25, 0], [25, 18], [28, 1], [28, 19]]},
+        {"kind": "brush", "difficult": true, "rects": [[22, 0, 24, 2], [22, 17, 24, 19]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 3, 13]]}, "monsters": {"rects": [[24, 4, 28, 15]]}}
+    },
+    {
+      "name": "Burned Farmstead",
+      "description": "The ruins of a farmhouse and barn, with dry-stone walls between the fields.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[12, 2, 17, 2], [12, 2, 12, 6], [17, 2, 17, 4], [12, 13, 12, 17], [12, 17, 16, 17]]},
+        {"kind": "low_wall", "difficult": true, "cover": "half", "rects": [[8, 8, 8, 12], [21, 6, 21, 9], [21, 12, 21, 15]]},
+        {"kind": "rubble", "difficult": true, "rects": [[13, 3, 16, 5], [13, 14, 15, 16]]},
+        {"kind": "fence", "difficult": true, "cover": "half", "rects": [[5, 2, 9, 2], [5, 17, 9, 17]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 13]]}, "monsters": {"rects": [[23, 5, 28, 15]]}}
+    },
+    {
+      "name": "Graveyard",
+      "description": "Rows of headstones around a small mausoleum. The headstones give half cover.",
+      "width": 28,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tombstone", "difficult": true, "cover": "half", "squares": [[8, 2], [8, 5], [8, 8], [8, 11], [8, 14], [8, 17], [11, 2], [11, 5], [11, 8], [11, 11], [11, 14], [11, 17], [14, 2], [14, 5], [14, 14], [14, 17], [17, 2], [17, 5], [17, 8], [17, 11], [17, 14], [17, 17], [20, 2], [20, 5], [20, 8], [20, 11], [20, 14], [20, 17]]},
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[13, 8, 15, 11]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 7, 4, 12]]}, "monsters": {"rects": [[23, 5, 27, 14]]}}
+    },
+    {
+      "name": "Sunken Road",
+      "description": "A road cut between two banks. The dead rise on the banks on either side.",
+      "width": 30,
+      "height": 16,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "low_wall", "difficult": true, "cover": "half", "rects": [[10, 5, 22, 5], [10, 10, 22, 10]]},
+        {"kind": "scree", "difficult": true, "rects": [[10, 3, 22, 4], [10, 11, 22, 12]]},
+        {"kind": "tree", "impassable": true, "cover": "three_quarters", "squares": [[4, 1], [7, 13], [25, 2], [27, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 9]]}, "monsters": {"rects": [[12, 0, 20, 2], [12, 13, 20, 15]]}}
+    },
+    {
+      "name": "Hill Pass",
+      "description": "A rocky pass with boulders to hide behind and loose scree underfoot.",
+      "width": 32,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "boulder", "impassable": true, "cover": "three_quarters", "squares": [[10, 3], [11, 3], [10, 13], [14, 8], [14, 9], [19, 4], [19, 12], [20, 12], [24, 2]]},
+        {"kind": "scree", "difficult": true, "rects": [[15, 2, 18, 5], [15, 12, 18, 15], [8, 7, 11, 10]]},
+        {"kind": "rock", "impassable": true, "cover": "total", "rects": [[0, 0, 31, 0], [0, 17, 31, 17]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 11]]}, "monsters": {"rects": [[24, 5, 29, 12]]}}
+    },
+    {
+      "name": "Berry Thicket",
+      "description": "Bramble thickets around a stand of trees, where the bear was feeding.",
+      "width": 28,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "brush", "difficult": true, "rects": [[8, 1, 12, 5], [8, 12, 12, 16], [15, 6, 17, 11]]},
+        {"kind": "tree", "impassable": true, "cover": "three_quarters", "squares": [[13, 3], [13, 14], [19, 2], [19, 15], [7, 8], [22, 9]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 11]]}, "monsters": {"rects": [[20, 5, 25, 12]]}}
+    },
+    {
+      "name": "Burial Chamber",
+      "description": "A sealed tomb entered through a narrow door, with sarcophagi in rows.",
+      "width": 26,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[6, 0, 6, 6], [6, 11, 6, 17]]},
+        {"kind": "sarcophagus", "difficult": true, "cover": "half", "squares": [[11, 5], [11, 12], [14, 5], [14, 12], [17, 5], [17, 12], [20, 5], [20, 12], [11, 6], [11, 13], [14, 6], [14, 13], [17, 6], [17, 13], [20, 6], [20, 13]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[9, 2], [9, 15], [22, 2], [22, 15]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 4, 11]]}, "monsters": {"rects": [[16, 3, 23, 14]]}}
+    },
+    {
+      "name": "Barrow Mound",
+      "description": "An ancient burial mound inside a ring of standing stones.",
+      "width": 28,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "statue", "impassable": true, "cover": "three_quarters", "squares": [[13, 3], [17, 4], [19, 8], [17, 13], [13, 14], [10, 8]]},
+        {"kind": "scree", "difficult": true, "rects": [[13, 7, 16, 10]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 5, 11]]}, "monsters": {"rects": [[21, 5, 25, 12]]}}
+    },
+    {
+      "name": "Owlbear Den",
+      "description": "A cave mouth in a cliff face, strewn with boulders and bones.",
+      "width": 28,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "rock", "impassable": true, "cover": "total", "rects": [[14, 0, 27, 2], [14, 15, 27, 17], [24, 3, 27, 4], [24, 13, 27, 14]]},
+        {"kind": "boulder", "impassable": true, "cover": "three_quarters", "squares": [[10, 4], [10, 13], [16, 7], [16, 10]]},
+        {"kind": "bones", "difficult": true, "rects": [[19, 6, 22, 11]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 11]]}, "monsters": {"rects": [[19, 3, 25, 12]]}}
+    },
+    {
+      "name": "Field of Bones",
+      "description": "An old battlefield of craters and broken carts where the dead are legion.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "mud", "difficult": true, "rects": [[9, 3, 11, 5], [15, 14, 17, 16], [19, 6, 20, 8], [8, 15, 9, 17]]},
+        {"kind": "cart", "difficult": true, "cover": "half", "squares": [[13, 5], [14, 5], [12, 11], [21, 13], [22, 13], [16, 18]]},
+        {"kind": "bones", "difficult": true, "rects": [[25, 0, 27, 2]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[24, 3, 30, 18]]}}
+    },
+    {
+      "name": "Ossuary Tunnels",
+      "description": "Bone-lined tunnels 15 ft wide that open into a burial chamber.",
+      "width": 32,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "rock", "impassable": true, "cover": "total", "rects": [[6, 0, 25, 4], [6, 13, 25, 17], [11, 8, 20, 9], [0, 0, 5, 3], [0, 14, 5, 17]]},
+        {"kind": "bones", "difficult": true, "rects": [[8, 5, 10, 7], [21, 10, 23, 12]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 4, 11]]}, "monsters": {"rects": [[26, 2, 30, 15]]}}
+    },
+    {
+      "name": "Troll Bridge",
+      "description": "A stone bridge 20 ft wide over a deep river. The troll waits on the bridge.",
+      "width": 30,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "water", "impassable": true, "rects": [[11, 0, 18, 5], [11, 12, 18, 17]]},
+        {"kind": "parapet", "impassable": true, "cover": "half", "rects": [[11, 6, 18, 6], [11, 11, 18, 11]]},
+        {"kind": "shallows", "difficult": true, "rects": [[9, 0, 10, 5], [9, 12, 10, 17], [19, 0, 20, 5], [19, 12, 20, 17]]},
+        {"kind": "tree", "impassable": true, "cover": "three_quarters", "squares": [[3, 2], [5, 15], [25, 3], [24, 14]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 11]]}, "monsters": {"rects": [[15, 7, 18, 10], [21, 5, 26, 12]]}}
+    },
+    {
+      "name": "Haunted Chapel",
+      "description": "A ruined chapel. The pews give half cover; the wraith waits by the altar.",
+      "width": 26,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[0, 0, 25, 0], [0, 17, 25, 17], [6, 1, 6, 6], [6, 11, 6, 16]]},
+        {"kind": "pew", "difficult": true, "cover": "half", "rects": [[9, 3, 10, 3], [9, 4, 10, 4], [9, 5, 10, 5], [9, 12, 10, 12], [9, 13, 10, 13], [9, 14, 10, 14], [12, 3, 13, 3], [12, 4, 13, 4], [12, 5, 13, 5], [12, 12, 13, 12], [12, 13, 13, 13], [12, 14, 13, 14], [15, 3, 16, 3], [15, 4, 16, 4], [15, 5, 16, 5], [15, 12, 16, 12], [15, 13, 16, 13], [15, 14, 16, 14]]},
+        {"kind": "statue", "impassable": true, "cover": "three_quarters", "squares": [[23, 8], [23, 9]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 4, 11]]}, "monsters": {"rects": [[18, 2, 23, 15]]}}
+    },
+    {
+      "name": "Manor Hall",
+      "description": "The great hall of a manor house: long tables, pillars and a sweeping staircase.",
+      "width": 28,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "table", "difficult": true, "cover": "half", "rects": [[9, 4, 14, 4], [9, 13, 14, 13], [16, 8, 18, 9]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[7, 2], [7, 15], [20, 2], [20, 15]]},
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[24, 0, 27, 3], [24, 14, 27, 17]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 5, 11]]}, "monsters": {"rects": [[20, 4, 26, 13]]}}
+    },
+    {
+      "name": "Labyrinth",
+      "description": "A maze of stone walls with 30-ft passages. The way through doubles back twice.",
+      "width": 30,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[7, 0, 7, 15], [14, 6, 14, 21], [21, 0, 21, 15]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 2, 5, 8]]}, "monsters": {"rects": [[23, 14, 28, 20]]}}
+    },
+    {
+      "name": "Catacombs",
+      "description": "Narrow passages between burial niches, opening into a vaulted crypt.",
+      "width": 32,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[8, 0, 8, 5], [8, 12, 8, 17], [14, 4, 14, 13], [20, 0, 20, 5], [20, 12, 20, 17]]},
+        {"kind": "sarcophagus", "difficult": true, "cover": "half", "squares": [[11, 2], [11, 15], [17, 2], [17, 15], [26, 8], [26, 9]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[23, 4], [23, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 4, 11]]}, "monsters": {"rects": [[24, 1, 30, 16]]}}
+    },
+    {
+      "name": "Rocky Hillside",
+      "description": "A hillside of scattered boulders. The giants have rocks to spare.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "boulder", "impassable": true, "cover": "three_quarters", "squares": [[10, 3], [11, 3], [10, 4], [11, 4], [9, 16], [15, 9], [15, 10], [18, 2], [18, 18], [19, 18], [12, 12]]},
+        {"kind": "scree", "difficult": true, "rects": [[13, 15, 16, 18], [16, 4, 18, 6]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[21, 4, 29, 17]]}}
+    },
+    {
+      "name": "Vampire Crypt",
+      "description": "A vampire's resting place: coffins on biers, pillars and a raised dais.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "sarcophagus", "difficult": true, "cover": "half", "squares": [[11, 4], [12, 4], [11, 15], [12, 15], [17, 4], [18, 4], [17, 15], [18, 15]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[8, 7], [8, 12], [14, 7], [14, 12], [20, 7], [20, 12]]},
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[0, 0, 29, 0], [0, 19, 29, 19]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[22, 3, 28, 16]]}}
+    },
+    {
+      "name": "Dragon's Cavern",
+      "description": "A vast cavern with pools of lava, stalagmites and the dragon's hoard.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "lava", "impassable": true, "rects": [[11, 1, 14, 4], [11, 17, 14, 20], [18, 9, 19, 12]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[8, 6], [8, 15], [16, 5], [16, 16], [23, 3], [23, 18]]},
+        {"kind": "treasure", "difficult": true, "cover": "half", "rects": [[27, 9, 29, 12]]},
+        {"kind": "rock", "impassable": true, "cover": "total", "rects": [[0, 0, 4, 2], [0, 19, 4, 21]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[21, 5, 27, 16]]}}
+    },
+    {
+      "name": "Ruined Watchtower",
+      "description": "The broken ring of a watchtower on a rise, with rubble all around.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[13, 5, 17, 5], [13, 5, 13, 7], [13, 12, 13, 14], [13, 14, 17, 14], [17, 12, 17, 14]]},
+        {"kind": "rubble", "difficult": true, "rects": [[14, 6, 16, 8], [18, 6, 19, 9], [10, 10, 11, 12]]},
+        {"kind": "low_wall", "difficult": true, "cover": "half", "rects": [[8, 3, 8, 6], [22, 13, 22, 16]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[21, 4, 27, 15]]}}
+    },
+    {
+      "name": "Necromancer's Courtyard",
+      "description": "A walled courtyard entered through a gate, lined with statues around a ritual circle.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[7, 0, 7, 8], [7, 13, 7, 21]]},
+        {"kind": "statue", "impassable": true, "cover": "three_quarters", "squares": [[10, 4], [10, 17], [16, 4], [16, 17], [22, 4], [22, 17]]},
+        {"kind": "bones", "difficult": true, "rects": [[15, 9, 18, 12]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 7, 5, 14]]}, "monsters": {"rects": [[23, 3, 30, 18]]}}
+    },
+    {
+      "name": "Old Cemetery",
+      "description": "An overgrown cemetery behind an iron fence, with crypts among the graves.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tombstone", "difficult": true, "cover": "half", "squares": [[9, 1], [9, 4], [9, 7], [9, 10], [9, 13], [9, 16], [12, 1], [12, 4], [12, 7], [12, 10], [12, 16], [15, 1], [15, 4], [15, 10], [15, 13], [15, 16], [18, 1], [18, 4], [18, 7], [18, 10], [18, 13], [18, 16], [21, 1], [21, 4], [21, 7], [21, 10], [21, 13], [21, 16]]},
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[14, 6, 17, 9], [10, 13, 12, 15]]},
+        {"kind": "fence", "difficult": true, "cover": "half", "rects": [[7, 0, 7, 7], [7, 12, 7, 19]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 5, 13]]}, "monsters": {"rects": [[23, 3, 28, 16]]}}
+    },
+    {
+      "name": "Shadowfell Ruins",
+      "description": "Ruins in the land of shadow: shattered walls and leaning pillars.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[10, 2, 10, 7], [10, 2, 14, 2], [19, 14, 23, 14], [23, 14, 23, 19], [14, 17, 16, 17]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[16, 6], [16, 10], [12, 12], [20, 8]]},
+        {"kind": "rubble", "difficult": true, "rects": [[11, 3, 13, 5], [20, 15, 22, 17], [6, 15, 8, 17]]},
+        {"kind": "low_wall", "difficult": true, "cover": "half", "rects": [[25, 4, 25, 8]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[24, 3, 30, 18]]}}
     }
   ]
 }
