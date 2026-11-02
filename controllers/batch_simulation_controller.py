@@ -1,3 +1,4 @@
+import copy
 import threading
 import time
 from typing import List, Dict, Any, Optional
@@ -41,7 +42,8 @@ class BatchSimulationController:
         logger.info("Input validation passed")
 
         # Create batch simulation record first
-        party_level = max([char.get('level', 1) for char in party]) if party else 1
+        party_level = max(char.get('level', 1) if isinstance(char, dict) else getattr(char, 'level', 1)
+                          for char in party)
         encounter_type = 'custom'  # Could be enhanced to detect prebuilt encounters
         logger.info(f"Creating batch simulation record: party_level={party_level}, encounter_type={encounter_type}")
         batch_id = self.db.create_batch_simulation(session_id, batch_name, party_level, encounter_type)
@@ -72,8 +74,9 @@ class BatchSimulationController:
                 for run_number in range(1, num_runs + 1):
                     logger.debug(f"Batch {batch_id}: Starting run {run_number}/{num_runs}")
                     try:
-                        # Fresh Character objects each run, since combat changes HP, slots and buffs
-                        character_objects = build_party(party, self.spell_manager)
+                        # Fresh Character objects each run, since combat changes HP, slots and buffs.
+                        # Rebuilding from dicts is cheap; already-built objects are copied.
+                        character_objects = build_party(copy.deepcopy(party), self.spell_manager)
                         
                         # Convert monster dictionaries to Monster objects
                         monster_objects = []
@@ -100,7 +103,7 @@ class BatchSimulationController:
                                     )
                                     monster_objects.append(monster)
                                 elif isinstance(monster_data, Monster):
-                                    monster_objects.append(monster_data)
+                                    monster_objects.append(copy.deepcopy(monster_data))
                         
                         # Create combat and run simulation
                         logger.debug(f"Batch {batch_id} run {run_number}: Creating combat with {len(character_objects)} characters and {len(monster_objects)} monsters")

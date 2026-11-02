@@ -85,9 +85,12 @@ class Character:
             hp: Hit points
             ac: Armor Class
             proficiency_bonus: Proficiency bonus
-            
+            spells: Spell objects the character can cast, as a list or a dict keyed by name;
+                each is added with add_spell, so it also joins spell_list
+
         Raises:
-            ValueError: If level is not between 1 and 20, or if ability scores are invalid
+            ValueError: If level is not between 1 and 20, if ability scores are invalid, or if
+                spells contains something other than Spell objects
         """
         if not 1 <= level <= 20:
             raise ValueError("Level must be between 1 and 20")
@@ -111,9 +114,13 @@ class Character:
         self.equipment = equipment or []
         self.spell_slots = normalize_spell_slots(spell_slots)
         self.class_features = class_features or []
-        self.spell_list = spell_list or []
+        self.spell_list = list(spell_list or [])
         self.saving_throw_proficiencies = saving_throw_proficiencies or []
         self.spells = {}  # Dictionary to store Spell objects by name
+        for spell in (spells.values() if isinstance(spells, dict) else spells or []):
+            if not isinstance(spell, Spell):
+                raise ValueError(f"spells must contain Spell objects, got {type(spell).__name__}")
+            self.add_spell(spell)
         self.spell_slots_remaining = dict(self.spell_slots)
         self.features = features or []
         self.items = items or []
