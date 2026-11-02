@@ -175,7 +175,7 @@ class _Planner:
         self._cover: Dict[Tuple[Square, Any], str] = {}
         self._shelter: Dict[Square, float] = {}
         # Seeking cover only matters on maps with cover terrain; creatures alone move too much
-        self.seeks_cover = bool(bf.arena._cover_squares)
+        self.seeks_cover = bf.arena.has_cover
 
     def squares(self) -> Dict[Square, int]:
         if self._squares is None:
@@ -197,26 +197,25 @@ class _Planner:
         return option.evaluate(self.creature, target, distance, threatened, COVER_AC_BONUS[cover])
 
     def cover(self, target: Any, square: Square) -> str:
-        """Cover the target has against the creature standing on this square. Remembered for the turn."""
+        """
+        Cover the target has against the creature standing on this square, from terrain. Creatures
+        in the way are left out: they can't be cached, and checking them on every square the AI
+        considers is too slow (attacks themselves do count them).
+        """
         key = (square, target)
         if key not in self._cover:
-            self._cover[key] = self.bf.cover(self.creature, target, square)
+            self._cover[key] = self.bf.cover(self.creature, target, square, creatures=False)
         return self._cover[key]
 
     def shelter(self, square: Square) -> float:
-        """What this square's cover against the nearest enemies is worth to a ranged attacker."""
+        """What this square's terrain cover against the nearest enemies is worth to a ranged attacker."""
         if not self.seeks_cover:
             return 0.0
         if square not in self._shelter:
             here = self.bf.placement(self.creature, square)
-            others = [self.bf.placements[c] for c in self.bf.creatures() if c is not self.creature]
             nearest = sorted(self._enemies, key=lambda e: self.bf.arena.distance(here, self.bf.placements[e]))
-            nearest = nearest[:SHELTER_ENEMIES]
-            values = []
-            for enemy in nearest:
-                attacker = self.bf.placements[enemy]
-                blockers = [p for p in others if p is not attacker]
-                values.append(SHELTER_VALUE[self.bf.arena.cover(attacker, here, blockers)])
+            values = [SHELTER_VALUE[self.bf.arena.cover(self.bf.placements[enemy], here)]
+                      for enemy in nearest[:SHELTER_ENEMIES]]
             self._shelter[square] = sum(values) / len(values) if values else 0.0
         return self._shelter[square]
 

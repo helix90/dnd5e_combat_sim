@@ -159,8 +159,17 @@ Each phase is its own branch, merged only when the full test suite passes.
   saves), and the log shows it, e.g. "(30 ft, half cover)".
 - AI: attacks are scored against the target's cover from each square, so creatures move for a
   clearer line and never aim at a target in total cover. On maps with cover terrain, a creature
-  attacking from range also values shelter from the three nearest enemies. Cover is costly to
-  work out, so only the 12 best squares from a rough pass are rescored with it.
+  attacking from range also values shelter from the three nearest enemies. The AI judges cover
+  from terrain only (creatures in the way move too often to be worth the time); the attack itself
+  counts them. Only the 12 best squares from a rough pass are rescored with cover.
+- Speed: terrain cover is cached per line and per pair of squares on the Arena, which a batch
+  reuses for every run. In a 200-run sweep, fights on the encounter maps took 46-666 ms (mean
+  about 200 ms; the big undead fights in the Catacombs and the Field of Bones are the slowest)
+  and on the Open Field 41-184 ms, so a 1,000-run batch takes from under a minute to 11 minutes.
+- Sweep (party win %, 200 runs, no arena / Open Field / own map): melee swarms get much easier
+  on a map (Kobold Mob 5 / 61 / 64, Wolf Pack 24 / 61 / 66, Orc Raiders 47.5 / 50.5 / 79), while
+  archers and undead mobs get harder (Goblin Ambush 51.5 / 36 / 34, Undead Crypt 23.5 / 5 / 11,
+  Skeleton Horde 11.5 / 4 / 3.5). Most other encounters move by less than 10 points.
 - Maps: `data/arenas.json` has four generic maps (Open Field, Forest, Corridor, Ruins) and a map
   for each pre-built encounter, which names it in `encounter_templates.json` (`"arena"`). Only
   that field was added to the templates; their monsters are unchanged. Terrain may be given as

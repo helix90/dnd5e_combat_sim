@@ -93,6 +93,17 @@ def test_a_creature_in_the_way_gives_half_cover():
     assert 'cover' not in shoot(combat, a, t)
 
 
+def test_remembered_terrain_cover_still_counts_creatures_that_move_in():
+    arena = Arena(20, 20, {(5, 2): LOW_WALL, **{(x, 9): WALL for x in range(20)}})
+    a, t = Placement((0, 5)), Placement((8, 5))
+    assert arena.cover(a, t) == 'none'
+    assert arena.cover(a, t, [Placement((4, 5))]) == COVER_HALF
+    assert arena.cover(a, t) == 'none'
+    # A low wall's cover isn't raised by a creature, and nothing adds to total cover
+    assert arena.cover(Placement((5, 0)), Placement((5, 4)), [Placement((4, 2))]) == COVER_HALF
+    assert arena.cover(Placement((9, 7)), Placement((9, 11)), [Placement((9, 8))]) == COVER_TOTAL
+
+
 def test_melee_next_to_a_low_wall_is_not_covered_by_it():
     fighter = Character('Fighter', 1, 'Fighter', 'Human', SCORES, hp=30, ac=16, proficiency_bonus=2,
                         actions=[AttackAction('Longsword', '', 'Longsword', '1d8+2', 'slashing', hit_bonus=5)])

@@ -301,13 +301,15 @@ class Battlefield:
         return any(not is_paralyzed(a) and self.distance(a, target) <= SQUARE_FEET
                    for a in self.allies_of(attacker))
 
-    def cover(self, attacker: Any, target: Any, at: Optional[Square] = None) -> str:
+    def cover(self, attacker: Any, target: Any, at: Optional[Square] = None, creatures: bool = True) -> str:
         """
         Cover the target has against the attacker (standing at `at`, or where it is), from terrain
-        and from every other creature on the map.
+        and (unless `creatures` is False) from every other creature on the map.
         """
         if target is attacker:
             return COVER_NONE
+        if not creatures:
+            return self.arena.cover(self.placement(attacker, at), self.placements[target])
         others = [self.placements[c] for c in self.creatures() if c is not attacker and c is not target]
         return self.arena.cover(self.placement(attacker, at), self.placements[target], others)
 

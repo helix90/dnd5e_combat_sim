@@ -10,6 +10,7 @@ top-left square of its footprint. Points used for cover lines and area templates
 intersections in square units, so square (x, y) spans (x, y) to (x + 1, y + 1).
 """
 import heapq
+import math
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -133,28 +134,75 @@ def _crosses_interior(p: Point, q: Point, square: Square) -> bool:
     return t1 - t0 > _EPS
 
 
-def _seam_blocker(p: Point, q: Point, blockers: Dict[Square, str]) -> Optional[str]:
+def _squares_along(p: Point, q: Point) -> Iterable[Square]:
+    """
+    The squares whose inside the segment p-q (between grid intersections) might cross: for each
+    column it spans, the rows it covers there. A line along a grid line crosses none.
+    """
+    (x0, y0), (x1, y1) = sorted((p, q))
+    if x0 == x1 or y0 == y1:
+        return
+    slope = (y1 - y0) / (x1 - x0)
+    for x in range(int(x0), int(x1)):
+        ya, yb = y0 + slope * (x - x0), y0 + slope * (x + 1 - x0)
+        low, high = min(ya, yb), max(ya, yb)
+        for y in range(math.floor(low + _EPS), math.ceil(high - _EPS)):
+            yield (x, y)
+
+
+def _seams(p: Point, q: Point, blockers: Dict[Square, str]) -> List[Tuple[Tuple[Square, ...], str]]:
     """
     A line that runs exactly along the edge between two obstacle squares is inside the obstacle,
-    not grazing it (otherwise a solid wall would leak along every grid line). Returns the cover
-    level of the weaker of the two squares on the strongest such edge, or None.
+    not grazing it (otherwise a solid wall would leak along every grid line). Returns each such
+    pair of squares with the cover level of the weaker one.
     """
-    strongest = None
     vertical = abs(p[0] - q[0]) < _EPS and abs(p[0] - round(p[0])) < _EPS
     horizontal = abs(p[1] - q[1]) < _EPS and abs(p[1] - round(p[1])) < _EPS
     if not (vertical or horizontal):
-        return None
+        return []
     fixed = round(p[0] if vertical else p[1])
     low, high = sorted((p[1], q[1]) if vertical else (p[0], q[0]))
+    found = []
     for along in range(int(low // 1), int(-(-high // 1))):
         if min(high, along + 1) - max(low, along) <= _EPS:
             continue
         pair = ((fixed - 1, along), (fixed, along)) if vertical else ((along, fixed - 1), (along, fixed))
         if pair[0] in blockers and pair[1] in blockers:
-            level = min(blockers[pair[0]], blockers[pair[1]], key=_cover_rank)
-            if strongest is None or _cover_rank(level) > _cover_rank(strongest):
-                strongest = level
+            found.append((pair, min(blockers[pair[0]], blockers[pair[1]], key=_cover_rank)))
+    return found
+
+
+def _seam_blocker(p: Point, q: Point, blockers: Dict[Square, str]) -> Optional[str]:
+    """The strongest cover from edges p-q runs along between two blockers (see _seams), or None."""
+    strongest = None
+    for _, level in _seams(p, q, blockers):
+        strongest = _stronger(strongest, level)
     return strongest
+
+
+def _stronger(a: Optional[str], b: Optional[str]) -> Optional[str]:
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return a if _cover_rank(a) >= _cover_rank(b) else b
+
+
+def _cover_from_lines(lines: List[Optional[str]]) -> str:
+    """
+    The cover from the four lines to a target square, each the strongest cover blocking it or
+    None: one or two blocked lines give half cover, three or four three-quarters, and four blocked
+    by total-cover terrain total cover. Lines blocked only by low obstacles give no more cover
+    than they do.
+    """
+    blocked = [level for level in lines if level is not None]
+    if not blocked:
+        return COVER_NONE
+    if len(blocked) == 4 and all(level == COVER_TOTAL for level in blocked):
+        return COVER_TOTAL
+    level = COVER_HALF if len(blocked) <= 2 else COVER_THREE_QUARTERS
+    cap = max((min(_cover_rank(b), _cover_rank(COVER_THREE_QUARTERS)) for b in blocked))
+    return COVER_LEVELS[min(_cover_rank(level), cap)]
 
 
 class Arena:
@@ -172,7 +220,11 @@ class Arena:
         self.height = height
         self.diagonals = diagonals
         self.terrain = dict(terrain or {})
-        self._cover_squares = [s for s, kind in self.terrain.items() if kind.cover != COVER_NONE]
+        self._cover_terrain = {s: kind.cover for s, kind in self.terrain.items() if kind.cover != COVER_NONE}
+        # (corner, end) -> the terrain blocking that line, see _terrain_on_line
+        self._line_cache: Dict[Tuple[Point, Point], List[Tuple[Tuple[Square, ...], str]]] = {}
+        # (attacker position and size, target position and size) -> cover from terrain alone
+        self._pair_cache: Dict[Tuple[Square, int, Square, int], str] = {}
         self.start_zones = {side: list(squares) for side, squares in (start_zones or {}).items()}
         for square in list(self.terrain) + [s for zone in self.start_zones.values() for s in zone]:
             if not self.in_bounds(square):
@@ -392,6 +444,11 @@ class Arena:
 
     # Cover
 
+    @property
+    def has_cover(self) -> bool:
+        """True if any terrain gives cover."""
+        return bool(self._cover_terrain)
+
     def cover(self, attacker: Placement, target: Placement, others: Iterable[Placement] = ()) -> str:
         """
         Cover the target has against the attacker, using the DMG grid method. From a corner of the
@@ -405,60 +462,71 @@ class Arena:
         a row of half-cover walls never gives three-quarters cover.
         """
         own = attacker.squares() | target.squares()
-        # Every line stays inside the box around both creatures, so only blockers there matter
-        # (plus one square around it, for lines running along the box's edge between two blockers)
+        # Other creatures can only block lines inside the box around both creatures (plus one
+        # square around it, for lines running along the box's edge between two blockers)
         x1 = min(attacker.position[0], target.position[0]) - 1
         y1 = min(attacker.position[1], target.position[1]) - 1
         x2 = max(attacker.position[0] + attacker.size, target.position[0] + target.size)
         y2 = max(attacker.position[1] + attacker.size, target.position[1] + target.size)
+        creatures = {square: COVER_HALF for creature in others for square in creature.squares()
+                     if x1 <= square[0] <= x2 and y1 <= square[1] <= y2 and square not in own}
+        terrain = COVER_NONE
+        if self._cover_terrain:
+            # Cover from terrain alone never changes, so it's remembered
+            key = (attacker.position, attacker.size, target.position, target.size)
+            if key not in self._pair_cache:
+                self._pair_cache[key] = self._best_cover(attacker, target, own, {})
+            terrain = self._pair_cache[key]
+        # Creatures only add cover, and there's nothing to add to total cover
+        if not creatures or terrain == COVER_TOTAL:
+            return terrain
+        return self._best_cover(attacker, target, own, creatures)
 
-        def inside(square: Square) -> bool:
-            return x1 <= square[0] <= x2 and y1 <= square[1] <= y2 and square not in own
-        blockers: Dict[Square, str] = {}
-        if self._cover_squares:
-            for square in self._cover_squares:
-                if inside(square):
-                    blockers[square] = self.terrain[square].cover
-        for creature in others:
-            for square in creature.squares():
-                if inside(square) and _cover_rank(blockers.get(square, COVER_NONE)) < _cover_rank(COVER_HALF):
-                    blockers[square] = COVER_HALF
-        if not blockers:
-            return COVER_NONE
-
+    def _best_cover(self, attacker: Placement, target: Placement, own: Set[Square],
+                    creatures: Dict[Square, str]) -> str:
         best = COVER_TOTAL
         for corner in attacker.corners():
             for target_square in target.squares():
-                result = self._cover_from(corner, target_square, blockers)
+                lines = [self._line_cover(corner, end, own, creatures) for end in _square_corners(target_square)]
+                result = _cover_from_lines(lines)
                 if _cover_rank(result) < _cover_rank(best):
                     best = result
                     if best == COVER_NONE:
                         return best
         return best
 
-    def _cover_from(self, corner: Point, target_square: Square, blockers: Dict[Square, str]) -> str:
-        lines = []
-        for end in _square_corners(target_square):
-            strongest = _seam_blocker(corner, end, blockers)
-            ax, bx = sorted((corner[0], end[0]))
-            ay, by = sorted((corner[1], end[1]))
-            for square, level in blockers.items():
-                # A square can only be crossed if it overlaps the line's span (cheap check first)
-                if square[0] >= bx or square[0] + 1 <= ax or square[1] >= by or square[1] + 1 <= ay:
-                    if not (ax == bx or ay == by):
-                        continue
-                if (strongest is None or _cover_rank(level) > _cover_rank(strongest)) \
-                        and _crosses_interior(corner, end, square):
-                    strongest = level
-            lines.append(strongest)
-        blocked = [level for level in lines if level is not None]
-        if not blocked:
-            return COVER_NONE
-        if len(blocked) == 4 and all(level == COVER_TOTAL for level in blocked):
-            return COVER_TOTAL
-        level = COVER_HALF if len(blocked) <= 2 else COVER_THREE_QUARTERS
-        cap = max((min(_cover_rank(b), _cover_rank(COVER_THREE_QUARTERS)) for b in blocked))
-        return COVER_LEVELS[min(_cover_rank(level), cap)]
+    def _line_cover(self, corner: Point, end: Point, own: Set[Square], creatures: Dict[Square, str]) -> Optional[str]:
+        """The strongest cover blocking one line, or None. Squares in `own` don't block."""
+        strongest = None
+        for squares, level in self._terrain_on_line(corner, end):
+            if own.isdisjoint(squares):
+                strongest = _stronger(strongest, level)
+        if creatures and strongest != COVER_TOTAL:
+            if corner[0] == end[0] or corner[1] == end[1]:
+                # Running between a creature and terrain, or two creatures, is inside the obstacle
+                combined = {square: level for square, level in self._cover_terrain.items() if square not in own}
+                for square, level in creatures.items():
+                    combined[square] = _stronger(combined.get(square), level)
+                strongest = _stronger(strongest, _seam_blocker(corner, end, combined))
+            elif any(_crosses_interior(corner, end, square) for square in creatures):
+                strongest = _stronger(strongest, COVER_HALF)
+        return strongest
+
+    def _terrain_on_line(self, corner: Point, end: Point) -> List[Tuple[Tuple[Square, ...], str]]:
+        """
+        The terrain blocking a line, as (squares, cover level): a square the line crosses, or two
+        squares it runs between. Terrain doesn't change, so this is cached.
+        """
+        key = (corner, end)
+        found = self._line_cache.get(key)
+        if found is None:
+            if corner[0] == end[0] or corner[1] == end[1]:
+                found = _seams(corner, end, self._cover_terrain)
+            else:
+                found = [((square,), self._cover_terrain[square]) for square in _squares_along(corner, end)
+                         if square in self._cover_terrain and _crosses_interior(corner, end, square)]
+            self._line_cache[key] = found
+        return found
 
     # Areas of effect. A square is in the area if its center is.
 
