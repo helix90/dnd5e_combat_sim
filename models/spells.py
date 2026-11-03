@@ -9,6 +9,7 @@ import random
 import re
 
 from models.actions import Action
+from models.arena import Area
 from models.damage import apply_damage
 from models.rolls import attack_hits, attack_roll as roll_attack, roll_saving_throw
 from utils.api_client import APIClient
@@ -65,7 +66,8 @@ class Spell:
         concentration: bool = False,  # True if spell requires concentration
         is_buff_spell: bool = False,  # True if spell applies buffs
         buff_data: Optional[Dict[str, Any]] = None,  # Buff configuration data
-        max_targets: int = 1  # Maximum number of targets (e.g., 3 for Bless)
+        max_targets: int = 1,  # Maximum number of targets (e.g., 3 for Bless)
+        area: Optional[Dict[str, Any]] = None  # Shape on an arena, e.g. {'shape': 'sphere', 'size': 20}
     ) -> None:
         self.name = name
         self.level = level
@@ -87,6 +89,7 @@ class Spell:
         self.buff_data = buff_data or {}
         self.max_targets = max_targets
         self.range_feet = parse_range_feet(range)  # None if the range isn't a distance
+        self.area = Area.from_dict(area)
 
     @classmethod
     def from_api(cls, name, api_client=None):
@@ -278,7 +281,8 @@ class SpellAction(Action):
         return healing
 
     def execute(self, caster: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
-                ac_bonus: int = 0, save_bonus: int = 0) -> Dict[str, Any]:
+                ac_bonus: int = 0, save_bonus: int = 0,
+                save_bonuses: Optional[Dict[Any, int]] = None) -> Dict[str, Any]:
         """
         Execute the spell: handle attack rolls, saving throws, and damage/healing.
 
@@ -289,6 +293,7 @@ class SpellAction(Action):
             disadvantage: Extra situational disadvantage on spell attack rolls
             ac_bonus: Added to a single target's AC against a spell attack (cover)
             save_bonus: Added to a single target's saving throw (cover, for DEX saves)
+            save_bonuses: For an area effect, each target's cover bonus to its saving throw
 
         Returns:
             dict: Result of the spell cast
@@ -499,7 +504,7 @@ class SpellAction(Action):
             save_dc = self.spell.get_save_dc(caster)
 
             # Check if this is an area effect spell
-            if self.spell.area_effect and len(targets_list) > 1:
+            if self.spell.area_effect and (len(targets_list) > 1 or save_bonuses is not None):
                 # Area effect spell - apply to all targets
                 target_results = []
                 total_damage_dealt = 0
@@ -508,7 +513,8 @@ class SpellAction(Action):
                 base_damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
 
                 for t in targets_list:
-                    save = roll_saving_throw(t, self.spell.save_type, save_dc)
+                    save = roll_saving_throw(t, self.spell.save_type, save_dc,
+                                             cover_bonus=(save_bonuses or {}).get(t, 0))
                     save_success = save['save_success']
 
                     # Apply damage (half on successful save for certain spells)

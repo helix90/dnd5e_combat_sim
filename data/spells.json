@@ -323,6 +323,7 @@
       "is_attack_spell": false,
       "healing": false,
       "area_effect": true,
+      "area": {"shape": "cube", "size": 20},
       "concentration": true
     }
   ],
@@ -347,6 +348,7 @@
       "is_attack_spell": false,
       "healing": false,
       "area_effect": true,
+      "area": {"shape": "sphere", "size": 20},
       "concentration": false
     },
     {

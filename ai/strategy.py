@@ -792,7 +792,19 @@ class MonsterAIStrategy(AIStrategy):
                 logger.debug(f"[MonsterAI] {combatant.name} waits (no valid targets)")
                 return {'type': 'wait'}
 
-            # Priority 1: Use special abilities if available
+            # Priority 1: an area attack that's ready (a breath weapon that has recharged). It hits
+            # every enemy without an arena; on one, fit_plan aims it, or keeps it for later if an
+            # ordinary attack would do more
+            area_attacks = [
+                a for a in getattr(combatant, 'actions', [])
+                if getattr(a, 'action_type', None) == 'attack' and getattr(a, 'area_effect', False)
+                and getattr(a, 'ready', True)
+            ]
+            if area_attacks:
+                logger.info(f"[MonsterAI] {combatant.name} uses {area_attacks[0].name}")
+                return {'type': 'attack', 'action': area_attacks[0], 'target': enemies}
+
+            # Use special abilities if available
             specials = [
                 a for a in getattr(combatant, 'actions', [])
                 if hasattr(a, 'action_type') and a.action_type == 'special'
