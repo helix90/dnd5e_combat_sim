@@ -102,7 +102,10 @@ class SpellManager:
             area=spell_data.get('area'),
             projectiles=spell_data.get('projectiles', 1),
             projectiles_per_slot=spell_data.get('projectiles_per_slot', 0),
-            cantrip_projectiles=spell_data.get('cantrip_projectiles', False)
+            cantrip_projectiles=spell_data.get('cantrip_projectiles', False),
+            effect=spell_data.get('effect'),
+            combat=spell_data.get('combat', True),
+            hit_point_dice=spell_data.get('hit_point_dice')
         )
     
     def get_spell(self, spell_name: str) -> Optional[Spell]:
@@ -150,8 +153,8 @@ class SpellManager:
         """
         combat_spells = []
         for spell in self.spells.values():
-            if (spell.damage_dice or spell.healing or 
-                spell.name in ['Shield', 'Counterspell', 'Web']):
+            if spell.combat and (spell.damage_dice or spell.healing or spell.effect or
+                                 spell.name in ['Shield', 'Counterspell']):
                 combat_spells.append(spell)
         return combat_spells
     

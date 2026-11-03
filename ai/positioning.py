@@ -489,7 +489,8 @@ def _fit_attack(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[st
 def _cantrip_options(creature: Any) -> List[Any]:
     """Damaging cantrips, to fall back on instead of an area spell that isn't worth its slot."""
     return [_Spell(creature, SpellAction(spell)) for spell in getattr(creature, 'spells', {}).values()
-            if spell.level == 0 and spell.damage_dice and not spell.healing and not spell.area_effect]
+            if spell.level == 0 and spell.damage_dice and not spell.healing and not spell.area_effect
+            and spell.combat and not spell.effect]
 
 
 def _fit_area(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str, Any]:

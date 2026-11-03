@@ -66,6 +66,75 @@
       "area_effect": false,
       "concentration": false,
       "cantrip_projectiles": true
+    },
+    {
+      "name": "Mage Hand",
+      "level": 0,
+      "school": "Conjuration",
+      "casting_time": "1 action",
+      "range": "30 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A spectral, floating hand appears at a point you choose within range.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "combat": false
+    },
+    {
+      "name": "Minor Illusion",
+      "level": 0,
+      "school": "Illusion",
+      "casting_time": "1 action",
+      "range": "30 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 0,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You create a sound or an image of an object within range.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "combat": false
+    },
+    {
+      "name": "Prestidigitation",
+      "level": 0,
+      "school": "Transmutation",
+      "casting_time": "1 action",
+      "range": "10 feet",
+      "duration": "Up to 1 hour",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "This spell is a minor magical trick that novice spellcasters use for practice.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "combat": false
     }
   ],
   "level_1": [
@@ -215,6 +284,230 @@
       "healing": false,
       "area_effect": false,
       "concentration": false
+    },
+    {
+      "name": "Divine Favor",
+      "level": 1,
+      "school": "Evocation",
+      "casting_time": "1 bonus action",
+      "range": "Self",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Your weapon attacks deal an extra 1d4 radiant damage on a hit.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "effect": "buff",
+      "buff_data": {
+        "name": "Divine Favor",
+        "duration_rounds": 10,
+        "metadata": {
+          "weapon_damage_dice": "1d4",
+          "weapon_damage_type": "radiant"
+        }
+      }
+    },
+    {
+      "name": "Entangle",
+      "level": 1,
+      "school": "Conjuration",
+      "casting_time": "1 action",
+      "range": "90 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": "str",
+      "save_dc_bonus": 0,
+      "description": "Grasping weeds and vines sprout in a 20-foot square; creatures in it must succeed on a Strength saving throw or be restrained.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": true,
+      "area": {
+        "shape": "cube",
+        "size": 20
+      },
+      "max_targets": 4,
+      "effect": "restrain"
+    },
+    {
+      "name": "Goodberry",
+      "level": 1,
+      "school": "Transmutation",
+      "casting_time": "1 action",
+      "range": "Touch",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Up to ten berries appear; eating one restores 1 hit point.",
+      "is_attack_spell": false,
+      "healing": true,
+      "area_effect": false,
+      "concentration": false,
+      "combat": false
+    },
+    {
+      "name": "Hunter's Mark",
+      "level": 1,
+      "school": "Divination",
+      "casting_time": "1 bonus action",
+      "range": "90 feet",
+      "duration": "1 hour",
+      "components": {
+        "verbal": 1,
+        "somatic": 0,
+        "material": 0
+      },
+      "damage_dice": "1d6",
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You mark a creature; your weapon attacks deal an extra 1d6 damage to it, and you can move the mark when it drops.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "effect": "hunters_mark"
+    },
+    {
+      "name": "Mage Armor",
+      "level": 1,
+      "school": "Abjuration",
+      "casting_time": "1 action",
+      "range": "Touch",
+      "duration": "8 hours",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "An unarmored creature's base AC becomes 13 + its Dexterity modifier.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "effect": "mage_armor"
+    },
+    {
+      "name": "Protection from Evil and Good",
+      "level": 1,
+      "school": "Abjuration",
+      "casting_time": "1 action",
+      "range": "Touch",
+      "duration": "10 minutes",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Aberrations, celestials, elementals, fey, fiends and undead have disadvantage on attack rolls against the target.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "effect": "buff",
+      "buff_data": {
+        "name": "Protection from Evil and Good",
+        "duration_rounds": -1,
+        "metadata": {
+          "protection_from": [
+            "aberration",
+            "celestial",
+            "elemental",
+            "fey",
+            "fiend",
+            "undead"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Shield of Faith",
+      "level": 1,
+      "school": "Abjuration",
+      "casting_time": "1 bonus action",
+      "range": "60 feet",
+      "duration": "10 minutes",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A shimmering field surrounds a creature, granting it +2 to AC.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "effect": "buff",
+      "buff_data": {
+        "name": "Shield of Faith",
+        "duration_rounds": -1,
+        "bonus_static": 2,
+        "affects": [
+          "armor_class"
+        ]
+      }
+    },
+    {
+      "name": "Sleep",
+      "level": 1,
+      "school": "Enchantment",
+      "casting_time": "1 action",
+      "range": "90 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Roll 5d8; creatures within 20 feet of a point, lowest current hit points first, fall unconscious until they take damage. Undead and creatures immune to being charmed are unaffected.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": false,
+      "area": {
+        "shape": "sphere",
+        "size": 20
+      },
+      "effect": "sleep",
+      "hit_point_dice": "5d8"
     }
   ],
   "level_2": [
@@ -284,7 +577,8 @@
       "is_attack_spell": true,
       "healing": false,
       "area_effect": false,
-      "concentration": true
+      "concentration": false,
+      "effect": "spiritual_weapon"
     },
     {
       "name": "Lesser Restoration",
@@ -329,7 +623,140 @@
       "healing": false,
       "area_effect": true,
       "area": {"shape": "cube", "size": 20},
-      "concentration": true
+      "concentration": true,
+      "effect": "restrain",
+      "max_targets": 4
+    },
+    {
+      "name": "Magic Weapon",
+      "level": 2,
+      "school": "Transmutation",
+      "casting_time": "1 bonus action",
+      "range": "Touch",
+      "duration": "1 hour",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A nonmagical weapon becomes a magic weapon with a +1 bonus to attack and damage rolls.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "effect": "buff",
+      "buff_data": {
+        "name": "Magic Weapon",
+        "duration_rounds": -1,
+        "metadata": {
+          "weapon_attack_bonus": 1,
+          "weapon_damage_bonus": 1,
+          "magical_weapon": true
+        }
+      }
+    },
+    {
+      "name": "Mirror Image",
+      "level": 2,
+      "school": "Illusion",
+      "casting_time": "1 action",
+      "range": "Self",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Three illusory duplicates of yourself appear; an attack against you may hit a duplicate instead, destroying it.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "effect": "buff",
+      "buff_data": {
+        "name": "Mirror Image",
+        "duration_rounds": 10,
+        "metadata": {
+          "mirror_images": 3
+        }
+      }
+    },
+    {
+      "name": "Moonbeam",
+      "level": 2,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": "2d10",
+      "damage_type": "radiant",
+      "save_type": "con",
+      "save_dc_bonus": 0,
+      "description": "A silvery beam of pale light shines down in a 5-foot-radius cylinder. A creature that starts its turn there makes a Constitution saving throw, taking 2d10 radiant damage on a failure or half as much on a success. You can move the beam 60 feet as an action.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "effect": "moonbeam"
+    },
+    {
+      "name": "Pass Without Trace",
+      "level": 2,
+      "school": "Abjuration",
+      "casting_time": "1 action",
+      "range": "Self",
+      "duration": "1 hour",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You and your companions get +10 to Stealth checks.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "combat": false
+    },
+    {
+      "name": "Prayer of Healing",
+      "level": 2,
+      "school": "Evocation",
+      "casting_time": "10 minutes",
+      "range": "30 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": 1,
+        "somatic": 0,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Up to six creatures regain 2d8 + your spellcasting modifier hit points.",
+      "is_attack_spell": false,
+      "healing": true,
+      "area_effect": false,
+      "concentration": false,
+      "combat": false
     }
   ],
   "level_3": [
@@ -399,6 +826,107 @@
       "healing": false,
       "area_effect": false,
       "concentration": false
+    },
+    {
+      "name": "Call Lightning",
+      "level": 3,
+      "school": "Conjuration",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "10 minutes",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": "3d10",
+      "damage_type": "lightning",
+      "save_type": "dex",
+      "save_dc_bonus": 0,
+      "description": "A storm cloud appears. When you cast the spell, and as your action on later turns, you call a bolt: each creature within 5 feet of a point makes a Dexterity saving throw, taking 3d10 lightning damage on a failure or half as much on a success.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": true,
+      "area": {
+        "shape": "sphere",
+        "size": 5
+      },
+      "max_targets": 2,
+      "effect": "call_lightning"
+    },
+    {
+      "name": "Dispel Magic",
+      "level": 3,
+      "school": "Abjuration",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 0
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "Any spell of 3rd level or lower on the target ends.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "combat": false
+    },
+    {
+      "name": "Hypnotic Pattern",
+      "level": 3,
+      "school": "Illusion",
+      "casting_time": "1 action",
+      "range": "120 feet",
+      "duration": "1 minute",
+      "components": {
+        "verbal": 0,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": "wis",
+      "save_dc_bonus": 0,
+      "description": "Creatures in a 30-foot cube that fail a Wisdom saving throw are charmed and incapacitated, with a speed of 0, until they take damage. Creatures immune to being charmed are unaffected.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": true,
+      "area": {
+        "shape": "cube",
+        "size": 30
+      },
+      "effect": "hypnotic_pattern"
+    },
+    {
+      "name": "Revivify",
+      "level": 3,
+      "school": "Necromancy",
+      "casting_time": "1 action",
+      "range": "Touch",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": 1,
+        "somatic": 1,
+        "material": 1
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A creature that died within the last minute returns to life with 1 hit point.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "combat": false
     }
   ]
 } 

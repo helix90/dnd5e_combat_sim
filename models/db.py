@@ -324,6 +324,8 @@ class DatabaseManager:
                         if healing > 0:
                             result_text = f"Heals {healing} HP"
                             damage = -healing  # Negative for healing
+                        elif result.get('effect_text'):
+                            result_text = f"{result['spell']}: {result['effect_text']}"
                         else:
                             result_text = f"Spell cast on {target}"
                             if damage > 0:

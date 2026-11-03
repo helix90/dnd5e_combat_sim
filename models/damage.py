@@ -7,7 +7,8 @@ spells and class features.
 """
 from typing import Any, Optional
 
-from models.buffs import BuffManager
+from models import concentration
+from models.buffs import BuffManager, end_on_damage
 from models.rolls import roll_saving_throw
 
 # The SRD monsters here that resist weapon damage (wraith, vampire spawn, mummy) resist it "from
@@ -83,12 +84,12 @@ def apply_damage(creature: Any, amount: int, damage_type: Optional[str], critica
                  magical: bool = False) -> int:
     """
     Reduce the creature's HP by the adjusted damage and return the damage actually dealt. Any
-    damage ends Turn Undead's effect on the creature.
+    damage ends turning, magical sleep and Hypnotic Pattern on the creature, and a concentrating
+    creature has to save to keep concentrating (see models/concentration.py).
     """
     dealt = adjust_damage(creature, amount, damage_type, magical)
-    buffs = getattr(creature, 'buffs', None)
-    if dealt > 0 and isinstance(buffs, BuffManager) and buffs.has_condition('turned'):
-        buffs.active_buffs = [b for b in buffs.active_buffs if b.metadata.get('condition') != 'turned']
+    if dealt > 0:
+        end_on_damage(creature)
     if hasattr(creature, 'hp'):
         hp_before = creature.hp
         creature.hp -= dealt
@@ -96,6 +97,8 @@ def apply_damage(creature: Any, amount: int, damage_type: Optional[str], critica
                 and has_ability(creature, 'Undead Fortitude')
                 and isinstance(getattr(creature, 'pending_log_entries', None), list)):
             _undead_fortitude(creature, dealt, damage_type, critical)
+    if dealt > 0:
+        concentration.take_damage(creature, dealt)
     return dealt
 
 

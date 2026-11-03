@@ -25,7 +25,13 @@ CONE_SQUARES = 16
 CONE_TURNS = (0.0, 0.35, -0.35)
 # How far around an enemy's squares (in squares) sphere centres are tried
 SPHERE_SPREAD = 2
-# Spells that do half damage on a successful save (breath weapons always do)
+# Taking a creature out of the fight (asleep, restrained, hypnotized) is worth this share of its hit points
+CONTROL_WEIGHT = 0.5
+# Sleep's average pool of hit points (5d8)
+SLEEP_AVERAGE_POOL = 22.5
+# Conditions control spells give, and the immunity that stops each one
+CONTROL_EFFECTS = {'sleep': ('unconscious', 'charmed'), 'restrain': ('restrained', 'restrained'),
+                   'hypnotic_pattern': ('hypnotized', 'charmed')}
 
 
 @dataclass
@@ -55,24 +61,43 @@ class _Effect:
             self.save_type = spell.save_type
             self.dc = spell.get_save_dc(creature) if spell.save_type else None
             self.half_on_save = spell.name in HALF_ON_SAVE_SPELLS
+            self.control = CONTROL_EFFECTS.get(getattr(spell, 'effect', None))
         else:
             self.dice = action.damage_dice
             self.damage_type = action.damage_type
             self.save_type = action.save_type
             self.dc = action.save_dc
             self.half_on_save = True
+            self.control = None
         self.average = _average(self.dice)
+
+    def _saves(self, target: Any, cover: str) -> float:
+        bonus = target.saving_throw_bonus(self.save_type) if hasattr(target, 'saving_throw_bonus') else 0
+        if self.save_type == 'dex':
+            bonus += COVER_AC_BONUS.get(cover, 0)
+        return min(0.95, max(0.05, (21 + bonus - self.dc) / 20))
+
+    def _controlled(self, target: Any, cover: str) -> float:
+        """What a control spell is worth against a creature: the chance it's affected times part of its HP."""
+        condition, immunity = self.control
+        buffs = getattr(target, 'buffs', None)
+        if immunity in (getattr(target, 'condition_immunities', None) or []) or \
+                (hasattr(buffs, 'has_condition') and buffs.has_condition(condition)):
+            return 0.0
+        hp = max(getattr(target, 'hp', 0), 0)
+        if condition == 'unconscious':
+            return CONTROL_WEIGHT * hp if hp <= SLEEP_AVERAGE_POOL and getattr(target, 'creature_type', None) != 'undead' else 0.0
+        return CONTROL_WEIGHT * hp * (1 - self._saves(target, cover))
 
     def expected(self, target: Any, cover: str) -> float:
         """Expected damage to one creature, at most its hit points. 1 for an effect without damage."""
+        if self.control:
+            return self._controlled(target, cover)
         if not self.average:
             return 1.0
         damage = self.average
         if self.save_type and self.dc:
-            bonus = target.saving_throw_bonus(self.save_type) if hasattr(target, 'saving_throw_bonus') else 0
-            if self.save_type == 'dex':
-                bonus += COVER_AC_BONUS.get(cover, 0)
-            saves = min(0.95, max(0.05, (21 + bonus - self.dc) / 20))
+            saves = self._saves(target, cover)
             damage *= (1 - saves) + (0.5 * saves if self.half_on_save else 0)
         if self.damage_type in getattr(target, 'damage_immunities', []):
             return 0.0
