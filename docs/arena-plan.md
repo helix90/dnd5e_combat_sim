@@ -1,6 +1,6 @@
 # Arena Plan: positions, distance, cover and ranged attacks
 
-Status: phases 1-3 done; phase 4 next.
+Status: phases 1-4 done; phase 5 next.
 
 ## Why
 
@@ -177,11 +177,45 @@ Each phase is its own branch, merged only when the full test suite passes.
 - App: the arena choice adds "The encounter's own map" (`@encounter`); a custom encounter has no
   map, so it gets the Open Field.
 
+## Phase 4 as built
+
+- Data: spells and monster actions can have an `area` (`{"shape": "sphere", "size": 20}`):
+  Fireball is a 20-ft-radius sphere, Web a 20-ft cube, and the Young Dragon's Fire Breath a 30-ft
+  cone with `"recharge": 5`.
+- Geometry: `Area` (sphere, cube, cone, line) in `models/arena.py`; `area_squares`, `in_area`,
+  and `cover_from_point` (cover from an area's origin). `Battlefield.can_aim` and `area_hits`
+  apply the rules: spheres and cubes are placed within the spell's range, cones and lines start
+  at the edge of the creature's space, every creature in the area is affected (allies too, but
+  never the creature using a cone), total cover from the origin protects, and other cover adds
+  to DEX saves.
+- AI: `ai/aiming.py` tries sphere centres and cube corners around each enemy, and cones from the
+  creature's square or the 16 nearest an enemy, pointed at each enemy and 20 degrees either side.
+  Each is scored by expected damage to enemies minus twice that to allies. If the best is worth
+  less than the creature's best ordinary attack or cantrip, it uses that instead and keeps its
+  spell slot or breath.
+- Recharge: an action with `recharge` can't be used again until a d6 at the start of the
+  creature's turn rolls that number or higher. The monster AI uses a ready area attack first.
+  Before this the dragon never breathed: the AI always took its first special (Multiattack).
+  This changes results without an arena too.
+- An area action catching a single creature now calls for a save; it used to make an attack roll.
+- Sweep (party win %, 200 runs, phase 3 -> phase 4): the Young Dragon now breathes and wins
+  almost every fight (Young Dragon's Den, no arena 96.5 -> 0, own map 96 -> 2.5). On arenas,
+  Fireball no longer hits every enemy on the map, so encounters with spread-out monsters got much
+  harder (own map: Vampire's Lair 37 -> 2, Wraith's Domain 90 -> 22.5, Vampire Spawn Pack 87 ->
+  45.5). That isn't friendly fire: with the AI refusing to hit allies the results are the same.
+  Fights on the encounter maps take 59-667 ms (mean about 210 ms).
+- Combat: area results carry `aim` (origin and direction), `area` and `cover_by_target`; an area
+  that would catch no one isn't used and spends no slot. Logs read e.g. "uses Fire Breath on
+  Aldric, Dax: 80 damage (30-ft cone)" and "Young Dragon's Fire Breath recharges."
+
 ## Simplifications
 
 - Flying is treated like walking (no elevation); a creature moves at its best speed, so the
   wraith moves 60 ft.
-- Area effects (Fireball, breath weapons) still hit every enemy wherever they are, until phase 4.
+- Without an arena, an area effect still hits every enemy.
+- Areas follow the grid's diagonal rule, so with 5-ft diagonals a sphere is a square block.
+- Cover against an area effect comes from terrain only, and Web is never cast (the AI only picks
+  damaging spells).
 - Moving away from an adjacent enemy is free until opportunity attacks arrive in phase 5.
 - Squeezing, and moving through a hostile creature two sizes larger, aren't modelled.
 - Facing, elevation and light/vision aren't modelled.

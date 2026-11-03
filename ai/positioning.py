@@ -16,13 +16,17 @@ into something the creature can actually do this turn:
 - If nothing is in reach even after moving, the creature Dashes toward its target.
 - Cover counts: the AI avoids shooting at targets behind cover (and can't target one with total
   cover), and creatures attacking from range prefer squares where they have cover themselves.
+- Area effects are aimed (ai/aiming.py) to catch the most enemies and spare allies. If the best
+  aim is worth less than an ordinary attack, the creature attacks instead and keeps its spell
+  slot or breath weapon.
 """
 from typing import Any, Dict, List, Optional, Tuple
 
+from ai.aiming import aim_area
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Square
 from models.buffs import is_paralyzed
-from models.battlefield import (Battlefield, Situation, Threatened, attack_distances, ignores_cover,
+from models.battlefield import (Battlefield, Situation, Threatened, area_of, attack_distances, ignores_cover,
                                 judge_attack, judge_spell)
 from models.multiattack import parse_multiattack
 from models.spells import SpellAction
@@ -417,15 +421,40 @@ def _fit_attack(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[st
     return {'type': 'defend'}
 
 
+def _cantrip_options(creature: Any) -> List[Any]:
+    """Damaging cantrips, to fall back on instead of an area spell that isn't worth its slot."""
+    return [_Spell(creature, SpellAction(spell)) for spell in getattr(creature, 'spells', {}).values()
+            if spell.level == 0 and spell.damage_dice and not spell.healing and not spell.area_effect]
+
+
+def _fit_area(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Aim an area action or spell. If the best aim does less than the creature's best ordinary
+    attack or cantrip would against any enemy, use that instead (keeping the slot or breath).
+    """
+    action = plan.get('spell') or plan.get('action')
+    planner = _Planner(bf, creature)
+    aim = aim_area(bf, creature, action, planner.squares())
+    options = _attack_options(creature) + _cantrip_options(creature)
+    enemies = _enemies(bf, creature)
+    alternative = max((planner._ideal_value(option, enemy) for option in options for enemy in enemies), default=0.0)
+    if aim is None or aim.value <= alternative:
+        fitted = planner.choose(options, None, enemies)
+        if fitted:
+            return fitted
+        return _fit_attack(bf, creature, {'type': 'attack', 'target': None})
+    return _with_move(dict(plan, **aim.plan_fields()), bf, creature, aim.square)
+
+
 def _fit_spell(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str, Any]:
     spell_action: SpellAction = plan['spell']
     spell = spell_action.spell
     target = plan['target']
     planner = _Planner(bf, creature)
 
+    if area_of(spell) is not None:
+        return _fit_area(bf, creature, plan)
     if isinstance(target, list):
-        if spell.area_effect:
-            return plan  # aimed in phase 4
         # Several targets (e.g. Bless): stand where the most of them are in range
         best = None
         for square, cost in sorted(planner.squares().items()):
@@ -461,14 +490,16 @@ def fit_plan(creature: Any, plan: Dict[str, Any], combat_state: Dict[str, Any]) 
     """
     Turn the strategy's plan into one the creature can carry out on the battlefield, adding a
     'move_to' square when it needs to move first and a 'move_after' square when it should
-    advance after acting. Plans that don't involve a target (defend,
-    wait) and area effects (aimed in phase 4) are returned unchanged.
+    advance after acting, and aiming area effects ('aim'). Plans that don't involve a target
+    (defend, wait) are returned unchanged.
     """
     bf: Optional[Battlefield] = combat_state.get('battlefield')
     if bf is None or creature not in bf.placements:
         return plan
     kind = plan.get('type')
     action = plan.get('action')
+    if kind in ('attack', 'special') and area_of(action) is not None:
+        return _fit_area(bf, creature, plan)
     if kind == 'attack' and not getattr(action, 'area_effect', False) and not isinstance(plan.get('target'), list):
         return _fit_attack(bf, creature, plan)
     if kind == 'special' and getattr(action, 'name', '').lower() == 'multiattack':

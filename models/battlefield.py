@@ -10,8 +10,8 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from models.actions import AttackAction
-from models.arena import (COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Arena, Placement, Square,
-                          size_in_squares)
+from models.arena import (COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Area, Arena, Placement, Point,
+                          Square, size_in_squares)
 from models.buffs import is_paralyzed
 
 PARTY = 'party'
@@ -49,6 +49,19 @@ def ignores_cover(spell: Any) -> bool:
     """Spells like Sacred Flame say the target gains no benefit from cover."""
     return (getattr(spell, 'name', None) in SPELLS_IGNORING_COVER
             or 'no benefit from cover' in (getattr(spell, 'description', '') or '').lower())
+
+
+def area_of(action: Any) -> Optional[Area]:
+    """The shape of an area-effect action, spell or SpellAction, or None if it has none."""
+    source = getattr(action, 'spell', action)
+    return getattr(source, 'area', None) if getattr(source, 'area_effect', False) else None
+
+
+def area_range(action: Any) -> float:
+    """How far away an area can be placed: a spell's range (cones and lines start at the creature)."""
+    source = getattr(action, 'spell', action)
+    range_feet = getattr(source, 'range_feet', None)
+    return 0 if range_feet is None else range_feet
 
 
 def movement_speed(creature: Any) -> int:
@@ -341,6 +354,34 @@ class Battlefield:
         if getattr(spell, 'area_effect', False) or target is caster:
             return situation
         return self._with_cover(situation, caster, target, at)
+
+    # Area effects
+
+    def can_aim(self, creature: Any, area: Area, range_feet: float, origin: Point,
+                at: Optional[Square] = None) -> bool:
+        """Can the creature (standing at `at`) place the area here? A cone or line starts at the
+        edge of its space; a sphere or cube's origin must be within range."""
+        placement = self.placement(creature, at)
+        if area.from_self:
+            return tuple(origin) in self.arena.edge_points(placement)
+        return self.arena.distance_to_point(placement, origin) <= range_feet
+
+    def area_hits(self, creature: Any, area: Area, origin: Point, toward: Optional[Point] = None,
+                  at: Optional[Square] = None) -> List[Tuple[Any, str]]:
+        """
+        The creatures an area aimed this way catches, each with its cover from the origin (which
+        adds to DEX saves). Creatures in total cover from the origin aren't affected. A cone or
+        line never catches the creature using it.
+        """
+        placements = {c: self.placement(c, at if c is creature else None) for c in self.creatures()}
+        if area.from_self:
+            placements.pop(creature, None)
+        hits = []
+        for target in self.arena.in_area(area, origin, toward, placements):
+            cover = self.arena.cover_from_point(origin, placements[target])
+            if cover != COVER_TOTAL:
+                hits.append((target, cover))
+        return hits
 
     def spell_targets_in_range(self, caster: Any, targets: Iterable[Any], spell: Any,
                                at: Optional[Square] = None) -> List[Any]:

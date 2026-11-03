@@ -98,7 +98,8 @@ class SpellManager:
             concentration=spell_data.get('concentration', False),
             is_buff_spell=spell_data.get('is_buff_spell', False),
             buff_data=spell_data.get('buff_data'),
-            max_targets=spell_data.get('max_targets', 1)
+            max_targets=spell_data.get('max_targets', 1),
+            area=spell_data.get('area')
         )
     
     def get_spell(self, spell_name: str) -> Optional[Spell]:

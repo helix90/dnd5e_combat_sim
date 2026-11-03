@@ -41,6 +41,8 @@ def build_monster_actions(action_dicts: Optional[List[Dict[str, Any]]]) -> List[
                 on_hit=ad.get('on_hit'),
                 reach=ad.get('reach'),
                 range=ad.get('range'),
+                area=ad.get('area'),
+                recharge=ad.get('recharge'),
             ))
         elif ad.get('type') == 'special':
             if 'damage_dice' in ad and 'save_dc' in ad:
@@ -55,6 +57,8 @@ def build_monster_actions(action_dicts: Optional[List[Dict[str, Any]]]) -> List[
                     area_effect=True,
                     save_type=ad.get('save_type', 'dex'),
                     save_dc=ad.get('save_dc', 10),
+                    area=ad.get('area'),
+                    recharge=ad.get('recharge'),
                 ))
             else:
                 actions.append(Action(action_type='special', name=name,

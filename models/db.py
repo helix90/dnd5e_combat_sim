@@ -4,6 +4,7 @@ import threading
 from typing import List, Dict, Any, Optional
 from contextlib import contextmanager
 import time
+from models.arena import describe_area
 from utils.exceptions import DatabaseError
 from utils.logging import log_exception
 from utils.paths import PROJECT_ROOT
@@ -313,6 +314,9 @@ class DatabaseManager:
                         if result.get('reason') == 'out of range':
                             result_text = f"Can't reach {target}" + (
                                 f" ({result['distance']} ft away)" if result.get('distance') else '')
+                        elif result.get('reason') in ('no one in the area', 'not recharged'):
+                            description = result.get('description', '')
+                            result_text = description[:1].upper() + description[1:]
                     elif action_type == 'dash':
                         feet = _as_int((result.get('movement') or {}).get('feet'))
                         result_text = f"Dashes {feet} ft" + (f" toward {target}" if target else '')
@@ -340,10 +344,15 @@ class DatabaseManager:
 
     @staticmethod
     def _with_position_notes(text: str, result: Dict[str, Any]) -> str:
-        """On an arena: movement before and after the action, and the distance of an attack."""
+        """On an arena: movement before and after the action, the distance of an attack, the shape of
+        an area effect, and a recharge at the start of the turn."""
         movement = result.get('movement')
         if movement:
             text = f"Moves {_as_int(movement.get('feet'))} ft; " + text[:1].lower() + text[1:]
+        if result.get('area'):
+            text += f" ({describe_area(result['area'])})"
+        if result.get('recharged'):
+            text = f"{', '.join(result['recharged'])} recharged; " + text[:1].lower() + text[1:]
         if result.get('distance') and result.get('reason') != 'out of range':
             note = f"{result['distance']} ft"
             if result.get('cover'):

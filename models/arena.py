@@ -91,6 +91,52 @@ class Terrain:
 
 OPEN = Terrain()
 
+AREA_SPHERE = 'sphere'
+AREA_CUBE = 'cube'
+AREA_CONE = 'cone'
+AREA_LINE = 'line'
+AREA_SHAPES = (AREA_SPHERE, AREA_CUBE, AREA_CONE, AREA_LINE)
+
+
+def describe_area(area: Dict[str, Any]) -> str:
+    """An area as logged ({'shape': 'cone', 'size': 30}) in words: "30-ft cone", "20-ft-radius sphere"."""
+    if area.get('shape') == AREA_SPHERE:
+        return f"{area.get('size')}-ft-radius sphere"
+    return f"{area.get('size')}-ft {area.get('shape')}"
+
+
+@dataclass(frozen=True)
+class Area:
+    """
+    The shape of an area effect, e.g. Fireball's 20-ft-radius sphere or a dragon's 30-ft cone.
+    `size` is the radius of a sphere, the side of a cube and the length of a cone or line.
+
+    Aimed with an origin point and, for cones and lines, a point to aim toward. A sphere is
+    centred on its origin; a cube's origin is its top-left corner; cones and lines start at the
+    origin, which is on the edge of the creature's space.
+    """
+    shape: str
+    size: int
+    width: int = SQUARE_FEET  # lines only
+
+    def __post_init__(self) -> None:
+        if self.shape not in AREA_SHAPES:
+            raise ValueError(f"Unknown area shape: {self.shape!r}")
+        if not isinstance(self.size, int) or self.size < SQUARE_FEET:
+            raise ValueError(f"Invalid area size: {self.size!r}")
+
+    @property
+    def from_self(self) -> bool:
+        """Cones and lines start at the creature; spheres and cubes are placed within range."""
+        return self.shape in (AREA_CONE, AREA_LINE)
+
+    @classmethod
+    def from_dict(cls, data: Optional[Dict[str, Any]]) -> Optional['Area']:
+        """{"shape": "cone", "size": 30} -> Area, or None for no area."""
+        if not data:
+            return None
+        return cls(data['shape'], int(data['size']), int(data.get('width', SQUARE_FEET)))
+
 
 @dataclass(frozen=True)
 class Placement:
@@ -224,7 +270,7 @@ class Arena:
         # (corner, end) -> the terrain blocking that line, see _terrain_on_line
         self._line_cache: Dict[Tuple[Point, Point], List[Tuple[Tuple[Square, ...], str]]] = {}
         # (attacker position and size, target position and size) -> cover from terrain alone
-        self._pair_cache: Dict[Tuple[Square, int, Square, int], str] = {}
+        self._pair_cache: Dict[Tuple[Any, ...], str] = {}
         self.start_zones = {side: list(squares) for side, squares in (start_zones or {}).items()}
         for square in list(self.terrain) + [s for zone in self.start_zones.values() for s in zone]:
             if not self.in_bounds(square):
@@ -475,17 +521,17 @@ class Arena:
             # Cover from terrain alone never changes, so it's remembered
             key = (attacker.position, attacker.size, target.position, target.size)
             if key not in self._pair_cache:
-                self._pair_cache[key] = self._best_cover(attacker, target, own, {})
+                self._pair_cache[key] = self._best_cover(attacker.corners(), target, own, {})
             terrain = self._pair_cache[key]
         # Creatures only add cover, and there's nothing to add to total cover
         if not creatures or terrain == COVER_TOTAL:
             return terrain
-        return self._best_cover(attacker, target, own, creatures)
+        return self._best_cover(attacker.corners(), target, own, creatures)
 
-    def _best_cover(self, attacker: Placement, target: Placement, own: Set[Square],
+    def _best_cover(self, corners: Iterable[Point], target: Placement, own: Set[Square],
                     creatures: Dict[Square, str]) -> str:
         best = COVER_TOTAL
-        for corner in attacker.corners():
+        for corner in corners:
             for target_square in target.squares():
                 lines = [self._line_cover(corner, end, own, creatures) for end in _square_corners(target_square)]
                 result = _cover_from_lines(lines)
@@ -530,12 +576,49 @@ class Arena:
 
     # Areas of effect. A square is in the area if its center is.
 
-    def _all_squares(self) -> Iterable[Square]:
-        return ((x, y) for y in range(self.height) for x in range(self.width))
+    def _squares_near(self, point: Point, feet: float) -> Iterable[Square]:
+        """The squares on the map within `feet` of a point along each axis."""
+        reach = int(feet // SQUARE_FEET) + 1
+        x0, y0 = int(math.floor(point[0])), int(math.floor(point[1]))
+        for y in range(max(0, y0 - reach), min(self.height, y0 + reach + 1)):
+            for x in range(max(0, x0 - reach), min(self.width, x0 + reach + 1)):
+                yield (x, y)
+
+    def _area_test(self, area: 'Area', origin: Point, toward: Optional[Point]) -> Callable[[Square], bool]:
+        """Whether a square is in the area aimed this way."""
+        if area.shape == AREA_SPHERE:
+            limit = area.size + _EPS
+            return lambda s: self._feet(s[0] + 0.5 - origin[0], s[1] + 0.5 - origin[1]) <= limit
+        if area.shape == AREA_CUBE:
+            n = area.size // SQUARE_FEET
+            x0, y0 = int(round(origin[0])), int(round(origin[1]))
+            return lambda s: x0 <= s[0] < x0 + n and y0 <= s[1] < y0 + n
+        measure = self._along_and_across(origin, toward) if toward is not None else None
+        if measure is None:
+            return lambda s: False
+        half_width = area.width / 2 + _EPS
+
+        def test(square: Square) -> bool:
+            along, across = measure(square)
+            if not _EPS < along <= area.size + _EPS:
+                return False
+            return across <= (along / 2 + _EPS if area.shape == AREA_CONE else half_width)
+        return test
+
+    def area_squares(self, area: 'Area', origin: Point, toward: Optional[Point] = None) -> Set[Square]:
+        """The squares on the map an area aimed this way covers."""
+        test = self._area_test(area, origin, toward)
+        return {s for s in self._squares_near(origin, area.size + SQUARE_FEET) if test(s)}
+
+    def in_area(self, area: 'Area', origin: Point, toward: Optional[Point],
+                placements: Dict[Any, Placement]) -> List[Any]:
+        """The creatures with at least one square of their space in the area."""
+        test = self._area_test(area, origin, toward)
+        return [c for c, p in placements.items() if any(test(s) for s in p.squares())]
 
     def squares_in_sphere(self, center: Point, radius_ft: float) -> Set[Square]:
         """A sphere or circle (e.g. Fireball) centred on a grid intersection."""
-        return {s for s in self._all_squares()
+        return {s for s in self._squares_near(center, radius_ft)
                 if self._feet(s[0] + 0.5 - center[0], s[1] + 0.5 - center[1]) <= radius_ft + _EPS}
 
     def squares_in_cube(self, corner: Square, side_ft: float) -> Set[Square]:
@@ -559,28 +642,40 @@ class Arena:
     def squares_in_cone(self, origin: Point, toward: Point, length_ft: float) -> Set[Square]:
         """A cone (e.g. a breath weapon) from a point, aimed at another point. Its width at any
         distance from the origin equals that distance."""
-        measure = self._along_and_across(origin, toward)
-        if measure is None:
-            return set()
-        squares = set()
-        for s in self._all_squares():
-            along, across = measure(s)
-            if _EPS < along <= length_ft + _EPS and across <= along / 2 + _EPS:
-                squares.add(s)
-        return squares
+        return self.area_squares(Area(AREA_CONE, int(length_ft)), origin, toward)
 
     def squares_in_line(self, origin: Point, toward: Point, length_ft: float,
                         width_ft: float = SQUARE_FEET) -> Set[Square]:
         """A line (e.g. Lightning Bolt) from a point, aimed at another point."""
-        measure = self._along_and_across(origin, toward)
-        if measure is None:
-            return set()
-        squares = set()
-        for s in self._all_squares():
-            along, across = measure(s)
-            if _EPS < along <= length_ft + _EPS and across <= width_ft / 2 + _EPS:
-                squares.add(s)
-        return squares
+        return self.area_squares(Area(AREA_LINE, int(length_ft), int(width_ft)), origin, toward)
+
+    def distance_to_point(self, placement: Placement, point: Point) -> float:
+        """Feet from the nearest edge of a creature's space to a grid intersection."""
+        (x, y), size = placement.position, placement.size
+        dx = max(x - point[0], 0, point[0] - (x + size))
+        dy = max(y - point[1], 0, point[1] - (y + size))
+        return self._feet(dx, dy)
+
+    @staticmethod
+    def edge_points(placement: Placement) -> List[Point]:
+        """The grid intersections around the edge of a creature's space (where a cone can start)."""
+        (x, y), size = placement.position, placement.size
+        points = {(x + i, y + j) for i in range(size + 1) for j in (0, size)}
+        points |= {(x + i, y + j) for i in (0, size) for j in range(size + 1)}
+        return sorted(points)
+
+    def cover_from_point(self, point: Point, target: Placement) -> str:
+        """
+        Cover from terrain the target has against an effect from a point (an area effect's
+        origin), by the same method as cover(): the best of the lines from the point to the
+        corners of each of the target's squares. Remembered, as terrain doesn't change.
+        """
+        if not self._cover_terrain:
+            return COVER_NONE
+        key = ('point', point, target.position, target.size)
+        if key not in self._pair_cache:
+            self._pair_cache[key] = self._best_cover([point], target, target.squares(), {})
+        return self._pair_cache[key]
 
     @staticmethod
     def creatures_in(squares: Set[Square], placements: Dict[Any, Placement]) -> List[Any]:

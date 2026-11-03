@@ -9,12 +9,13 @@ from utils.exceptions import SimulationError
 from utils.logging import log_exception
 from ai.strategy import PartyAIStrategy, MonsterAIStrategy
 from ai.tactical import TacticalAnalyzer
+from ai.aiming import aim_area
 from ai.positioning import fit_plan
 from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
 from models.actions import AttackAction
-from models.arena import COVER_NONE, COVER_TOTAL, SQUARE_FEET
-from models.battlefield import MONSTERS, PARTY, Battlefield, ignores_cover
+from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, describe_area
+from models.battlefield import MONSTERS, PARTY, Battlefield, area_of, area_range, ignores_cover
 from models.multiattack import parse_multiattack
 from models.damage import apply_damage, has_ability
 import logging
@@ -249,6 +250,7 @@ class Combat:
                     result = self._paralyzed_turn(participant)
                     self.logger.log_action(participant, result, self.current_round)
                     return participant
+                recharged = self._roll_recharges(participant)
                 ai = self.ai_strategy_map.get(participant)
                 if ai:
                     combat_state = self._build_combat_state(participant)
@@ -257,6 +259,8 @@ class Combat:
                         action_plan = fit_plan(participant, action_plan, combat_state)
                     hp_before = {c: c.hp for c in self._regenerators}
                     result = self._take_turn(participant, action_plan)
+                    if recharged:
+                        result['recharged'] = recharged
                     self._note_regeneration_damage(hp_before, result)
                     self.logger.log_action(participant, result, self.current_round)
                     self._log_pending_entries()
@@ -264,6 +268,64 @@ class Combat:
                         return participant
                 return participant
         return None
+
+    @staticmethod
+    def _roll_recharges(participant: Any) -> List[str]:
+        """At the start of its turn, roll a d6 for each used recharge action (e.g. a breath weapon);
+        it can be used again on its recharge number or higher. Returns the ones that recharged."""
+        recharged = []
+        for action in getattr(participant, 'actions', []):
+            if getattr(action, 'recharge', None) and not action.ready and random.randint(1, 6) >= action.recharge:
+                action.ready = True
+                recharged.append(action.name)
+        return recharged
+
+    def _area_hits(self, participant: Any, action: Any, plan: Dict[str, Any]) -> Any:
+        """
+        On an arena, who an area effect catches where the plan aims it (aimed here if the plan
+        isn't), each with its cover from the origin: (hits, aim). Hits is empty if the aim can't
+        be used from where the participant stands.
+        """
+        area = area_of(action)
+        aim = plan.get('aim')
+        if aim is None:
+            found = aim_area(self.battlefield, participant, action, {})
+            aim = found.plan_fields()['aim'] if found else None
+        if aim is None:
+            return [], None
+        origin = tuple(aim['origin'])
+        toward = tuple(aim['toward']) if aim.get('toward') is not None else None
+        if not self.battlefield.can_aim(participant, area, area_range(action), origin):
+            return [], aim
+        return self.battlefield.area_hits(participant, area, origin, toward), aim
+
+    def _execute_area(self, participant: Any, action: Any, plan: Dict[str, Any], execute: Any) -> Dict[str, Any]:
+        """
+        Use an area action or spell on an arena: it affects every creature in the area, allies
+        included, and DEX saves get the target's cover from the origin. `execute(targets,
+        save_bonuses)` carries it out.
+        """
+        hits, aim = self._area_hits(participant, action, plan)
+        area = area_of(action)
+        source = getattr(action, 'spell', action)
+        if not hits:
+            return {
+                'action': action.name,
+                'type': 'wait',
+                'success': False,
+                'reason': 'no one in the area',
+                'description': f"holds back {source.name} (no one in the area)",
+                'target': [],
+            }
+        dex = getattr(source, 'save_type', None) == 'dex'
+        bonuses = {target: COVER_AC_BONUS[cover] if dex else 0 for target, cover in hits}
+        result = execute([target for target, _ in hits], bonuses)
+        result['aim'] = aim
+        result['area'] = {'shape': area.shape, 'size': area.size}
+        covered = {getattr(t, 'name', str(t)): cover for t, cover in hits if cover != COVER_NONE}
+        if covered:
+            result['cover_by_target'] = covered
+        return result
 
     def _log_pending_entries(self) -> None:
         """Log abilities that creatures used in response to the last action (e.g. Undead Fortitude)."""
@@ -440,7 +502,18 @@ class Combat:
         if action_type == 'attack':
             action = action_plan['action']
             target = action_plan['target']
-            if self._is_character_weapon_attack(participant, action, target):
+            if getattr(action, 'recharge', None):
+                if not action.ready:
+                    return {'action': action.name, 'type': 'wait', 'success': False,
+                            'reason': 'not recharged', 'description': f"{action.name} hasn't recharged"}
+                action.ready = False
+            if self.battlefield is not None and area_of(action) is not None:
+                result = self._execute_area(participant, action, action_plan,
+                                            lambda targets, bonuses: action.execute(participant, targets,
+                                                                                    save_bonuses=bonuses))
+                if result.get('reason') == 'no one in the area' and getattr(action, 'recharge', None):
+                    action.ready = True
+            elif self._is_character_weapon_attack(participant, action, target):
                 result = self._execute_weapon_attacks(participant, action, target)
             elif isinstance(action, AttackAction):
                 notes: Dict[str, Any] = {}
@@ -462,6 +535,14 @@ class Combat:
             target = action_plan['target']
             notes = {}
             options: Dict[str, Any] = {}
+            if self.battlefield is not None and area_of(spell) is not None:
+                # No slot is spent if the area would catch no one
+                result = self._execute_area(participant, spell, action_plan,
+                                            lambda targets, bonuses: spell.execute(participant, targets,
+                                                                                   save_bonuses=bonuses))
+                if result.get('total_damage', result.get('damage', 0)) > 0:
+                    self._alive_participants_cache = None
+                return result
             if self.battlefield is not None and not getattr(spell.spell, 'area_effect', False):
                 if isinstance(target, list):
                     target = self.battlefield.spell_targets_in_range(participant, target, spell.spell)
@@ -821,7 +902,7 @@ class Combat:
                     toward = f" toward {result['target']}" if result.get('target') else ''
                     lines.append(f"{actor} dashes {feet} ft{toward}.")
                     continue
-                if result.get('reason') == 'out of range':
+                if result.get('reason') in ('out of range', 'no one in the area', 'not recharged'):
                     lines.append(f"{actor} {result.get('description', 'is out of range')}.")
                 elif result.get('type') == 'condition':
                     lines.append(f"{actor} {result.get('description', '')}.")
@@ -832,8 +913,9 @@ class Combat:
                         spell_name = result['spell']
                         if 'healing' in result and result['healing'] > 0:
                             lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: heals {result['healing']} HP.")
-                        elif 'damage' in result:
-                            lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: {result['damage']} damage.")
+                        elif 'damage' in result or 'total_damage' in result:
+                            damage = result.get('damage', result.get('total_damage'))
+                            lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: {damage} damage.")
                         else:
                             lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}.")
                     elif 'damage' in result:
@@ -865,6 +947,11 @@ class Combat:
         movement = result.get('movement')
         if movement:
             line = f"{actor} moves {movement['feet']} ft. " + line
+        if result.get('recharged'):
+            line = f"{actor}'s {', '.join(result['recharged'])} recharges. " + line
+        if result.get('area'):
+            area = describe_area(result['area'])
+            line = line[:-1] + f" ({area})." if line.endswith('.') else line + f" ({area})"
         if result.get('distance') and result.get('reason') != 'out of range':
             note = f"{result['distance']} ft"
             if result.get('cover'):

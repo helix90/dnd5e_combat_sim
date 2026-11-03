@@ -17,6 +17,7 @@ from models.character_builder import build_party
 from models.combat import Combat
 from models.monster import Monster
 from models.monster_builder import build_monsters
+from models.spell_manager import SpellManager
 from models.spells import Spell, SpellAction
 from utils.party_loader import PartyLoader
 from utils.paths import data_path
@@ -27,6 +28,7 @@ LOW_WALL = Terrain(difficult=True, cover=COVER_HALF)
 BOULDER = Terrain(impassable=True, cover='three_quarters')
 TEMPLATES = json.load(open(data_path('encounter_templates.json')))['encounters']
 MONSTERS = {m['name']: m for m in json.load(open(data_path('monsters.json')))['monsters']}
+SPELLS = SpellManager()
 
 
 def bow(hit_bonus=4):
@@ -192,7 +194,7 @@ def test_every_template_names_an_encounter_map_and_the_generic_maps_are_listed()
 
 
 def encounter(template):
-    party = build_party(PartyLoader.get_party_with_level(1, template['level'])['characters'])
+    party = build_party(PartyLoader.get_party_with_level(1, template['level'])['characters'], SPELLS)
     monsters = []
     for entry in template['monsters']:
         for i in range(entry['count']):
