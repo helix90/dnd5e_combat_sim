@@ -266,6 +266,8 @@ class Arena:
         self.height = height
         self.diagonals = diagonals
         self.terrain = dict(terrain or {})
+        # What each terrain square is (wall, tree, ...), from the map file: only for drawing it
+        self.kinds: Dict[Square, str] = {}
         self._cover_terrain = {s: kind.cover for s, kind in self.terrain.items() if kind.cover != COVER_NONE}
         # (corner, end) -> the terrain blocking that line, see _terrain_on_line
         self._line_cache: Dict[Tuple[Point, Point], List[Tuple[Tuple[Square, ...], str]]] = {}
@@ -290,16 +292,31 @@ class Arena:
 
         A "rect" is [x1, y1, x2, y2] with both corners included; "rects" is a list of them.
         """
-        terrain = {}
+        terrain, kinds = {}, {}
         for entry in data.get('terrain', []):
             kind = Terrain(difficult=bool(entry.get('difficult', False)),
                            impassable=bool(entry.get('impassable', False)),
                            cover=entry.get('cover', COVER_NONE))
             for square in cls._squares_from(entry):
                 terrain[square] = kind
+                if entry.get('kind'):
+                    kinds[square] = entry['kind']
         zones = {side: cls._squares_from(zone) for side, zone in data.get('start_zones', {}).items()}
-        return cls(data['width'], data['height'], terrain, zones,
-                   data.get('diagonals', DIAGONALS_FIVE), data.get('name', ''))
+        arena = cls(data['width'], data['height'], terrain, zones,
+                    data.get('diagonals', DIAGONALS_FIVE), data.get('name', ''))
+        arena.kinds = {s: k for s, k in kinds.items() if s in terrain}
+        return arena
+
+    def drawing(self) -> Dict[str, Any]:
+        """The map for drawing a replay: size, and each terrain square as
+        [x, y, kind, impassable, difficult, cover]."""
+        return {
+            'name': self.name,
+            'width': self.width,
+            'height': self.height,
+            'terrain': [[x, y, self.kinds.get((x, y), ''), int(t.impassable), int(t.difficult), t.cover]
+                        for (x, y), t in sorted(self.terrain.items())],
+        }
 
     @staticmethod
     def _squares_from(entry: Dict[str, Any]) -> List[Square]:

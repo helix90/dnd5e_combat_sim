@@ -38,6 +38,36 @@
   </div>
 </div>
 
+{% if replay %}
+<div class="card mb-3" id="replay">
+  <div class="card-header"><h5 class="mb-0">Battle Map: {{ arena }}</h5></div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div id="replayMap" class="border rounded" style="overflow: auto; background: #f6f3ea;"></div>
+        <div class="d-flex flex-wrap align-items-center gap-1 mt-2">
+          <button type="button" id="replayStart" class="btn btn-sm btn-outline-secondary" title="Start positions">&#9198;</button>
+          <button type="button" id="replayPrevRound" class="btn btn-sm btn-outline-secondary" title="Previous round">&laquo; Round</button>
+          <button type="button" id="replayPrev" class="btn btn-sm btn-outline-secondary" title="Previous action">&lsaquo;</button>
+          <button type="button" id="replayPlay" class="btn btn-sm btn-primary" style="min-width: 4.5em;">Play</button>
+          <button type="button" id="replayNext" class="btn btn-sm btn-outline-secondary" title="Next action">&rsaquo;</button>
+          <button type="button" id="replayNextRound" class="btn btn-sm btn-outline-secondary" title="Next round">Round &raquo;</button>
+          <input type="range" id="replaySlider" class="form-range ms-2" style="flex: 1 1 8em;" min="0" value="0" aria-label="Replay position">
+        </div>
+        <div id="replayCaption" class="small mt-1" aria-live="polite"></div>
+        <div class="small text-muted mt-2 d-flex flex-wrap gap-3" id="replayLegend"></div>
+      </div>
+      <div class="col-lg-5">
+        <ol id="replayLog" class="list-unstyled small mb-0 border rounded p-1"
+            style="max-height: 520px; overflow-y: auto; position: relative;"></ol>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="application/json" id="replayData">{{ replay|tojson }}</script>
+<script type="application/json" id="replayLogData">{{ replay_log|tojson }}</script>
+{% endif %}
+
 <div class="mb-3">
   <button id="logButton" class="btn btn-primary mb-2">Show Detailed Combat Log</button>
   <div id="logContent" class="d-none">
@@ -85,4 +115,207 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 </script>
+{% if replay %}
+<script>
+(function() {
+  const data = JSON.parse(document.getElementById('replayData').textContent);
+  const lines = JSON.parse(document.getElementById('replayLogData').textContent) || [];
+  const frames = data.frames || [];
+  const arena = data.arena;
+  const CELL = 24;
+  const NS = 'http://www.w3.org/2000/svg';
+  const SIDE_COLORS = {party: '#2563eb', monsters: '#dc2626'};
+  const creatures = {};
+  (data.creatures || []).forEach(c => { creatures[c.name] = c; });
+
+  function el(name, attrs, parent) {
+    const node = document.createElementNS(NS, name);
+    Object.entries(attrs || {}).forEach(([k, v]) => node.setAttribute(k, v));
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+
+  // [label, color] for a terrain square
+  function terrainStyle(kind, impassable, difficult, cover) {
+    if (kind === 'water' || kind === 'shallows') return ['Water', '#7fb2e5'];
+    if (kind === 'lava') return ['Lava', '#e0663a'];
+    if (kind === 'tree') return ['Trees', '#5d9a5d'];
+    if (impassable && cover === 'total') return ['Wall', '#555'];
+    if (impassable && cover !== 'none') return ['Boulder or statue', '#8d8d8d'];
+    if (impassable) return ['Water', '#7fb2e5'];
+    if (cover !== 'none') return ['Low obstacle (cover)', '#a47b4f'];
+    return ['Difficult terrain', '#d9c999'];
+  }
+
+  function shortName(name) {
+    const parts = name.split(' ');
+    const last = parts[parts.length - 1];
+    if (parts.length > 1 && /^\d+$/.test(last)) return parts[0][0] + last;
+    return name.slice(0, 2);
+  }
+
+  // The map: terrain and grid, drawn once
+  const svg = el('svg', {viewBox: `0 0 ${arena.width * CELL} ${arena.height * CELL}`,
+                         width: '100%', role: 'img', 'aria-label': `Battle map of ${arena.name}`});
+  const defs = el('defs', {}, svg);
+  const marker = el('marker', {id: 'arrow', viewBox: '0 0 10 10', refX: 8, refY: 5,
+                               markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse'}, defs);
+  el('path', {d: 'M 0 0 L 10 5 L 0 10 z', fill: '#333'}, marker);
+  const hatch = el('pattern', {id: 'difficult', width: 6, height: 6, patternUnits: 'userSpaceOnUse',
+                               patternTransform: 'rotate(45)'}, defs);
+  el('line', {x1: 0, y1: 0, x2: 0, y2: 6, stroke: 'rgba(0,0,0,0.25)', 'stroke-width': 2}, hatch);
+  el('rect', {x: 0, y: 0, width: arena.width * CELL, height: arena.height * CELL, fill: '#f6f3ea'}, svg);
+  const used = new Map();
+  (arena.terrain || []).forEach(([x, y, kind, impassable, difficult, cover]) => {
+    const [label, color] = terrainStyle(kind, impassable, difficult, cover);
+    used.set(label, color);
+    el('rect', {x: x * CELL, y: y * CELL, width: CELL, height: CELL, fill: color}, svg);
+    if (difficult) el('rect', {x: x * CELL, y: y * CELL, width: CELL, height: CELL, fill: 'url(#difficult)'}, svg);
+  });
+  const grid = el('g', {stroke: 'rgba(0,0,0,0.08)', 'stroke-width': 1}, svg);
+  for (let x = 0; x <= arena.width; x++) el('line', {x1: x * CELL, y1: 0, x2: x * CELL, y2: arena.height * CELL}, grid);
+  for (let y = 0; y <= arena.height; y++) el('line', {x1: 0, y1: y * CELL, x2: arena.width * CELL, y2: y * CELL}, grid);
+  const dynamic = el('g', {}, svg);
+  document.getElementById('replayMap').appendChild(svg);
+
+  const legend = document.getElementById('replayLegend');
+  const entries = [['Party', SIDE_COLORS.party, true], ['Monsters', SIDE_COLORS.monsters, true]]
+    .concat(Array.from(used.entries()));
+  if (frames.some(f => f.area)) entries.push(['Area effect', 'rgba(249,115,22,0.45)']);
+  entries.forEach(([label, color, round]) => {
+    const item = document.createElement('span');
+    const swatch = document.createElement('span');
+    swatch.style.cssText = `display:inline-block;width:12px;height:12px;margin-right:4px;vertical-align:-1px;` +
+      `background:${color};border-radius:${round ? '50%' : '2px'};`;
+    item.appendChild(swatch);
+    item.appendChild(document.createTextNode(label));
+    legend.appendChild(item);
+  });
+
+  // The log beside the map. Stored attack lines don't name the target, so add it.
+  function lineText(line) {
+    const text = line.text || '';
+    const target = line.target && line.target !== line.name && !text.includes(line.target) ? ` \u2192 ${line.target}` : '';
+    return `${line.name}${target}: ${text}`;
+  }
+
+  const logList = document.getElementById('replayLog');
+  const items = lines.map((line, i) => {
+    const li = document.createElement('li');
+    li.className = 'px-1 rounded';
+    li.style.cursor = 'pointer';
+    li.textContent = `R${line.round} \u00b7 ${lineText(line)}`;
+    li.addEventListener('click', () => { stop(); show(i + 1); });
+    logList.appendChild(li);
+    return li;
+  });
+
+  function center(pos, size) {
+    return [(pos[0] + size / 2) * CELL, (pos[1] + size / 2) * CELL];
+  }
+
+  // Frame 0 is the start; frame i is after the i-th action
+  function state(i) {
+    return i === 0 ? {positions: data.start.positions, hp: data.start.hp} : frames[i - 1];
+  }
+
+  let current = 0;
+  const slider = document.getElementById('replaySlider');
+  slider.max = frames.length;
+  const caption = document.getElementById('replayCaption');
+
+  function show(i) {
+    current = Math.max(0, Math.min(frames.length, i));
+    slider.value = current;
+    const frame = state(current);
+    while (dynamic.firstChild) dynamic.removeChild(dynamic.firstChild);
+    (frame.area || []).forEach(([x, y]) => {
+      el('rect', {x: x * CELL, y: y * CELL, width: CELL, height: CELL, fill: 'rgba(249,115,22,0.45)'}, dynamic);
+    });
+    const targets = new Set(frame.targets || []);
+    (frame.moves || []).forEach(([from, to]) => {
+      const size = (creatures[frame.actor] || {size: 1}).size;
+      const [x1, y1] = center(from, size), [x2, y2] = center(to, size);
+      el('line', {x1, y1, x2, y2, stroke: '#333', 'stroke-width': 2, 'stroke-dasharray': '4 3',
+                  'marker-end': 'url(#arrow)'}, dynamic);
+    });
+    Object.entries(frame.positions).forEach(([name, pos]) => {
+      const c = creatures[name] || {size: 1, side: 'monsters', max_hp: 1};
+      const hp = (frame.hp || {})[name];
+      const [cx, cy] = center(pos, c.size);
+      const r = c.size * CELL * 0.42;
+      const g = el('g', {}, dynamic);
+      el('title', {}, g).textContent = `${name}: ${hp} / ${c.max_hp} HP`;
+      el('circle', {cx, cy, r, fill: hp > 0 ? SIDE_COLORS[c.side] : '#9ca3af',
+                    stroke: name === frame.actor ? '#facc15' : (targets.has(name) ? '#111' : '#fff'),
+                    'stroke-width': name === frame.actor ? 3 : 2,
+                    'stroke-dasharray': targets.has(name) && name !== frame.actor ? '3 2' : ''}, g);
+      const label = el('text', {x: cx, y: cy + 4, 'text-anchor': 'middle', 'font-size': 10 + 2 * (c.size - 1),
+                                'font-family': 'sans-serif', fill: '#fff', 'font-weight': 'bold'}, g);
+      label.textContent = shortName(name);
+      const width = c.size * CELL * 0.8, left = cx - width / 2, top = cy + r - 1;
+      el('rect', {x: left, y: top, width, height: 3, fill: '#7f1d1d'}, g);
+      el('rect', {x: left, y: top, width: width * Math.max(0, Math.min(1, hp / c.max_hp)), height: 3,
+                  fill: '#22c55e'}, g);
+    });
+    items.forEach(item => item.classList.remove('bg-warning-subtle', 'fw-semibold'));
+    if (current === 0) {
+      caption.textContent = 'Start positions';
+      logList.scrollTop = 0;
+    } else {
+      const line = lines[current - 1];
+      caption.textContent = line ? `Round ${line.round} \u00b7 ${lineText(line)}`
+                                 : `Round ${frame.round} \u00b7 ${frame.actor}`;
+      const item = items[current - 1];
+      if (item) {
+        item.classList.add('bg-warning-subtle', 'fw-semibold');
+        if (item.offsetTop < logList.scrollTop || item.offsetTop + item.offsetHeight > logList.scrollTop + logList.clientHeight) {
+          logList.scrollTop = item.offsetTop - logList.clientHeight / 3;
+        }
+      }
+    }
+  }
+
+  function roundOf(i) { return i === 0 ? 0 : frames[i - 1].round; }
+  function nextRound() {
+    const r = roundOf(current);
+    let i = current + 1;
+    while (i <= frames.length && roundOf(i) === r) i++;
+    return Math.min(i, frames.length);
+  }
+  function prevRound() {
+    const r = roundOf(current);
+    let i = current;
+    while (i > 0 && roundOf(i) === r) i--;  // into the previous round
+    const previous = roundOf(i);
+    while (i > 0 && roundOf(i - 1) === previous) i--;  // its first action
+    return i;
+  }
+
+  let timer = null;
+  const playButton = document.getElementById('replayPlay');
+  function stop() {
+    if (timer) clearInterval(timer);
+    timer = null;
+    playButton.textContent = 'Play';
+  }
+  playButton.addEventListener('click', () => {
+    if (timer) { stop(); return; }
+    if (current >= frames.length) show(0);
+    playButton.textContent = 'Pause';
+    timer = setInterval(() => {
+      if (current >= frames.length) { stop(); return; }
+      show(current + 1);
+    }, 700);
+  });
+  document.getElementById('replayStart').addEventListener('click', () => { stop(); show(0); });
+  document.getElementById('replayPrev').addEventListener('click', () => { stop(); show(current - 1); });
+  document.getElementById('replayNext').addEventListener('click', () => { stop(); show(current + 1); });
+  document.getElementById('replayPrevRound').addEventListener('click', () => { stop(); show(prevRound()); });
+  document.getElementById('replayNextRound').addEventListener('click', () => { stop(); show(nextRound()); });
+  slider.addEventListener('input', () => { stop(); show(parseInt(slider.value, 10)); });
+  show(0);
+})();
+</script>
+{% endif %}
 {% endblock %} 

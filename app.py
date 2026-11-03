@@ -863,7 +863,8 @@ def batch_simulation_start() -> Tuple[Any, int]:
         logger.info(f"Starting batch simulation: {num_runs} runs, {len(party)} party members, {len(monsters)} monsters")
         batch_id = batch_simulation_controller.execute_batch_simulation(
             party, monsters, num_runs, batch_name, session_id,
-            arena_name=load_arena_from_session()
+            arena_name=load_arena_from_session(),
+            compare_without_arena=bool(data.get('compare_without_arena'))
         )
 
         logger.info(f"Started batch simulation {batch_id} with {num_runs} runs")
@@ -1012,6 +1013,11 @@ def results() -> str:
         summary = results_controller.format_simulation_results(sim_id)
         statistics = results_controller.generate_combat_statistics(sim_id)
         log = [sanitize_html(str(entry)) for entry in summary['logs']]
+        replay = db.get_replay(sim_id) if record.get('arena') else None
+        # One line per action, in the order of the replay's frames (escaped by the page's script)
+        replay_log = [{'round': entry.get('round_number'), 'name': entry.get('character_name'),
+                       'target': entry.get('target'), 'text': entry.get('result')}
+                      for entry in summary['logs']] if replay else None
 
         return render_template(
             'results.html',
@@ -1019,7 +1025,9 @@ def results() -> str:
             statistics=statistics,
             log=log,
             sim_id=sim_id,
-            arena=record.get('arena')
+            arena=record.get('arena'),
+            replay=replay,
+            replay_log=replay_log
         )
     except AppError as e:
         # Application errors (validation, database, etc.) should return 400
