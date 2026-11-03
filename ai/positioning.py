@@ -19,6 +19,10 @@ into something the creature can actually do this turn:
 - Area effects are aimed (ai/aiming.py) to catch the most enemies and spare allies. If the best
   aim is worth less than an ordinary attack, the creature attacks instead and keeps its spell
   slot or breath weapon.
+- Leaving an enemy's reach provokes an opportunity attack, so a square is worth less by the
+  damage those attacks are expected to do. A creature that can Disengage as a bonus action
+  (Cunning Action, Nimble Escape) does so when it moves out of reach, and a rogue can Dash as a
+  bonus action to move twice as far and still attack.
 """
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -26,8 +30,8 @@ from ai.aiming import aim_area
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Square
 from models.buffs import is_paralyzed
-from models.battlefield import (Battlefield, Situation, Threatened, area_of, attack_distances, ignores_cover,
-                                judge_attack, judge_spell)
+from models.battlefield import (Battlefield, Situation, Threatened, area_of, attack_distances, bonus_dash,
+                                bonus_disengage, ignores_cover, judge_attack, judge_spell, melee_attacks)
 from models.multiattack import parse_multiattack
 from models.spells import SpellAction
 
@@ -45,6 +49,8 @@ SHELTER_VALUE = {COVER_NONE: 0.0, 'half': 0.5, 'three_quarters': 1.0, COVER_TOTA
 SHELTER_ENEMIES = 3
 # How many of the best-looking squares are rescored with cover
 RESCORED = 12
+# Damage taken from an opportunity attack counts this much against damage dealt
+OPPORTUNITY_WEIGHT = 1.0
 
 
 def _average(dice: Optional[str]) -> float:
@@ -158,12 +164,6 @@ def _attack_options(creature: Any) -> List[Any]:
     return options
 
 
-def _with_move(plan: Dict[str, Any], bf: Battlefield, creature: Any, square: Square) -> Dict[str, Any]:
-    if square != bf.position(creature):
-        plan['move_to'] = square
-    return plan
-
-
 class _Planner:
     def __init__(self, bf: Battlefield, creature: Any) -> None:
         self.bf = bf
@@ -180,11 +180,58 @@ class _Planner:
         self._shelter: Dict[Square, float] = {}
         # Seeking cover only matters on maps with cover terrain; creatures alone move too much
         self.seeks_cover = bf.arena.has_cover
+        self.speed = bf.speed(creature)
+        self.can_dash = bonus_dash(creature) is not None
+        self.can_disengage = bonus_disengage(creature) is not None
+        self._threats: Optional[List[Tuple[Any, float]]] = None
+        self._opportunity: Dict[Square, float] = {}
 
     def squares(self) -> Dict[Square, int]:
+        """Squares the creature can move to this turn (twice as far with a bonus-action Dash)."""
         if self._squares is None:
-            self._squares = self.bf.reachable(self.creature, self.bf.speed(self.creature))
+            self._squares = self.bf.reachable(self.creature, self.speed * (2 if self.can_dash else 1))
         return self._squares
+
+    def threats(self) -> List[Tuple[Any, float]]:
+        """Enemies that would get an opportunity attack if the creature left their reach, each with
+        the damage that attack is expected to do."""
+        if self._threats is None:
+            ac = getattr(self.creature, 'ac', 10)
+            self._threats = [(enemy, max(_average(a.damage_dice) * _hit_chance(a.hit_bonus(enemy), ac, False)
+                                         for a in melee_attacks(enemy)))
+                             for enemy in self.bf.threats(self.creature)]
+        return self._threats
+
+    def provokes(self, square: Square) -> List[Tuple[Any, float]]:
+        """The threats whose reach the creature leaves by ending its move on this square."""
+        if square == self.here:
+            return []
+        return [(enemy, damage) for enemy, damage in self.threats()
+                if not self.bf.in_reach_of(enemy, self.creature, square)]
+
+    def opportunity_cost(self, square: Square, cost: int) -> float:
+        """Expected damage from opportunity attacks for moving to this square (none if the creature
+        can Disengage as a bonus action without needing that action to Dash)."""
+        if square == self.here or not self.threats():
+            return 0.0
+        if self.can_disengage and cost <= self.speed:
+            return 0.0
+        if square not in self._opportunity:
+            self._opportunity[square] = OPPORTUNITY_WEIGHT * sum(damage for _, damage in self.provokes(square))
+        return self._opportunity[square]
+
+    def with_move(self, plan: Dict[str, Any], square: Square) -> Dict[str, Any]:
+        """Add the move to the plan, with the bonus action it needs: Dash to go beyond the creature's
+        speed, otherwise Disengage if it leaves an enemy's reach and can."""
+        if square == self.here:
+            return plan
+        plan['move_to'] = square
+        cost = self.squares().get(square, 0)
+        if cost > self.speed:
+            plan['bonus_action'] = 'Dash'
+        elif self.can_disengage and self.provokes(square):
+            plan['bonus_action'] = 'Disengage'
+        return plan
 
     def evaluate(self, option: Any, target: Any, square: Square) -> Optional[float]:
         """
@@ -247,7 +294,7 @@ class _Planner:
         for attacks from range, the cover the square gives the attacker.
         """
         # Leave out options that can't reach a target even after a full move
-        speed = self.bf.speed(self.creature)
+        speed = self.speed * (2 if self.can_dash else 1)
         pairs = [(t, [o for o in options if self.distance(t, self.here) <= o.max_distance + speed])
                  for t in targets]
         pairs = [(t, opts) for t, opts in pairs if opts]
@@ -265,7 +312,8 @@ class _Planner:
                     if value is not None and (found is None or value > found[0]):
                         found = (value, option)
                 if found:
-                    rough = found[0] * weights[target] - MOVE_PENALTY_PER_FT * cost
+                    rough = found[0] * weights[target] - MOVE_PENALTY_PER_FT * cost - \
+                        self.opportunity_cost(square, cost)
                     candidates.append((rough, cost, square, target, found[1]))
         candidates.sort(key=lambda c: (-c[0], c[1], c[2]))
         # Cover only lowers a value, and only shelter can raise it by more than the small
@@ -280,7 +328,8 @@ class _Planner:
             if value is None:
                 continue
             rescored += 1
-            score = value * weights[target] - MOVE_PENALTY_PER_FT * cost + self._nearest_enemy_bonus(square)
+            score = value * weights[target] - MOVE_PENALTY_PER_FT * cost + self._nearest_enemy_bonus(square) - \
+                self.opportunity_cost(square, cost)
             if self.distance(target, square) > SQUARE_FEET:
                 score += self.shelter(square)
             if best_score is None or score > best_score:
@@ -337,18 +386,22 @@ class _Planner:
             if option is not None:
                 return option.plan(preferred)
             found = self.best(options, [preferred], preferred)
+            if found and self.opportunity_cost(found[2], self.squares().get(found[2], 0)):
+                # Getting there provokes: another target may be worth more after all
+                rest = [t for t in others if t is not preferred]
+                found = self.best(options, [preferred] + rest, preferred) if rest else found
             if found:
                 option, target, square = found
                 if square == self.here:
                     return self._advance_after(option.plan(target), option, options, target)
-                return _with_move(option.plan(target), self.bf, self.creature, square)
+                return self.with_move(option.plan(target), square)
         others = sorted((t for t in others if t is not preferred), key=lambda t: self.bf.distance(self.creature, t))
         found = self.best(options, others, None) if others else None
         if found:
             option, target, square = found
             if square == self.here:
                 return self._advance_after(option.plan(target), option, options, target)
-            return _with_move(option.plan(target), self.bf, self.creature, square)
+            return self.with_move(option.plan(target), square)
         return None
 
     def _advance_after(self, plan: Dict[str, Any], used: Any, options: List[Any], target: Any) -> Dict[str, Any]:
@@ -361,18 +414,28 @@ class _Planner:
         best = max(options, key=lambda option: ideal[option])
         if ideal[best] <= ideal.get(used, 0.0) + 1e-9:
             return plan
-        route = self._route_toward(target, [best], self.bf.speed(self.creature))
+        route = self._route_toward(target, [best], self.speed)
         if route is not None:
             plan['move_after'] = route[-1]
             plan['path_after'] = route
+            if self.can_disengage and self.provokes(route[-1]):
+                plan['bonus_action'] = 'Disengage'
         return plan
 
     def dash_toward(self, target: Any, options: List[Any]) -> Optional[Dict[str, Any]]:
-        """Dash along the shortest route to a square from which an option reaches the target."""
-        route = self._route_toward(target, options, 2 * self.bf.speed(self.creature))
+        """
+        Dash along the shortest route to a square from which an option reaches the target (with
+        Cunning Action, Dash twice).
+        """
+        route = self._route_toward(target, options, (3 if self.can_dash else 2) * self.speed)
         if route is None:
             return None
-        return {'type': 'dash', 'move_to': route[-1], 'path': route, 'target': target}
+        plan = {'type': 'dash', 'move_to': route[-1], 'path': route, 'target': target}
+        if self.bf.path_cost(self.creature, route) > 2 * self.speed:
+            plan['bonus_action'] = 'Dash'
+        elif self.can_disengage and self.provokes(route[-1]):
+            plan['bonus_action'] = 'Disengage'
+        return plan
 
     def _route_toward(self, target: Any, options: List[Any], budget: float) -> Optional[List[Square]]:
         """
@@ -434,7 +497,8 @@ def _fit_area(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str,
     """
     action = plan.get('spell') or plan.get('action')
     planner = _Planner(bf, creature)
-    aim = aim_area(bf, creature, action, planner.squares())
+    aim = aim_area(bf, creature, action, planner.squares(),
+                   penalty=lambda square: planner.opportunity_cost(square, planner.squares().get(square, 0)))
     options = _attack_options(creature) + _cantrip_options(creature)
     enemies = _enemies(bf, creature)
     alternative = max((planner._ideal_value(option, enemy) for option in options for enemy in enemies), default=0.0)
@@ -443,7 +507,7 @@ def _fit_area(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str,
         if fitted:
             return fitted
         return _fit_attack(bf, creature, {'type': 'attack', 'target': None})
-    return _with_move(dict(plan, **aim.plan_fields()), bf, creature, aim.square)
+    return planner.with_move(dict(plan, **aim.plan_fields()), aim.square)
 
 
 def _fit_spell(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str, Any]:
@@ -465,7 +529,7 @@ def _fit_spell(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str
             return _fit_attack(bf, creature, {'type': 'attack', 'target': None})
         square, in_range, _ = best
         fitted = dict(plan, target=in_range if len(in_range) > 1 else in_range[0])
-        return _with_move(fitted, bf, creature, square)
+        return planner.with_move(fitted, square)
 
     if target is creature:
         return plan

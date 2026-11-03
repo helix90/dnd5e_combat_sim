@@ -8,7 +8,7 @@ count for more. See docs/arena-plan.md.
 """
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, Area, Point, Square
@@ -123,11 +123,12 @@ def _placed_aims(bf: Battlefield, creature: Any, area: Area, enemies: List[Any])
     return sorted(points)
 
 
-def aim_area(bf: Battlefield, creature: Any, action: Any, squares: Dict[Square, int]) -> Optional[Aim]:
+def aim_area(bf: Battlefield, creature: Any, action: Any, squares: Dict[Square, int],
+             penalty: Optional[Callable[[Square], float]] = None) -> Optional[Aim]:
     """
     The best way to use an area action or spell this turn, standing where the creature is or
-    on one of `squares` (reachable squares and their movement cost). None if it can't catch
-    any enemy.
+    on one of `squares` (reachable squares and their movement cost). `penalty(square)` is taken
+    off the value of moving there (e.g. opportunity attacks). None if it can't catch any enemy.
     """
     area = area_of(action)
     if area is None:
@@ -145,6 +146,8 @@ def aim_area(bf: Battlefield, creature: Any, action: Any, squares: Dict[Square, 
         if not any(bf.is_enemy(creature, t) for t, _ in hits):
             return
         value -= MOVE_PENALTY_PER_FT * squares.get(square, 0)
+        if penalty is not None and square != here:
+            value -= penalty(square)
         if best is None or value > best.value:
             best = Aim(value, square, origin, toward, hits)
 

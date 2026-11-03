@@ -265,7 +265,8 @@ class DatabaseManager:
                         action_name_str = str(action_name) if action_name else ''
 
                     # Check if result already has an explicit 'type' field (preferred)
-                    if 'type' in result and result['type'] in ['spell', 'attack', 'defend', 'wait', 'special', 'condition', 'dash']:
+                    if 'type' in result and result['type'] in ['spell', 'attack', 'defend', 'wait', 'special', 'condition', 'dash',
+                                                                       'disengage']:
                         action_type = result['type']
                     # Otherwise, determine action type based on action name or other indicators
                     elif 'attack' in action_name_str.lower() or result.get('hit') is not None:
@@ -314,12 +315,14 @@ class DatabaseManager:
                         if result.get('reason') == 'out of range':
                             result_text = f"Can't reach {target}" + (
                                 f" ({result['distance']} ft away)" if result.get('distance') else '')
-                        elif result.get('reason') in ('no one in the area', 'not recharged'):
+                        elif result.get('reason') in ('no one in the area', 'not recharged', 'downed'):
                             description = result.get('description', '')
                             result_text = description[:1].upper() + description[1:]
                     elif action_type == 'dash':
                         feet = _as_int((result.get('movement') or {}).get('feet'))
                         result_text = f"Dashes {feet} ft" + (f" toward {target}" if target else '')
+                    elif action_type == 'disengage':
+                        result_text = "Disengages"
                     elif action_type == 'condition':
                         result_text = result.get('description', action_name_str)
                     else:
@@ -328,6 +331,8 @@ class DatabaseManager:
                             result_text += f": {damage} damage"
                     if action_type != 'dash':
                         result_text = self._with_position_notes(result_text, result)
+                    if result.get('reaction'):
+                        result_text = f"{result['reaction']}: " + result_text
                 
                 converted_logs.append({
                     'round_number': current_round,
@@ -349,6 +354,10 @@ class DatabaseManager:
         movement = result.get('movement')
         if movement:
             text = f"Moves {_as_int(movement.get('feet'))} ft; " + text[:1].lower() + text[1:]
+        bonus = result.get('bonus_action')
+        if isinstance(bonus, dict):
+            verb = {'Disengage': 'disengages', 'Dash': 'dashes'}.get(bonus.get('action'), bonus.get('action'))
+            text = f"{bonus.get('feature')}: {verb}; " + text[:1].lower() + text[1:]
         if result.get('area'):
             text += f" ({describe_area(result['area'])})"
         if result.get('recharged'):
