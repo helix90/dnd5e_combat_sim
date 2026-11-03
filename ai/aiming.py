@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, Area, Point, Square
 from models.battlefield import Battlefield, area_of, area_range
+from models.spells import HALF_ON_SAVE_SPELLS
 
 # Hurting an ally is worse than hurting an enemy is good
 ALLY_WEIGHT = 2.0
@@ -25,7 +26,6 @@ CONE_TURNS = (0.0, 0.35, -0.35)
 # How far around an enemy's squares (in squares) sphere centres are tried
 SPHERE_SPREAD = 2
 # Spells that do half damage on a successful save (breath weapons always do)
-HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt'}
 
 
 @dataclass

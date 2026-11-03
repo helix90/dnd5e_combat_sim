@@ -10,7 +10,7 @@ import re
 
 from models.actions import Action
 from models.arena import Area
-from models.damage import apply_damage
+from models.damage import apply_damage, damage_after_save
 from models.rolls import attack_hits, attack_roll as roll_attack, is_critical, roll_saving_throw
 from utils.api_client import APIClient
 from utils.exceptions import APIError
@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from models.character import Character
     from models.monster import Monster
 
+
+# Save spells that still deal half damage on a successful save; the rest deal none
+HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt'}
 
 FEET_PER_MILE = 5280
 TOUCH_RANGE_FEET = 5
@@ -632,10 +635,8 @@ class SpellAction(Action):
                                              cover_bonus=(save_bonuses or {}).get(t, 0))
                     save_success = save['save_success']
 
-                    # Apply damage (half on successful save for certain spells)
-                    damage = base_damage
-                    if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
-                        damage = damage // 2
+                    damage = damage_after_save(t, base_damage, self.spell.save_type, save_success,
+                                               self.spell.name in HALF_ON_SAVE_SPELLS)
 
                     # Apply damage
                     damage = apply_damage(t, damage, self.spell.damage_type)
@@ -677,10 +678,10 @@ class SpellAction(Action):
                         'target_hp_after': targets_list[0].hp
                     })
                 else:
-                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                    # Some spells do half damage on successful save
-                    if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
-                        damage = damage // 2
+                    damage = damage_after_save(targets_list[0],
+                                               self.spell.calculate_damage(getattr(caster, 'level', 1)),
+                                               self.spell.save_type, save_success,
+                                               self.spell.name in HALF_ON_SAVE_SPELLS)
                     damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
                     result.update({
                         'damage': damage,

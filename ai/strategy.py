@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Protocol, Callable, Optional
 import logging
 import random
+from models import class_features as feature_rules
+from models.buffs import is_turned
 from models.spells import SpellAction
 from models.actions import AttackAction
 
@@ -279,6 +281,11 @@ class PartyAIStrategy(AIStrategy):
                 if healing_action:
                     return healing_action
 
+            # Priority 2.5: Turn Undead (a cleric's Channel Divinity)
+            turn_action = self._try_turn_undead(combatant, enemies, combat_state)
+            if turn_action:
+                return turn_action
+
             # Priority 3: Finish off a downed enemy that would regenerate (burn the troll)
             finish_action = self._try_finish_regenerator(combatant, combat_state.get('downed_regenerators', []))
             if finish_action:
@@ -310,6 +317,12 @@ class PartyAIStrategy(AIStrategy):
         Returns:
             Healing action dictionary, or None if no healing available
         """
+        if feature_rules.resource(combatant, 'lay_on_hands') > 0:
+            # A paladin heals with Lay on Hands first, keeping its slots for spells and smites
+            target = min(injured_allies, key=lambda a: a.hp / a.max_hp if a.max_hp > 0 else a.hp)
+            logger.info(f"[PartyAI] {combatant.name} uses Lay on Hands on {target.name}")
+            return {'type': 'cast_spell', 'spell': feature_rules.LayOnHandsAction(), 'target': target}
+
         healing_spells = [
             s for s in getattr(combatant, 'spells', {}).values()
             if hasattr(s, 'healing') and s.healing
@@ -516,6 +529,28 @@ class PartyAIStrategy(AIStrategy):
 
         return 7.0  # Default estimate
 
+    def _try_turn_undead(self, combatant: Any, enemies: List[Any], combat_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Turn Undead when it takes more than one enemy out of the fight: two or more undead within
+        30 ft, or one while other enemies are left to fight, or any that Destroy Undead could
+        destroy. A lone undead isn't worth it: turned, it flees, and someone has to hit it again.
+        """
+        if not feature_rules.can_turn_undead(combatant):
+            return None
+        undead = feature_rules.turnable(enemies)
+        battlefield = combat_state.get('battlefield')
+        if battlefield is not None:
+            undead = [u for u in undead if battlefield.distance(combatant, u) <= feature_rules.TURN_UNDEAD_RANGE_FEET]
+        if not undead:
+            return None
+        others = [e for e in enemies if e not in undead and not is_turned(e)]
+        destroy_cr = feature_rules.destroy_undead_cr(combatant)
+        destroyable = destroy_cr is not None and any(feature_rules.challenge_rating(u) <= destroy_cr for u in undead)
+        if len(undead) >= 2 or others or destroyable:
+            logger.info(f"[PartyAI] {combatant.name} uses Turn Undead on {', '.join(u.name for u in undead)}")
+            return {'type': 'turn_undead', 'target': undead}
+        return None
+
     def _try_finish_regenerator(self, combatant: Any, downed: List[Any]) -> Optional[Dict[str, Any]]:
         """
         Hit a downed regenerating enemy with a damage type that stops its regeneration (fire or
@@ -565,7 +600,9 @@ class PartyAIStrategy(AIStrategy):
         Returns:
             Attack action dictionary, or None if no attack available
         """
-        # Select most dangerous enemy
+        # Select most dangerous enemy, leaving turned undead alone while there are others (damage
+        # would end the turning)
+        enemies = [e for e in enemies if not is_turned(e)] or enemies
         dangerous = max(enemies, key=lambda e: self.threat_assessment(e, combat_state))
 
         # Check if combatant is a spellcaster

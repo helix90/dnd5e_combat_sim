@@ -10,7 +10,7 @@ import re
 
 from models.arena import Area
 from models.buffs import BuffManager, create_paralyzed_condition, is_paralyzed
-from models.damage import apply_damage
+from models.damage import apply_damage, damage_after_save
 from models.rolls import attack_hits, attack_roll, is_critical, roll_saving_throw
 
 if TYPE_CHECKING:
@@ -57,7 +57,8 @@ class AttackAction(Action):
         reach: Optional[int] = None,  # Melee reach in feet
         range: Optional[Sequence[int]] = None,  # (normal, long) range in feet for ranged/thrown attacks
         area: Optional[Dict[str, Any]] = None,  # Area effect shape, e.g. {'shape': 'cone', 'size': 30}
-        recharge: Optional[int] = None  # "Recharge 5-6" -> 5: usable again on a d6 roll of 5 or more
+        recharge: Optional[int] = None,  # "Recharge 5-6" -> 5: usable again on a d6 roll of 5 or more
+        magical: bool = False  # Gets past resistance to nonmagical weapon damage (Ki-Empowered Strikes)
     ) -> None:
         super().__init__(action_type="attack", name=name, description=description)
         self.weapon_name = weapon_name
@@ -76,6 +77,7 @@ class AttackAction(Action):
             raise ValueError(f"Invalid recharge for {name}: {recharge!r}")
         self.recharge = recharge
         self.ready = True  # False after a recharge action is used, until it recharges
+        self.magical = magical
         self.range = self._validate_range(range)
         # Melee attacks reach 5 ft unless they say otherwise. A ranged-only attack has no reach;
         # a thrown weapon like a javelin has both. Area effects (breath weapons) have a shape instead.
@@ -153,7 +155,8 @@ class AttackAction(Action):
                 mod = max(attacker.ability_modifier('str'), attacker.ability_modifier('dex'))
             else:  # melee
                 mod = attacker.ability_modifier('str')
-        total = sum(rolls) + mod + dice_mod
+        bonus = attacker.weapon_damage_bonus(self) if callable(getattr(attacker, 'weapon_damage_bonus', None)) else 0
+        total = sum(rolls) + mod + dice_mod + (bonus if isinstance(bonus, int) else 0)
         return max(0, total)
 
 
@@ -240,10 +243,8 @@ class AttackAction(Action):
                     save = roll_saving_throw(t, self.save_type, self.save_dc, cover_bonus=save_bonuses.get(t, 0))
                     save_success = save['save_success']
 
-                    # Apply damage (half on successful save for breath weapons)
-                    damage = base_damage
-                    if save_success:
-                        damage = damage // 2
+                    # Half on a successful save (breath weapons), or none with Evasion
+                    damage = damage_after_save(t, base_damage, self.save_type, save_success, True)
 
                     # Apply damage
                     damage = apply_damage(t, damage, self.damage_type)
@@ -330,7 +331,7 @@ class AttackAction(Action):
 
             # Apply damage to target HP if hit and target has hp
             if hit:
-                damage = apply_damage(targets_list[0], damage, self.damage_type, critical)
+                damage = apply_damage(targets_list[0], damage, self.damage_type, critical, self.magical)
 
             if hit and self.on_hit:
                 result.update(self._apply_on_hit_effect(attacker, attack_target))

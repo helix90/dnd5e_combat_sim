@@ -12,19 +12,24 @@ from ai.tactical import TacticalAnalyzer
 from ai.aiming import aim_area
 from ai.positioning import fit_plan
 from models.rolls import roll_saving_throw
-from models.buffs import is_paralyzed
+from models.buffs import is_incapacitated, is_paralyzed, is_stunned, is_turned
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, describe_area
 from models.battlefield import (MONSTERS, PARTY, Battlefield, area_of, area_range, bonus_dash, bonus_disengage,
                                 ignores_cover, melee_attacks)
 from models.multiattack import parse_multiattack
 from models.damage import apply_damage, has_ability
+from models import class_features as feature_rules
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
 
 if TYPE_CHECKING:
     from models.character import Character
     from models.monster import Monster
+
+def _ordinal(n: int) -> str:
+    return {1: '1st', 2: '2nd', 3: '3rd'}.get(n, f'{n}th')
+
 
 def _average_damage(action: Any) -> float:
     try:
@@ -105,6 +110,10 @@ class Combat:
         self.tactical = TacticalAnalyzer()
         # True while the creature taking its turn has Disengaged (no opportunity attacks)
         self._disengaged = False
+        # The turn being taken: Sneak Attack dice still unused, class features used (for the log)
+        self._turn: Dict[str, Any] = {}
+        # Without an arena, creatures that have used their reaction since their last turn
+        self._reacted: set = set()
         # Regeneration (e.g. trolls): damage types that stopped it since the creature's last turn,
         # and creatures that started a turn at 0 HP without regenerating, which are dead for good
         self._regenerators = [p for p in participants if isinstance(getattr(p, 'regeneration', None), dict)]
@@ -292,6 +301,8 @@ class Combat:
                 self.current_turn = idx + 1
                 if self.battlefield is not None:
                     self.battlefield.reacted.discard(participant)  # its reaction is back
+                self._reacted.discard(participant)
+                self._start_of_turn_effects(participant)
                 # Wrapping past the end of the initiative order starts a new round. (Checking for
                 # the last slot instead would stall the round count once that creature is dead.)
                 if start + i >= n:
@@ -312,6 +323,13 @@ class Combat:
                     # Incapacitated: no action this turn, then repeat the save at the end of it
                     result = self._paralyzed_turn(participant)
                     self.logger.log_action(participant, result, self.current_round)
+                    self._end_of_turn_effects(participant)
+                    return participant
+                if is_stunned(participant) or is_turned(participant):
+                    result = self._stunned_turn(participant) if is_stunned(participant) else self._turned_turn(participant)
+                    self.logger.log_action(participant, result, self.current_round)
+                    self._log_pending_entries()
+                    self._end_of_turn_effects(participant)
                     return participant
                 recharged = self._roll_recharges(participant)
                 ai = self.ai_strategy_map.get(participant)
@@ -327,10 +345,60 @@ class Combat:
                     self._note_regeneration_damage(hp_before, result)
                     self.logger.log_action(participant, result, self.current_round)
                     self._log_pending_entries()
+                    self._end_of_turn_effects(participant)
                     if self.is_combat_over():
                         return participant
                 return participant
         return None
+
+    @staticmethod
+    def _start_of_turn_effects(participant: Any) -> None:
+        """Effects that last until the creature's next turn end now (Reckless Attack)."""
+        buffs = getattr(participant, 'buffs', None)
+        if buffs is not None and hasattr(buffs, 'active_buffs'):
+            buffs.active_buffs = [b for b in buffs.active_buffs if not b.metadata.get('until_turn_start')]
+
+    def _end_of_turn_effects(self, participant: Any) -> None:
+        """Stunning Strike's stun lasts until the end of the monk's next turn."""
+        for creature in self.participants:
+            buffs = getattr(creature, 'buffs', None)
+            stun = buffs.get_condition('stunned') if buffs is not None and hasattr(buffs, 'get_condition') else None
+            if stun is not None and stun.metadata.get('ends_after_turn_of') == participant.name:
+                stun.metadata['turns_left'] -= 1
+                if stun.metadata['turns_left'] <= 0:
+                    buffs.remove_buff(stun.name)
+
+    def _stunned_turn(self, participant: Any) -> Dict[str, Any]:
+        return {'action': 'Stunned', 'type': 'condition', 'condition': 'stunned',
+                'description': 'is stunned and loses its turn'}
+
+    def _turned_turn(self, participant: Any) -> Dict[str, Any]:
+        """
+        A turned creature Dashes as far as it can from the cleric who turned it (on an arena),
+        and does nothing else. The party lets it go: no opportunity attacks, which would end it.
+        """
+        result = {'action': 'Turned', 'type': 'condition', 'condition': 'turned',
+                  'description': 'is turned and flees'}
+        if self.battlefield is None:
+            return result
+        source = participant.buffs.get_condition('turned').source
+        cleric = next((c for c in self.participants if c.name == source and self.battlefield.present(c)), None)
+        if cleric is None:
+            return result
+        budget = 2 * self.battlefield.speed(participant)
+        theirs = self.battlefield.placements[cleric]
+        reachable = self.battlefield.reachable(participant, budget)
+        if not reachable:
+            return result
+        here = self.battlefield.position(participant)
+        best = max(reachable, key=lambda s: (self.battlefield.arena.distance(self.battlefield.placement(participant, s),
+                                                                             theirs), -reachable[s], s == here))
+        self._disengaged = True  # the party doesn't attack it as it leaves
+        movement = self._move(participant, best, budget)
+        self._disengaged = False
+        if movement:
+            result['movement'] = movement
+        return result
 
     @staticmethod
     def _roll_recharges(participant: Any) -> List[str]:
@@ -411,7 +479,7 @@ class Combat:
         """
         if self.battlefield is not None and target is not None and not isinstance(target, list):
             return self.battlefield.ally_next_to(target, participant)
-        return any(a is not participant and not is_paralyzed(a)
+        return any(a is not participant and not is_incapacitated(a)
                    for a in self._build_combat_state(participant)['allies'])
 
     def _pack_tactics(self, participant: Any, target: Any = None) -> bool:
@@ -466,10 +534,14 @@ class Combat:
         """
         Move first if the plan says so (on an arena), then act, then move again if the plan says
         so. A bonus action (Cunning Action, Nimble Escape) can Disengage or Dash for the turn.
+        Class features that take a bonus action or add to the Attack action are used here too
+        (see _feature_bonus_action and _after_attack).
         """
         movement = None
         kind = action_plan.get('type')
+        self._turn = self._new_turn(participant)
         bonus, feature = self._bonus_action(participant, action_plan)
+        feature_bonus = None if bonus else self._feature_bonus_action(participant, action_plan)
         self._disengaged = kind == 'disengage' or bonus == 'Disengage'
         budget = 0
         if self.battlefield is not None:
@@ -497,6 +569,8 @@ class Combat:
             result = {'action': 'Disengage', 'type': 'disengage', 'description': 'Disengages'}
         else:
             result = self._execute_action(participant, action_plan)
+            if kind == 'attack':
+                result = self._after_attack(participant, action_plan, result, bonus_free=not (bonus or feature_bonus))
         if movement:
             result['movement'] = movement
         if bonus:
@@ -508,7 +582,58 @@ class Combat:
             if after:
                 result['movement_after'] = after
         self._disengaged = False
+        if self._turn.get('features'):
+            result['features'] = self._turn['features']
+        self._turn = {}
         return result
+
+    @staticmethod
+    def _new_turn(participant: Any) -> Dict[str, Any]:
+        return {'in_turn': True,
+                'sneak': participant.sneak_attack_dice() if hasattr(participant, 'sneak_attack_dice') else None}
+
+    def _feature_bonus_action(self, participant: Any, plan: Dict[str, Any]) -> Optional[str]:
+        """
+        A class feature's bonus action at the start of the turn: a barbarian rages before a melee
+        attack, and a fighter below half its hit points uses Second Wind. Returns the feature used.
+        """
+        if participant not in self._original_characters:
+            return None
+        action = plan.get('action')
+        if plan.get('type') == 'attack' and feature_rules.is_melee_weapon(action) and feature_rules.can_rage(participant):
+            feature_rules.start_rage(participant)
+            self._note_feature('Rage')
+            return 'Rage'
+        if feature_rules.wants_second_wind(participant):
+            healed = feature_rules.second_wind(participant)['healing']
+            self._note_feature(f"Second Wind: regains {healed} HP")
+            return 'Second Wind'
+        return None
+
+    def _after_attack(self, participant: Any, plan: Dict[str, Any], result: Dict[str, Any],
+                      bonus_free: bool) -> Dict[str, Any]:
+        """
+        After a character's Attack action: Action Surge for a second one (the first time the
+        fighter attacks), then a monk's bonus unarmed strike, or two with Flurry of Blows.
+        """
+        action, target = plan.get('action'), plan.get('target')
+        if not self._is_character_weapon_attack(participant, action, target) or result.get('reason') or \
+                not participant.is_alive() or self.is_combat_over():
+            return result
+        parts = [result]
+        if feature_rules.resource(participant, 'action_surge') > 0:
+            feature_rules.spend(participant, 'action_surge')
+            self._note_feature('Action Surge')
+            parts.append(self._execute_weapon_attacks(participant, action, target, first_where_aimed=False))
+        strike = feature_rules.martial_arts_strike(participant)
+        if bonus_free and strike is not None and feature_rules.allows_martial_arts(action) and not self.is_combat_over():
+            count = feature_rules.flurry_strikes(participant)
+            if count == 2:
+                feature_rules.spend(participant, 'ki')
+            self._note_feature('Flurry of Blows (1 ki)' if count == 2 else 'Martial Arts: bonus unarmed strike')
+            parts.append(self._execute_weapon_attacks(participant, strike, target, count=count, first_where_aimed=False))
+        attacks = [a for part in parts if not part.get('reason') for a in (part.get('attacks') or [part])]
+        return self._combine_attacks(action, attacks) if len(parts) > 1 else result
 
     @staticmethod
     def _bonus_action(participant: Any, plan: Dict[str, Any]) -> Any:
@@ -576,7 +701,7 @@ class Combat:
         hp_before = {c: c.hp for c in self._regenerators}
         if self._is_character_weapon_attack(attacker, action, target):
             options.pop('advantage', None)  # Pack Tactics is a monster trait
-        result = action.execute(attacker, target, **options)
+        result = self._attack(attacker, action, target, options)
         result.update(notes)
         sneak_dice = attacker.sneak_attack_dice() if hasattr(attacker, 'sneak_attack_dice') else None
         if sneak_dice and self._can_sneak_attack(attacker, action, result, target):
@@ -588,6 +713,35 @@ class Combat:
         self.logger.log_action(attacker, result, self.current_round)
         self._log_pending_entries()
         return True
+
+    def _attack(self, attacker: Any, action: Any, target: Any, options: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        One attack by a monster (or an opportunity attack). A rogue it hits can use Uncanny Dodge,
+        its reaction, to halve the damage.
+        """
+        hp_before = getattr(target, 'hp', None)
+        result = action.execute(attacker, target, **options)
+        damage = result.get('damage', 0)
+        if (not isinstance(target, list) and damage > 0 and result.get('hit')
+                and feature_rules.has_feature(target, 'Uncanny Dodge') and self._can_react(target)):
+            self._use_reaction(target)
+            halved = damage // 2
+            target.hp = max(0, hp_before - halved)
+            result['damage'] = halved
+            result['uncanny_dodge'] = damage - halved
+            result.setdefault('features', []).append(f"{target.name} uses Uncanny Dodge: halves the damage")
+        return result
+
+    def _can_react(self, creature: Any) -> bool:
+        if self.battlefield is not None:
+            return self.battlefield.can_react(creature)
+        return creature.is_alive() and not is_incapacitated(creature) and creature not in self._reacted
+
+    def _use_reaction(self, creature: Any) -> None:
+        if self.battlefield is not None:
+            self.battlefield.reacted.add(creature)
+        else:
+            self._reacted.add(creature)
 
     def _attack_options(self, participant: Any, target: Any, action: Any,
                         result_notes: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
@@ -667,10 +821,10 @@ class Combat:
                 options = self._attack_options(participant, target, action, notes)
                 if options is None:
                     return self._out_of_range(action.name, target, notes.get('distance'), notes.get('cover', COVER_NONE))
-                result = action.execute(participant, target, **options)
+                result = self._attack(participant, action, target, options)
                 result.update(notes)
             else:
-                result = action.execute(participant, target)
+                result = self._attack(participant, action, target, {})
             # Clear alive cache after damage-dealing action
             # Check both 'damage' (single-target) and 'total_damage' (AoE like dragon breath)
             damage = result.get('total_damage', result.get('damage', 0))
@@ -740,6 +894,18 @@ class Combat:
                 # Other special actions (not yet implemented)
                 result = {'action': action_name, 'target': target, 'type': 'special'}
                 return result
+        elif action_type == 'turn_undead':
+            undead = feature_rules.turnable(action_plan.get('target') or [])
+            if self.battlefield is not None:
+                undead = [u for u in undead
+                          if self.battlefield.distance(participant, u) <= feature_rules.TURN_UNDEAD_RANGE_FEET]
+            if not undead or not feature_rules.can_turn_undead(participant):
+                return {'action': 'Turn Undead', 'type': 'wait', 'success': False, 'reason': 'out of range',
+                        'description': 'has no undead within 30 ft to turn'}
+            result = feature_rules.turn_undead(participant, undead)
+            if result['destroyed']:
+                self._alive_participants_cache = None
+            return result
         elif action_type == 'defend':
             return {
                 'action': 'Defend',
@@ -765,39 +931,42 @@ class Combat:
                 and not action.area_effect and not isinstance(target, list)
                 and action.name not in participant.spells)
 
-    def _execute_weapon_attacks(self, participant: Any, action: Any, target: Any) -> Dict[str, Any]:
+    def _execute_weapon_attacks(self, participant: Any, action: Any, target: Any,
+                                count: Optional[int] = None, first_where_aimed: bool = True) -> Dict[str, Any]:
         """
         Make every attack the character's Attack action allows (Extra Attack), moving on to
-        another enemy if the target drops, and add Sneak Attack damage to the first eligible hit.
+        another enemy if the target drops. Sneak Attack goes on the first eligible hit, and class
+        features apply to each hit (see _weapon_attack). count overrides the number of attacks
+        (a monk's bonus unarmed strikes). The first attack goes where the AI aimed it, even at a
+        downed troll it means to burn, unless first_where_aimed is False.
         """
+        if not self._turn.get('in_turn'):
+            self._turn = self._new_turn(participant)  # called on its own, outside _take_turn
         attacks = []
-        sneak_dice = participant.sneak_attack_dice()
-        for i in range(participant.attacks_per_action()):
-            # The first attack goes where the AI aimed it, even at a downed troll it means to burn
-            if i > 0 and not target.is_alive():
-                enemies = self._build_combat_state(participant)['enemies']
+        count = participant.attacks_per_action() if count is None else count
+        for i in range(count):
+            if (i > 0 or not first_where_aimed) and not target.is_alive():
+                enemies = [e for e in self._build_combat_state(participant)['enemies'] if not is_turned(e)]
                 if self.battlefield is not None:
                     enemies = self._enemies_in_range(participant, action, enemies)
                 if not enemies:
                     break
                 target = enemies[0]
-            if self.battlefield is None:
-                attack = action.execute(participant, target)
-            else:
+            attack = self._weapon_attack(participant, action, target)
+            if attack is None:
+                if attacks:
+                    break
                 notes: Dict[str, Any] = {}
-                options = self._attack_options(participant, target, action, notes)
-                if options is None:
-                    if attacks:
-                        break
-                    return self._out_of_range(action.name, target, notes.get('distance'), notes.get('cover', COVER_NONE))
-                options.pop('advantage', None)  # Pack Tactics is a monster trait
-                attack = action.execute(participant, target, **options)
-                attack.update(notes)
-            if sneak_dice and self._can_sneak_attack(participant, action, attack, target):
-                self._add_sneak_attack(attack, target, sneak_dice)
-                sneak_dice = None  # once per turn
+                self._attack_options(participant, target, action, notes)
+                return self._out_of_range(action.name, target, notes.get('distance'), notes.get('cover', COVER_NONE))
             attacks.append(attack)
+        if not attacks:
+            return {'action': action.name, 'type': 'wait', 'success': False, 'reason': 'out of range',
+                    'target': getattr(target, 'name', ''), 'description': 'has no one left to attack'}
+        return self._combine_attacks(action, attacks)
 
+    def _combine_attacks(self, action: Any, attacks: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """One result for several attacks (Extra Attack, Action Surge, Flurry of Blows)."""
         if len(attacks) == 1:
             return attacks[0]
         targets = list(dict.fromkeys(a['target'] for a in attacks))
@@ -818,6 +987,54 @@ class Combat:
             result['sneak_attack'] = sneak
         result.update(self._combined_position_notes(attacks))
         return result
+
+    def _weapon_attack(self, participant: Any, action: Any, target: Any) -> Optional[Dict[str, Any]]:
+        """
+        One weapon attack by a character, with what its class features add: Reckless Attack's
+        advantage, Sneak Attack (once a turn), Divine Smite and Stunning Strike. None if the
+        target is out of reach and range.
+        """
+        notes: Dict[str, Any] = {}
+        if self.battlefield is None:
+            options: Dict[str, Any] = {}
+        else:
+            options = self._attack_options(participant, target, action, notes)
+            if options is None:
+                return None
+            options.pop('advantage', None)  # Pack Tactics is a monster trait
+        if feature_rules.reckless(participant, action, notes.get('distance')):
+            options['advantage'] = True
+            feature_rules.be_reckless(participant)
+            self._note_feature('Reckless Attack', once=True)
+        attack = action.execute(participant, target, **options)
+        attack.update(notes)
+        if self._turn.get('sneak') and self._can_sneak_attack(participant, action, attack, target):
+            self._add_sneak_attack(attack, target, self._turn['sneak'])
+            self._turn['sneak'] = None  # once per turn
+        if feature_rules.is_melee_attack(action, notes.get('distance')) and attack.get('hit'):
+            slot = feature_rules.wants_smite(participant, attack, target)
+            if slot is not None:
+                feature_rules.divine_smite(participant, attack, target, slot)
+                self._note_feature(f"Divine Smite ({_ordinal(slot)}-level slot): {attack['divine_smite']['damage']} radiant")
+            if feature_rules.wants_stunning_strike(participant, attack, target, self._typical_hit(participant, action)):
+                feature_rules.stunning_strike(participant, attack, target)
+                stunned = attack['stunning_strike']['stunned']
+                self._note_feature(f"Stunning Strike: {target.name} " + ('is stunned' if stunned else 'resists'))
+        if attack.get('damage', 0) > 0:
+            self._alive_participants_cache = None
+        return attack
+
+    @staticmethod
+    def _typical_hit(participant: Any, action: Any) -> float:
+        """Average damage of one hit with the weapon, ability modifier included."""
+        modifier = participant.attack_bonus(action.weapon_type) - participant.proficiency_bonus
+        return _average_damage(action) + modifier
+
+    def _note_feature(self, note: str, once: bool = False) -> None:
+        """A class feature used this turn, for the log (see _take_turn); once: only note it once."""
+        notes = self._turn.setdefault('features', [])
+        if not (once and note in notes):
+            notes.append(note)
 
     @staticmethod
     def _combined_position_notes(attacks: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -932,7 +1149,7 @@ class Combat:
                 return self._out_of_range('Multiattack', target, first.get('distance'), first.get('cover', COVER_NONE))
 
         for attack_action in attacks_to_perform:
-            attack_result = attack_action.execute(participant, target, **options[attack_action])
+            attack_result = self._attack(participant, attack_action, target, options[attack_action])
             attack_result.update(notes.get(attack_action, {}))
             attack_results.append(attack_result)
             total_damage += attack_result.get('damage', 0)
@@ -1099,6 +1316,8 @@ class Combat:
                         if result.get('condition_applied'):
                             line += f" {self._target_text(result)} is {result['condition_applied'].lower()}!"
                         lines.append(line)
+                    elif result.get('action') == 'Turn Undead':
+                        lines.append(f"{actor} {result['description']}.")
                     elif 'total_damage' in result:
                         lines.append(f"{actor} uses {action} on {self._target_text(result)}: {result['total_damage']} damage.")
                     elif 'healing' in result:
@@ -1109,6 +1328,10 @@ class Combat:
                     lines.append(f"{actor} takes an action.")
                 if len(lines) > start:
                     lines[start] = self._with_position_notes(lines[start], actor, result)
+                    notes = feature_rules.feature_notes(result)
+                    if notes:
+                        lines[start] += ' ' + '; '.join(notes) + '.'
+
                     if result.get('reaction'):
                         lines[start] = f"{result['reaction']}: {lines[start]}"
         return lines
