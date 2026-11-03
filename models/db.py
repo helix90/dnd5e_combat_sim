@@ -327,6 +327,8 @@ class DatabaseManager:
                             result_text = f"Spell cast on {target}"
                             if damage > 0:
                                 result_text += f": {damage} damage"
+                            if 'hit' in result and 'projectiles' in result:
+                                result_text += f" ({result['hits']} of {result['projectiles']} hit)"
                     elif action_type == 'defend':
                         result_text = "Takes defensive stance"
                     elif action_type == 'wait':

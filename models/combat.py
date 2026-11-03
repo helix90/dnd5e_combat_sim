@@ -4,7 +4,7 @@ Combat system for D&D 5e Combat Simulator.
 Defines the Combat and CombatLogger classes for managing turn-based combat.
 """
 import random
-from typing import List, Dict, Any, Optional, TYPE_CHECKING
+from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 from utils.exceptions import SimulationError
 from utils.logging import log_exception
 from ai.strategy import PartyAIStrategy, MonsterAIStrategy
@@ -710,6 +710,9 @@ class Combat:
                             options['save_bonus'] = situation.ac_bonus
                     if ignores_cover(spell.spell):
                         notes.pop('cover', None)
+            if not isinstance(target, list) and spell.spell.projectile_count(
+                    getattr(participant, 'level', 1), spell.spell_slot_level) > 1:
+                options['other_targets'] = self._projectile_targets(participant, spell.spell, target)
             result = spell.execute(participant, target, **options)
             result.update(notes)
             # Clear alive cache after spell action
@@ -828,6 +831,26 @@ class Combat:
         if reasons:
             notes['disadvantage_reasons'] = reasons
         return notes
+
+    def _projectile_targets(self, participant: Any, spell: Any, target: Any) -> List[Tuple[Any, Dict[str, Any]]]:
+        """
+        Other enemies a spell's darts, rays or beams can go to, with each one's cover and
+        disadvantage: those in range, without disadvantage and nearest first.
+        """
+        enemies = [e for e in self._build_combat_state(participant)['enemies'] if e is not target and e.is_alive()]
+        if self.battlefield is None:
+            return [(e, {}) for e in enemies]
+        found = []
+        for enemy in enemies:
+            situation = self.battlefield.spell_situation(participant, enemy, spell)
+            if not situation.in_range:
+                continue
+            options = {'disadvantage': situation.disadvantage}
+            if spell.is_attack_spell and not ignores_cover(spell):
+                options['ac_bonus'] = situation.ac_bonus
+            found.append((situation.disadvantage, situation.distance, enemy, options))
+        found.sort(key=lambda f: (f[0], f[1]))
+        return [(enemy, options) for _, _, enemy, options in found]
 
     def _enemies_in_range(self, participant: Any, action: Any, enemies: List[Any]) -> List[Any]:
         """Enemies the action can reach from where the participant stands, those without disadvantage first."""
@@ -1065,7 +1088,9 @@ class Combat:
                             lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: heals {result['healing']} HP.")
                         elif 'damage' in result or 'total_damage' in result:
                             damage = result.get('damage', result.get('total_damage'))
-                            lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: {damage} damage.")
+                            hits = f" ({result['hits']} of {result['projectiles']} hit)" if 'hit' in result and \
+                                'projectiles' in result else ''
+                            lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: {damage} damage{hits}.")
                         else:
                             lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}.")
                     elif 'damage' in result:

@@ -497,6 +497,10 @@ class PartyAIStrategy(AIStrategy):
         Returns:
             Estimated average damage amount
         """
+        if callable(getattr(spell, 'average_damage', None)):
+            average = spell.average_damage()  # every dart, ray or beam (see Spell.projectile_count)
+            if average:
+                return average
         damage_dice = getattr(spell, 'damage_dice', '1d6')
 
         try:
