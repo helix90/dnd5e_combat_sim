@@ -330,7 +330,53 @@ def create_turned_condition(source: str, duration: int = 10) -> Buff:
         name="Turned",
         source=source,
         duration_rounds=duration,
-        metadata={"condition": "turned"}
+        metadata={"condition": "turned", "ends_on_damage": True}
+    )
+
+
+def create_unconscious_condition(source: str, duration: int = 10) -> Buff:
+    """
+    Unconscious from Sleep, for 1 minute or until it takes damage: incapacitated, automatically
+    fails STR and DEX saves, attacks against it have advantage and hits from within 5 ft are
+    critical hits.
+    """
+    return Buff(
+        name="Asleep",
+        source=source,
+        duration_rounds=duration,
+        metadata={"condition": "unconscious", "incapacitated": True, "fails_str_dex": True,
+                  "melee_crits": True, "ends_on_damage": True, "advantage": ["attacks_against"]}
+    )
+
+
+def create_restrained_condition(source: str, spell: str, escape_dc: int, duration: int = 10) -> Buff:
+    """
+    Restrained by Entangle or Web while the caster concentrates: speed 0, attacks against it have
+    advantage, and it has disadvantage on attacks and DEX saves. It can use its action for a STR
+    check against escape_dc to break free.
+    """
+    return Buff(
+        name="Restrained",
+        source=source,
+        duration_rounds=duration,
+        concentration=True,
+        metadata={"condition": "restrained", "spell": spell, "escape_dc": escape_dc, "speed_zero": True,
+                  "advantage": ["attacks_against"], "disadvantage": ["attack_rolls", "saving_throws:dex"]}
+    )
+
+
+def create_hypnotized_condition(source: str, duration: int = 10) -> Buff:
+    """
+    Hypnotic Pattern, while the caster concentrates: charmed and incapacitated with a speed of 0,
+    until it takes damage.
+    """
+    return Buff(
+        name="Hypnotized",
+        source=source,
+        duration_rounds=duration,
+        concentration=True,
+        metadata={"condition": "hypnotized", "charmed": True, "incapacitated": True, "speed_zero": True,
+                  "ends_on_damage": True}
     )
 
 
@@ -349,6 +395,53 @@ def is_turned(creature: Any) -> bool:
     return _has(creature, 'turned')
 
 
+def has_flag(creature: Any, flag: str) -> bool:
+    """True if any active effect on the creature sets this metadata flag."""
+    buffs = getattr(creature, 'buffs', None)
+    return isinstance(buffs, BuffManager) and any(b.metadata.get(flag) for b in buffs.active_buffs)
+
+
 def is_incapacitated(creature: Any) -> bool:
-    """Paralyzed and stunned creatures are incapacitated: no actions or reactions."""
-    return is_paralyzed(creature) or is_stunned(creature)
+    """Paralyzed, stunned, asleep (Sleep) and hypnotized creatures are incapacitated: no actions
+    or reactions."""
+    return is_paralyzed(creature) or is_stunned(creature) or has_flag(creature, 'incapacitated')
+
+
+def fails_str_dex_saves(creature: Any) -> bool:
+    """Paralyzed, stunned and unconscious creatures automatically fail STR and DEX saves."""
+    return is_paralyzed(creature) or is_stunned(creature) or has_flag(creature, 'fails_str_dex')
+
+
+def melee_hits_crit(creature: Any) -> bool:
+    """Hits from within 5 ft against a paralyzed or unconscious creature are critical hits."""
+    return is_paralyzed(creature) or has_flag(creature, 'melee_crits')
+
+
+def is_spellbound(creature: Any) -> bool:
+    """Out of the fight until it takes damage (turned, asleep, hypnotized): best left alone while
+    there are other enemies."""
+    return has_flag(creature, 'ends_on_damage')
+
+
+def cannot_move(creature: Any) -> bool:
+    """Restrained or hypnotized: speed 0."""
+    return has_flag(creature, 'speed_zero')
+
+
+def end_on_damage(creature: Any) -> List[str]:
+    """Damage ends turning, magical sleep and Hypnotic Pattern. Returns the names of the effects ended."""
+    buffs = getattr(creature, 'buffs', None)
+    if not isinstance(buffs, BuffManager):
+        return []
+    ended = [b.name for b in buffs.active_buffs if b.metadata.get('ends_on_damage')]
+    if ended:
+        buffs.active_buffs = [b for b in buffs.active_buffs if not b.metadata.get('ends_on_damage')]
+    return ended
+
+
+def metadata_total(creature: Any, key: str) -> int:
+    """Sum of a numeric metadata value over the creature's active effects (Magic Weapon's +1)."""
+    buffs = getattr(creature, 'buffs', None)
+    if not isinstance(buffs, BuffManager):
+        return 0
+    return sum(b.metadata.get(key, 0) for b in buffs.active_buffs if isinstance(b.metadata.get(key, 0), int))

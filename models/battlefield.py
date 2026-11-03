@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from models.actions import AttackAction
 from models.arena import (COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Area, Arena, Placement, Point,
                           Square, size_in_squares)
-from models.buffs import is_incapacitated, is_turned
+from models.buffs import cannot_move, is_incapacitated, is_turned
 from models.damage import has_ability
 
 PARTY = 'party'
@@ -70,6 +70,8 @@ def movement_speed(creature: Any) -> int:
     Feet the creature can move in a turn. Flying is treated like walking (no elevation), so a
     creature uses its better speed.
     """
+    if cannot_move(creature):
+        return 0  # restrained or hypnotized
     speed = getattr(creature, 'speed', None) or {'walk': 30}
     return max(speed.get('walk', 0), speed.get('fly', 0))
 

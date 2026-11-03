@@ -9,7 +9,7 @@ import random
 import re
 
 from models.arena import Area
-from models.buffs import BuffManager, create_paralyzed_condition, is_paralyzed
+from models.buffs import BuffManager, create_paralyzed_condition, has_flag, is_paralyzed, melee_hits_crit
 from models.damage import apply_damage, damage_after_save
 from models.rolls import attack_hits, attack_roll, is_critical, roll_saving_throw
 
@@ -162,12 +162,12 @@ class AttackAction(Action):
 
     def _is_auto_critical(self, target: Any, within_5ft: Optional[bool] = None) -> bool:
         """
-        Hits against a paralyzed creature from within 5 ft are critical hits. Without positions
-        (within_5ft is None), melee attacks are assumed to be within 5 ft and ranged ones not.
+        Hits against a paralyzed or unconscious creature from within 5 ft are critical hits. Without
+        positions (within_5ft is None), melee attacks are assumed to be within 5 ft and ranged ones not.
         """
         if within_5ft is None:
             within_5ft = self.weapon_type != 'ranged'
-        return within_5ft and is_paralyzed(target)
+        return within_5ft and melee_hits_crit(target)
 
     def _apply_on_hit_effect(self, attacker: Any, target: Any) -> Dict[str, Any]:
         """Apply this attack's on-hit condition (currently paralysis) to a target that was hit."""
@@ -331,7 +331,8 @@ class AttackAction(Action):
 
             # Apply damage to target HP if hit and target has hp
             if hit:
-                damage = apply_damage(targets_list[0], damage, self.damage_type, critical, self.magical)
+                damage = apply_damage(targets_list[0], damage, self.damage_type, critical,
+                                      self.magical or has_flag(attacker, 'magical_weapon'))
 
             if hit and self.on_hit:
                 result.update(self._apply_on_hit_effect(attacker, attack_target))

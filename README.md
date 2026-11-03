@@ -8,6 +8,7 @@ A comprehensive web-based combat simulator for Dungeons & Dragons 5th Edition, f
 - **Turn-based combat simulation** with initiative tracking
 - **AI-driven decision making** for both party and monster actions
 - **Spell casting system** with damage calculation and saving throws
+- **Spell effects and concentration**: conditions (Sleep, Entangle, Web, Hypnotic Pattern), lasting spells (Moonbeam, Call Lightning, Spiritual Weapon), bonus-action spells (Hunter's Mark, Shield of Faith) and concentration saves
 - **Combat logging** with detailed round-by-round analysis
 - **Multiple victory conditions** and combat end detection
 
@@ -149,6 +150,8 @@ dnd5e_combat_sim/
 │   ├── monster.py         # Monster class and actions
 │   ├── combat.py          # Combat simulation engine
 │   ├── spells.py          # Spell system and casting
+│   ├── spell_effects.py   # What spells do besides damage and healing
+│   ├── concentration.py   # Concentration on spells
 │   └── db.py              # Database management
 ├── controllers/           # Application controllers
 │   ├── encounter_controller.py

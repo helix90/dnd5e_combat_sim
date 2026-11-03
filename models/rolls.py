@@ -23,7 +23,7 @@ import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
-from models.buffs import BuffManager, is_incapacitated
+from models.buffs import BuffManager, fails_str_dex_saves
 
 ATTACK_ROLLS = 'attack_rolls'
 ATTACKS_AGAINST = 'attacks_against'
@@ -81,11 +81,20 @@ def is_critical(natural_roll: int, attacker: Any) -> bool:
     return natural_roll >= (threshold if isinstance(threshold, int) else 20)
 
 
+def protected_from(attacker: Any, target: Any) -> bool:
+    """Protection from Evil and Good: the attacker's creature type is one the target is protected from."""
+    buffs = _buffs(target)
+    kind = getattr(attacker, 'creature_type', None)
+    return bool(buffs) and isinstance(kind, str) and any(
+        kind in b.metadata.get('protection_from', ()) for b in buffs.active_buffs)
+
+
 def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> D20Roll:
     """Roll an attack's d20, combining effects on the attacker and the target with any explicit sources."""
     return roll_d20(
         advantage=advantage or has_advantage(attacker, ATTACK_ROLLS) or has_advantage(target, ATTACKS_AGAINST),
-        disadvantage=disadvantage or has_disadvantage(attacker, ATTACK_ROLLS) or has_disadvantage(target, ATTACKS_AGAINST),
+        disadvantage=(disadvantage or has_disadvantage(attacker, ATTACK_ROLLS)
+                      or has_disadvantage(target, ATTACKS_AGAINST) or protected_from(attacker, target)),
     )
 
 
@@ -94,7 +103,7 @@ def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
                       cover_bonus: int = 0) -> Dict[str, Any]:
     """
     Roll a saving throw for a creature, including buff bonuses (e.g. Bless), advantage/
-    disadvantage and, for DEX saves, a cover bonus. A paralyzed or stunned creature
+    disadvantage and, for DEX saves, a cover bonus. A paralyzed, stunned or unconscious creature
     automatically fails STR and DEX saves.
     """
     keys = (SAVING_THROWS, f'{SAVING_THROWS}:{save_type}')
@@ -105,7 +114,7 @@ def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
     save_bonus = creature.saving_throw_bonus(save_type) if hasattr(creature, 'saving_throw_bonus') else 0
     buff_bonus = creature.buffs.calculate_total_bonus('saving_throws') if hasattr(creature, 'buffs') else 0
     total_save = d20.result + save_bonus + buff_bonus + cover_bonus
-    auto_fail = save_type in ('str', 'dex') and is_incapacitated(creature)  # paralyzed or stunned
+    auto_fail = save_type in ('str', 'dex') and fails_str_dex_saves(creature)  # paralyzed, stunned, asleep
     result = {
         'save_roll': d20.result,
         'save_rolls': d20.rolls,

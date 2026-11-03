@@ -86,6 +86,7 @@ def build_monster(data: Dict[str, Any]) -> Monster:
         speed=data.get('speed'),
         creature_type=data.get('type'),
         saving_throws=data.get('saving_throws'),
+        condition_immunities=data.get('condition_immunities'),
     )
 
 

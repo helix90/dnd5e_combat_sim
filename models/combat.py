@@ -7,12 +7,12 @@ import random
 from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 from utils.exceptions import SimulationError
 from utils.logging import log_exception
-from ai.strategy import PartyAIStrategy, MonsterAIStrategy
+from ai.strategy import PartyAIStrategy, MonsterAIStrategy, lowest_slot
 from ai.tactical import TacticalAnalyzer
 from ai.aiming import aim_area
 from ai.positioning import fit_plan
 from models.rolls import roll_saving_throw
-from models.buffs import is_incapacitated, is_paralyzed, is_stunned, is_turned
+from models.buffs import is_incapacitated, is_paralyzed, is_spellbound, is_stunned, is_turned
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, describe_area
 from models.battlefield import (MONSTERS, PARTY, Battlefield, area_of, area_range, bonus_dash, bonus_disengage,
@@ -20,6 +20,8 @@ from models.battlefield import (MONSTERS, PARTY, Battlefield, area_of, area_rang
 from models.multiattack import parse_multiattack
 from models.damage import apply_damage, has_ability
 from models import class_features as feature_rules
+from models import concentration, spell_effects
+from models.spells import SpellAction
 import logging
 logger = logging.getLogger('dnd5e_combat_sim.combat')
 
@@ -133,6 +135,11 @@ class Combat:
         if self.battlefield is not None:
             self.logger.on_action = self._record_frame
         self._start_hp = self._hit_points()
+        # Spells cast before the fight (Mage Armor)
+        for character in self._original_characters:
+            prepared = spell_effects.prepare(character)
+            if prepared:
+                self.logger.log_action(character, prepared, 1)
 
     def _positions(self) -> Dict[str, List[int]]:
         bf = self.battlefield
@@ -303,6 +310,7 @@ class Combat:
                     self.battlefield.reacted.discard(participant)  # its reaction is back
                 self._reacted.discard(participant)
                 self._start_of_turn_effects(participant)
+                self._check_concentration()
                 # Wrapping past the end of the initiative order starts a new round. (Checking for
                 # the last slot instead would stall the round count once that creature is dead.)
                 if start + i >= n:
@@ -319,14 +327,23 @@ class Combat:
                         self.logger.log_action(participant, regen_result, self.current_round)
                     if participant.hp <= 0:
                         return participant
+                if self._moonbeam(participant):
+                    return participant
                 if is_paralyzed(participant):
                     # Incapacitated: no action this turn, then repeat the save at the end of it
                     result = self._paralyzed_turn(participant)
                     self.logger.log_action(participant, result, self.current_round)
                     self._end_of_turn_effects(participant)
                     return participant
-                if is_stunned(participant) or is_turned(participant):
-                    result = self._stunned_turn(participant) if is_stunned(participant) else self._turned_turn(participant)
+                if is_incapacitated(participant) or is_turned(participant) or self._wants_to_escape(participant):
+                    if is_stunned(participant):
+                        result = self._stunned_turn(participant)
+                    elif is_incapacitated(participant):
+                        result = self._incapacitated_turn(participant)
+                    elif is_turned(participant):
+                        result = self._turned_turn(participant)
+                    else:
+                        result = spell_effects.try_escape(participant)
                     self.logger.log_action(participant, result, self.current_round)
                     self._log_pending_entries()
                     self._end_of_turn_effects(participant)
@@ -367,6 +384,50 @@ class Combat:
                 stun.metadata['turns_left'] -= 1
                 if stun.metadata['turns_left'] <= 0:
                     buffs.remove_buff(stun.name)
+
+    def _check_concentration(self) -> None:
+        """Casters who are incapacitated (stunned, paralyzed, asleep) lose concentration."""
+        for creature in self.participants:
+            concentration.check_incapacitated(creature)
+        self._log_pending_entries()
+
+    def _moonbeam(self, participant: Any) -> bool:
+        """
+        A creature that starts its turn in a Moonbeam takes its damage (logged as the caster's).
+        Returns True if that drops it, which ends its turn.
+        """
+        hp_before = {c: c.hp for c in self._regenerators}
+        found = spell_effects.moonbeam_turn_start(participant)
+        if found is None:
+            return False
+        caster, result = found
+        self._note_regeneration_damage(hp_before, result)
+        self.logger.log_action(caster, result, self.current_round)
+        self._log_pending_entries()
+        self._alive_participants_cache = None
+        return not participant.is_alive()
+
+    def _wants_to_escape(self, participant: Any) -> bool:
+        """
+        A restrained creature (Entangle, Web) uses its action to try to break free when, on an
+        arena, no enemy is within reach of where it's stuck. Otherwise it fights on, with
+        disadvantage.
+        """
+        buffs = getattr(participant, 'buffs', None)
+        if self.battlefield is None or not hasattr(buffs, 'has_condition') or not buffs.has_condition('restrained'):
+            return False
+        reach = max([getattr(a, 'reach', SQUARE_FEET) for a in melee_attacks(participant)] or [SQUARE_FEET])
+        ranged = any(getattr(a, 'range', None) for a in getattr(participant, 'actions', []))
+        enemies = self._build_combat_state(participant)['enemies']
+        return not ranged and not any(self.battlefield.distance(participant, e) <= reach for e in enemies)
+
+    def _incapacitated_turn(self, participant: Any) -> Dict[str, Any]:
+        """Asleep (Sleep) or hypnotized (Hypnotic Pattern): the creature does nothing."""
+        if participant.buffs.has_condition('unconscious'):
+            return {'action': 'Asleep', 'type': 'condition', 'condition': 'unconscious',
+                    'description': 'is magically asleep'}
+        return {'action': 'Hypnotized', 'type': 'condition', 'condition': 'hypnotized',
+                'description': 'is hypnotized and does nothing'}
 
     def _stunned_turn(self, participant: Any) -> Dict[str, Any]:
         return {'action': 'Stunned', 'type': 'condition', 'condition': 'stunned',
@@ -542,6 +603,8 @@ class Combat:
         self._turn = self._new_turn(participant)
         bonus, feature = self._bonus_action(participant, action_plan)
         feature_bonus = None if bonus else self._feature_bonus_action(participant, action_plan)
+        if not (bonus or feature_bonus):
+            feature_bonus = self._spell_bonus_action(participant, action_plan)
         self._disengaged = kind == 'disengage' or bonus == 'Disengage'
         budget = 0
         if self.battlefield is not None:
@@ -635,6 +698,84 @@ class Combat:
         attacks = [a for part in parts if not part.get('reason') for a in (part.get('attacks') or [part])]
         return self._combine_attacks(action, attacks) if len(parts) > 1 else result
 
+    def _spell_bonus_action(self, participant: Any, plan: Dict[str, Any]) -> Optional[str]:
+        """
+        A spell's bonus action at the start of the turn, logged on its own: Spiritual Weapon's
+        attack, or casting Spiritual Weapon, Hunter's Mark (or moving it) or a paladin's Magic
+        Weapon, Shield of Faith or Divine Favor. A creature casting a spell with its action can only
+        use its bonus action on a cantrip, so it casts none then, and none if its action is a
+        bonus-action spell (Healing Word). Returns the spell used.
+        """
+        spells = getattr(participant, 'spells', None)
+        if participant not in self._original_characters or not isinstance(spells, dict):
+            return None
+        planned = plan.get('spell') if plan.get('type') == 'cast_spell' else None
+        if planned is not None and getattr(planned.spell, 'bonus_action', False):
+            return None
+        enemies = [e for e in self._build_combat_state(participant)['enemies'] if not is_spellbound(e)]
+        target = plan.get('target')
+        target = target if target in enemies else None
+        if spell_effects.has_spiritual_weapon(participant):
+            choice = self._spell_target(participant, spells.get('Spiritual Weapon'), target, enemies)
+            if choice is None:
+                return None
+            return self._cast_bonus(participant, 'Spiritual Weapon', choice,
+                                    lambda: spell_effects.spiritual_weapon_attack(participant, choice))
+        if planned is not None and planned.spell.level > 0:
+            return None
+        attacking = plan.get('type') == 'attack' and target is not None
+        holding = concentration.concentrating_on(participant)
+        if holding == "Hunter's Mark" and attacking and spell_effects.marked_by(participant, enemies) is None:
+            return self._cast_spell_bonus(participant, spells["Hunter's Mark"], target, free=True)
+        choice = self._spell_target(participant, spells.get('Spiritual Weapon'), target, enemies)
+        if choice is not None and lowest_slot(participant, 2):
+            return self._cast_spell_bonus(participant, spells['Spiritual Weapon'], choice)
+        if holding or not attacking:
+            return None
+        if "Hunter's Mark" in spells and lowest_slot(participant, 1) and \
+                self._spell_target(participant, spells["Hunter's Mark"], target, [target]) is not None:
+            return self._cast_spell_bonus(participant, spells["Hunter's Mark"], target)
+        if not feature_rules.is_melee_weapon(plan.get('action')):
+            return None
+        slots = sum(getattr(participant, 'spell_slots_remaining', {}).values())
+        if 'Magic Weapon' in spells and lowest_slot(participant, 2) and any(
+                plan['action'].damage_type in [str(t).lower() for t in getattr(e, 'damage_resistances', [])]
+                for e in enemies) and not plan['action'].magical:
+            return self._cast_spell_bonus(participant, spells['Magic Weapon'], participant)
+        for name in ('Shield of Faith', 'Divine Favor'):
+            if name in spells and slots >= 3 and lowest_slot(participant, 1):
+                return self._cast_spell_bonus(participant, spells[name], participant)
+        return None
+
+    def _spell_target(self, participant: Any, spell: Any, target: Any, enemies: List[Any]) -> Any:
+        """The planned target if the spell reaches it, otherwise the nearest enemy it reaches, or None."""
+        if spell is None:
+            return None
+        options = [target] + [e for e in enemies if e is not target] if target is not None else list(enemies)
+        if self.battlefield is None:
+            return options[0] if options else None
+        in_range = [e for e in options if self.battlefield.spell_situation(participant, e, spell).in_range]
+        if target in in_range:
+            return target
+        return min(in_range, key=lambda e: self.battlefield.distance(participant, e)) if in_range else None
+
+    def _cast_spell_bonus(self, participant: Any, spell: Any, target: Any, free: bool = False) -> str:
+        action = SpellAction(spell, spell_slot_level=None if free else lowest_slot(participant, spell.level), free=free)
+        return self._cast_bonus(participant, spell.name, target, lambda: action.execute(participant, target))
+
+    def _cast_bonus(self, participant: Any, name: str, target: Any, cast: Any) -> str:
+        """Carry out a bonus-action spell and log it before the turn's action."""
+        hp_before = {c: c.hp for c in self._regenerators}
+        result = cast()
+        result.update({'action': f"Cast {name}", 'spell': name, 'type': 'spell',
+                       'target': getattr(target, 'name', str(target)), 'bonus_action_spell': True})
+        self._note_regeneration_damage(hp_before, result)
+        if result.get('damage', 0) > 0:
+            self._alive_participants_cache = None
+        self.logger.log_action(participant, result, self.current_round)
+        self._log_pending_entries()
+        return name
+
     @staticmethod
     def _bonus_action(participant: Any, plan: Dict[str, Any]) -> Any:
         """The bonus action the plan asks for, if the participant has a feature allowing it:
@@ -717,8 +858,18 @@ class Combat:
     def _attack(self, attacker: Any, action: Any, target: Any, options: Dict[str, Any]) -> Dict[str, Any]:
         """
         One attack by a monster (or an opportunity attack). A rogue it hits can use Uncanny Dodge,
-        its reaction, to halve the damage.
+        its reaction, to halve the damage. Against a caster with Mirror Image, it may target a
+        duplicate instead.
         """
+        decoy = None if isinstance(target, list) else spell_effects.mirror_image_decoy(target)
+        if decoy is not None:
+            result = action.execute(attacker, decoy, **options)
+            left = spell_effects.mirror_image_hit(target) if result.get('hit') else None
+            result.update({'target': target.name, 'damage': 0, 'mirror_image': True})
+            result.setdefault('features', []).append(
+                f"Mirror Image: the attack {'destroys' if left is not None else 'misses'} a duplicate"
+                + (f" ({left} left)" if left is not None else ''))
+            return result
         hp_before = getattr(target, 'hp', None)
         result = action.execute(attacker, target, **options)
         damage = result.get('damage', 0)
@@ -946,7 +1097,7 @@ class Combat:
         count = participant.attacks_per_action() if count is None else count
         for i in range(count):
             if (i > 0 or not first_where_aimed) and not target.is_alive():
-                enemies = [e for e in self._build_combat_state(participant)['enemies'] if not is_turned(e)]
+                enemies = [e for e in self._build_combat_state(participant)['enemies'] if not is_spellbound(e)]
                 if self.battlefield is not None:
                     enemies = self._enemies_in_range(participant, action, enemies)
                 if not enemies:
@@ -991,8 +1142,8 @@ class Combat:
     def _weapon_attack(self, participant: Any, action: Any, target: Any) -> Optional[Dict[str, Any]]:
         """
         One weapon attack by a character, with what its class features add: Reckless Attack's
-        advantage, Sneak Attack (once a turn), Divine Smite and Stunning Strike. None if the
-        target is out of reach and range.
+        advantage, Sneak Attack (once a turn), Divine Smite and Stunning Strike, plus spells that
+        add to weapon hits (Hunter's Mark, Divine Favor). None if the target is out of reach and range.
         """
         notes: Dict[str, Any] = {}
         if self.battlefield is None:
@@ -1011,6 +1162,8 @@ class Combat:
         if self._turn.get('sneak') and self._can_sneak_attack(participant, action, attack, target):
             self._add_sneak_attack(attack, target, self._turn['sneak'])
             self._turn['sneak'] = None  # once per turn
+        for note in spell_effects.weapon_riders(participant, attack, target):
+            self._note_feature(note)
         if feature_rules.is_melee_attack(action, notes.get('distance')) and attack.get('hit'):
             slot = feature_rules.wants_smite(participant, attack, target)
             if slot is not None:
@@ -1303,6 +1456,8 @@ class Combat:
                         spell_name = result['spell']
                         if 'healing' in result and result['healing'] > 0:
                             lines.append(f"{actor} casts {spell_name} on {self._target_text(result)}: heals {result['healing']} HP.")
+                        elif result.get('effect_text'):
+                            lines.append(f"{actor} casts {spell_name}: {result['effect_text']}.")
                         elif 'damage' in result or 'total_damage' in result:
                             damage = result.get('damage', result.get('total_damage'))
                             hits = f" ({result['hits']} of {result['projectiles']} hit)" if 'hit' in result and \

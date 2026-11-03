@@ -9,7 +9,7 @@ import re
 from typing import Dict, List, Optional, Any
 from models.actions import AttackAction
 from models.spells import Spell, SpellAction
-from models.buffs import BuffManager
+from models.buffs import BuffManager, metadata_total
 from models import class_features as feature_rules
 from models.arena import normalize_speed, size_in_squares
 
@@ -115,6 +115,7 @@ class Character:
         self.ability_scores = ability_scores.copy()
         self.hp = hp
         self.max_hp = hp
+        self.buffs = BuffManager()
         self.ac = ac
         self.proficiency_bonus = proficiency_bonus
         self.equipment = equipment or []
@@ -137,7 +138,8 @@ class Character:
         size_in_squares(size)
         self.size = size.lower()
         self.speed = normalize_speed(speed)
-        self.buffs = BuffManager()
+        # Things that happened to the character outside its own turn (losing concentration), for the log
+        self.pending_log_entries: List[Dict[str, Any]] = []
 
         # Add default actions if not provided
         if actions is not None:
@@ -231,15 +233,29 @@ class Character:
         else:  # melee
             ability_mod = self.ability_modifier('str')
 
-        return ability_mod + self.proficiency_bonus + feature_rules.attack_bonus_for(self, weapon_type)
+        return (ability_mod + self.proficiency_bonus + feature_rules.attack_bonus_for(self, weapon_type)
+                + metadata_total(self, 'weapon_attack_bonus'))
 
     def critical_threshold(self) -> int:
         """Lowest d20 roll that's a critical hit: 20, or 19 with Improved Critical."""
         return feature_rules.critical_threshold(self)
 
     def weapon_damage_bonus(self, action: Any) -> int:
-        """Extra damage on a weapon attack from class features (Rage)."""
-        return feature_rules.weapon_damage_bonus(self, action)
+        """Extra damage on a weapon attack from class features (Rage) and spells (Magic Weapon)."""
+        return feature_rules.weapon_damage_bonus(self, action) + metadata_total(self, 'weapon_damage_bonus')
+
+    @property
+    def ac(self) -> int:
+        """
+        Armor Class: the character's own, or Mage Armor's 13 + DEX if that's better, plus bonuses
+        from effects such as Shield of Faith.
+        """
+        base = max([self._ac] + [b.metadata['base_ac'] for b in self.buffs.active_buffs if 'base_ac' in b.metadata])
+        return base + sum(b.bonus_static for b in self.buffs.active_buffs if b.applies_to('armor_class'))
+
+    @ac.setter
+    def ac(self, value: int) -> None:
+        self._ac = value
     
     def roll_initiative(self) -> int:
         """

@@ -5,9 +5,11 @@ Defines the Spell class and SpellAction subclass for spell casting in combat.
 """
 
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
+import copy
 import random
 import re
 
+from models import concentration, spell_effects
 from models.actions import Action
 from models.arena import Area
 from models.damage import apply_damage, damage_after_save
@@ -21,10 +23,24 @@ if TYPE_CHECKING:
 
 
 # Save spells that still deal half damage on a successful save; the rest deal none
-HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt'}
+HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt', 'Moonbeam', 'Call Lightning'}
 
 FEET_PER_MILE = 5280
 TOUCH_RANGE_FEET = 5
+ROUNDS_PER_MINUTE = 10
+
+
+def parse_duration_rounds(text: Optional[str]) -> int:
+    """
+    Rounds a spell lasts from its duration text: "1 minute" -> 10, "Up to 10 minutes" -> 100,
+    "1 hour" -> 600. Anything else ("Instantaneous", "Until dispelled") gives -1, for the rest of
+    the fight.
+    """
+    match = re.search(r'(\d+)\s*(round|minute|hour)', (text or '').lower())
+    if not match:
+        return -1
+    amount = int(match.group(1))
+    return amount * {'round': 1, 'minute': ROUNDS_PER_MINUTE, 'hour': 60 * ROUNDS_PER_MINUTE}[match.group(2)]
 
 
 def parse_range_feet(text: Optional[str]) -> Optional[int]:
@@ -73,7 +89,10 @@ class Spell:
         area: Optional[Dict[str, Any]] = None,  # Shape on an arena, e.g. {'shape': 'sphere', 'size': 20}
         projectiles: int = 1,  # Darts, rays or beams, each rolled on its own (3 for Magic Missile)
         projectiles_per_slot: int = 0,  # More of them for each slot level above the spell's level
-        cantrip_projectiles: bool = False  # A cantrip that gains beams with level, not dice (Eldritch Blast)
+        cantrip_projectiles: bool = False,  # A cantrip that gains beams with level, not dice (Eldritch Blast)
+        effect: Optional[str] = None,  # What it does besides damage and healing, see models/spell_effects.py
+        combat: bool = True,  # False for spells with no use in a fight (Prestidigitation, Revivify)
+        hit_point_dice: Optional[str] = None  # Sleep's pool of hit points
     ) -> None:
         self.name = name
         self.level = level
@@ -99,6 +118,18 @@ class Spell:
         self.projectiles = projectiles
         self.projectiles_per_slot = projectiles_per_slot
         self.cantrip_projectiles = cantrip_projectiles
+        self.effect = effect
+        self.combat = combat
+        self.hit_point_dice = hit_point_dice
+
+    @property
+    def bonus_action(self) -> bool:
+        """Cast as a bonus action (Hunter's Mark, Spiritual Weapon)."""
+        return 'bonus' in (self.casting_time or '').lower()
+
+    @property
+    def duration_rounds(self) -> int:
+        return parse_duration_rounds(self.duration)
 
     @classmethod
     def from_api(cls, name, api_client=None):
@@ -235,7 +266,8 @@ class SpellAction(Action):
         self,
         spell: Spell,
         spell_slot_level: Optional[int] = None,
-        target_count: int = 1
+        target_count: int = 1,
+        free: bool = False
     ) -> None:
         """
         Initialize a spell action.
@@ -244,11 +276,15 @@ class SpellAction(Action):
             spell: The Spell object to cast
             spell_slot_level: The level of spell slot to use (None for cantrips)
             target_count: Number of targets for area spells
+            free: Keep using a spell that's already going instead of casting it: no slot, and
+                concentration carries on (Call Lightning's later bolts, moving Moonbeam or
+                Hunter's Mark)
         """
         super().__init__(action_type="spell", name=f"Cast {spell.name}", description=spell.description)
         self.spell = spell
         self.spell_slot_level = spell_slot_level
         self.target_count = target_count
+        self.free = free
 
     def check_spell_slot_availability(self, caster: Any) -> bool:
         """
@@ -410,7 +446,9 @@ class SpellAction(Action):
         # Convert single target to list for uniform handling
         targets_list = target if isinstance(target, list) else [target]
         # Check and consume spell slot
-        if not self.check_spell_slot_availability(caster):
+        if self.free:
+            pass
+        elif not self.check_spell_slot_availability(caster):
             return {
                 'action': self.name,
                 'success': False,
@@ -419,7 +457,7 @@ class SpellAction(Action):
                 'target': getattr(target, 'name', str(target))
             }
         
-        if not self.consume_spell_slot(caster):
+        if not self.free and not self.consume_spell_slot(caster):
             return {
                 'action': self.name,
                 'success': False,
@@ -445,6 +483,32 @@ class SpellAction(Action):
             'type': 'spell'  # Explicit type for easier identification
         }
 
+        # A new concentration spell ends the one the caster was concentrating on
+        holding = self.spell.concentration and not self.free
+        if holding:
+            ended = concentration.end(caster)
+            if ended:
+                result['concentration_ended'] = ended
+
+        handler = spell_effects.HANDLERS.get(self.spell.effect)
+        if handler is not None:
+            fields, affected = handler(self, caster, targets_list, save_bonuses or {})
+            result.update(fields)
+        else:
+            self._resolve(caster, target, targets_list, result, advantage, disadvantage, ac_bonus, save_bonus,
+                          save_bonuses, other_targets)
+            affected = targets_list if self.spell.is_buff_spell else []
+            if self.spell.effect == 'call_lightning' and not self.free:
+                spell_effects.call_lightning_storm(caster, self)
+                affected = [caster]
+        if holding and affected:
+            concentration.start(caster, self.spell.name, affected, self.spell.duration_rounds)
+        return result
+
+    def _resolve(self, caster: Any, target: Any, targets_list: List[Any], result: Dict[str, Any],
+                 advantage: bool, disadvantage: bool, ac_bonus: int, save_bonus: int,
+                 save_bonuses: Optional[Dict[Any, int]], other_targets: Optional[List[Any]]) -> Dict[str, Any]:
+        """Attack rolls, saving throws, damage, healing and Bless-style buffs, filling in result."""
         # Handle buff spells
         if self.spell.is_buff_spell:
             from models.buffs import Buff
@@ -461,7 +525,7 @@ class SpellAction(Action):
                     bonus_static=self.spell.buff_data.get('bonus_static', 0),
                     affects=self.spell.buff_data.get('affects', []),
                     concentration=self.spell.buff_data.get('concentration', self.spell.concentration),
-                    metadata=self.spell.buff_data.get('metadata', {})
+                    metadata=copy.deepcopy(self.spell.buff_data.get('metadata', {}))
                 )
 
                 # Apply buff to this target

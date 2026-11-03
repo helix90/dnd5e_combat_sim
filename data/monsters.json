@@ -13,6 +13,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": false,
       "actions": [
         {"name": "Dagger", "type": "attack", "damage_dice": "1d4+2", "damage_type": "piercing", "weapon_type": "finesse", "reach": 5}
@@ -32,6 +33,7 @@
       "damage_resistances": ["poison"],
       "damage_vulnerabilities": ["bludgeoning"],
       "damage_immunities": ["poison"],
+      "condition_immunities": ["exhaustion", "poisoned"],
       "multiattack": false,
       "actions": [
         {"name": "Shortsword", "type": "attack", "damage_dice": "1d6+2", "damage_type": "piercing", "weapon_type": "finesse", "reach": 5},
@@ -51,6 +53,7 @@
       "legendary_actions": [],
       "damage_resistances": ["poison"],
       "damage_immunities": ["poison"],
+      "condition_immunities": ["poisoned"],
       "multiattack": false,
       "actions": [
         {"name": "Slam", "type": "attack", "damage_dice": "1d6+1", "damage_type": "bludgeoning", "weapon_type": "melee", "reach": 5}
@@ -69,6 +72,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": false,
       "actions": [
         {"name": "Scimitar", "type": "attack", "damage_dice": "1d6+2", "damage_type": "slashing", "weapon_type": "finesse", "reach": 5},
@@ -88,6 +92,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": false,
       "actions": [
         {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "weapon_type": "finesse", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.", "reach": 5}
@@ -106,6 +111,7 @@
       "legendary_actions": [],
       "damage_resistances": ["cold", "necrotic"],
       "damage_immunities": ["poison"],
+      "condition_immunities": ["charmed", "exhaustion", "poisoned"],
       "multiattack": false,
       "actions": [
         {"name": "Bite", "type": "attack", "damage_dice": "1d6+1", "damage_type": "piercing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}, "reach": 5},
@@ -125,6 +131,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": false,
       "actions": [
         {"name": "Greataxe", "type": "attack", "damage_dice": "1d12+3", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
@@ -144,6 +151,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": false,
       "actions": [
         {"name": "Longsword", "type": "attack", "damage_dice": "1d8+1", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
@@ -163,6 +171,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The bear makes two attacks: one with its bite and one with its claws."},
@@ -183,6 +192,7 @@
       "legendary_actions": [],
       "damage_resistances": ["necrotic", "poison"],
       "damage_immunities": ["poison"],
+      "condition_immunities": ["exhaustion", "poisoned"],
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The wight makes two longsword attacks or two longbow attacks."},
@@ -203,6 +213,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The owlbear makes two attacks: one with its beak and one with its claws."},
@@ -223,6 +234,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": false,
       "actions": [
         {"name": "Greataxe", "type": "attack", "damage_dice": "2d12+4", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
@@ -242,6 +254,7 @@
       "legendary_actions": [],
       "damage_resistances": ["acid", "cold", "fire", "lightning", "thunder", "bludgeoning", "piercing", "slashing"],
       "damage_immunities": ["necrotic", "poison"],
+      "condition_immunities": ["charmed", "exhaustion", "grappled", "paralyzed", "petrified", "poisoned", "prone", "restrained"],
       "multiattack": false,
       "actions": [
         {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5}
@@ -261,6 +274,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The troll makes three attacks: one with its bite and two with its claws."},
@@ -281,6 +295,7 @@
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The giant makes two greatclub attacks."},
@@ -301,6 +316,7 @@
       "legendary_actions": ["Detect", "Tail Attack", "Wing Attack"],
       "damage_resistances": ["fire"],
       "damage_immunities": [],
+      "condition_immunities": [],
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The dragon makes three attacks: one with its bite and two with its claws."},
@@ -324,6 +340,7 @@
       "legendary_actions": [],
       "damage_resistances": ["necrotic", "bludgeoning", "piercing", "slashing"],
       "damage_immunities": ["poison"],
+      "condition_immunities": [],
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The vampire spawn makes two attacks, only one of which can be a bite attack."},
@@ -345,6 +362,7 @@
       "damage_resistances": ["bludgeoning", "piercing", "slashing"],
       "damage_vulnerabilities": ["fire"],
       "damage_immunities": ["necrotic", "poison"],
+      "condition_immunities": ["charmed", "exhaustion", "frightened", "paralyzed", "poisoned"],
       "multiattack": false,
       "actions": [
         {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot.", "reach": 5}

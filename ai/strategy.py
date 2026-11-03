@@ -3,7 +3,8 @@ from typing import Any, List, Dict, Protocol, Callable, Optional
 import logging
 import random
 from models import class_features as feature_rules
-from models.buffs import is_turned
+from models import concentration
+from models.buffs import is_spellbound
 from models.spells import SpellAction
 from models.actions import AttackAction
 
@@ -36,6 +37,49 @@ DAMAGING_CANTRIPS = {'Fire Bolt', 'Sacred Flame', 'Eldritch Blast', 'Ray of Fros
 AGGRESSIVE_SPELL_ROUNDS = 5
 
 logger = logging.getLogger(__name__)
+
+# Spells with an effect besides damage and healing (see models/spell_effects.py)
+# Sleep is worth a slot if it puts this many enemies to sleep (on average)
+SLEEP_MIN_ENEMIES = 2
+SLEEP_AVERAGE_POOL = 22.5
+# Entangle, Web and Hypnotic Pattern are worth a slot if this many enemies are expected to fail the save
+CONTROL_MIN_AFFECTED = 1.5
+# Moonbeam and Call Lightning are worth their slot against enemies with at least this many hit points left
+LASTING_SPELL_MIN_HP = 25
+# Mirror Image once the caster is below this share of its hit points
+MIRROR_IMAGE_HP = 0.75
+
+
+def combat_spells(combatant: Any) -> List[Any]:
+    """
+    The combatant's spells that plainly deal damage, heal or buff, for the usual choices. Spells
+    with an effect of their own (Sleep, Moonbeam, Hunter's Mark...) are chosen separately, and
+    spells with no use in a fight (Prestidigitation, Revivify) never.
+    """
+    return [s for s in getattr(combatant, 'spells', {}).values()
+            if getattr(s, 'combat', True) and not getattr(s, 'effect', None)]
+
+
+def lowest_slot(combatant: Any, level: int) -> Optional[int]:
+    """The lowest spell slot of at least this level the combatant has left."""
+    slots = getattr(combatant, 'spell_slots_remaining', None)
+    if not isinstance(slots, dict):
+        return None
+    return min((int(lvl) for lvl, count in slots.items() if int(lvl) >= level and count > 0), default=None)
+
+
+def _save_fails(target: Any, save_type: str, dc: int) -> float:
+    bonus = target.saving_throw_bonus(save_type) if hasattr(target, 'saving_throw_bonus') else 0
+    return 1 - min(0.95, max(0.05, (21 + bonus - dc) / 20))
+
+
+def _restrained(target: Any) -> bool:
+    buffs = getattr(target, 'buffs', None)
+    return hasattr(buffs, 'has_condition') and buffs.has_condition('restrained')
+
+
+def _immune(target: Any, condition: str) -> bool:
+    return condition in (getattr(target, 'condition_immunities', None) or [])
 
 
 class Combatant(Protocol):
@@ -252,9 +296,13 @@ class PartyAIStrategy(AIStrategy):
             allies = [c for c in combat_state['allies'] if c.is_alive()]
             enemies = [c for c in combat_state['enemies'] if c.is_alive()]
 
-            # Priority 0: Cast buff spells early in combat (first 2 rounds)
+            # Priority 0: Cast buff spells early in combat (first 2 rounds), unless a spell with an
+            # effect of its own is worth more (Hypnotic Pattern or Entangle before Bless)
             current_round = combat_state.get('round', 1)
             if current_round <= 2:
+                effect_action = self._try_effect_spell(combatant, enemies, combat_state)
+                if effect_action:
+                    return effect_action
                 buff_action = self._try_cast_buff_spell(combatant, allies, combat_state)
                 if buff_action:
                     return buff_action
@@ -285,6 +333,11 @@ class PartyAIStrategy(AIStrategy):
             turn_action = self._try_turn_undead(combatant, enemies, combat_state)
             if turn_action:
                 return turn_action
+
+            # Priority 2.6: Spells with an effect of their own (Sleep, Moonbeam, Hypnotic Pattern...)
+            effect_action = self._try_effect_spell(combatant, enemies, combat_state)
+            if effect_action:
+                return effect_action
 
             # Priority 3: Finish off a downed enemy that would regenerate (burn the troll)
             finish_action = self._try_finish_regenerator(combatant, combat_state.get('downed_regenerators', []))
@@ -324,7 +377,7 @@ class PartyAIStrategy(AIStrategy):
             return {'type': 'cast_spell', 'spell': feature_rules.LayOnHandsAction(), 'target': target}
 
         healing_spells = [
-            s for s in getattr(combatant, 'spells', {}).values()
+            s for s in combat_spells(combatant)
             if hasattr(s, 'healing') and s.healing
         ]
 
@@ -416,7 +469,7 @@ class PartyAIStrategy(AIStrategy):
         """
         # Get all buff spells
         buff_spells = [
-            s for s in getattr(combatant, 'spells', {}).values()
+            s for s in combat_spells(combatant)
             if hasattr(s, 'is_buff_spell') and s.is_buff_spell
         ]
 
@@ -442,6 +495,10 @@ class PartyAIStrategy(AIStrategy):
         for spell in castable_buffs:
             buff_name = spell.buff_data.get('name', spell.name) if hasattr(spell, 'buff_data') else spell.name
             is_concentration = spell.buff_data.get('concentration', False) if hasattr(spell, 'buff_data') else False
+
+            # Don't drop another concentration spell (Moonbeam, Entangle) for a buff
+            if getattr(spell, 'concentration', False) and concentration.concentrating_on(combatant):
+                continue
 
             # If this is a concentration buff, check if caster is already concentrating on it
             if is_concentration:
@@ -543,13 +600,104 @@ class PartyAIStrategy(AIStrategy):
             undead = [u for u in undead if battlefield.distance(combatant, u) <= feature_rules.TURN_UNDEAD_RANGE_FEET]
         if not undead:
             return None
-        others = [e for e in enemies if e not in undead and not is_turned(e)]
+        others = [e for e in enemies if e not in undead and not is_spellbound(e)]
         destroy_cr = feature_rules.destroy_undead_cr(combatant)
         destroyable = destroy_cr is not None and any(feature_rules.challenge_rating(u) <= destroy_cr for u in undead)
         if len(undead) >= 2 or others or destroyable:
             logger.info(f"[PartyAI] {combatant.name} uses Turn Undead on {', '.join(u.name for u in undead)}")
             return {'type': 'turn_undead', 'target': undead}
         return None
+
+    def _try_effect_spell(self, combatant: Any, enemies: List[Any], combat_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Use a spell with an effect of its own when it's worth the action and the slot:
+
+        - keep a spell going: another Call Lightning bolt (no slot), or move a Moonbeam whose
+          creature dropped onto another one
+        - Hypnotic Pattern, Sleep, Entangle or Web when enough enemies would be affected
+        - Moonbeam or Call Lightning against enemies with plenty of hit points left
+        - Protection from Evil and Good when most enemies are undead, fiends and the like
+        - Mirror Image once the caster has been hurt
+
+        A caster already concentrating doesn't start another concentration spell. Bonus-action
+        spells (Hunter's Mark, Spiritual Weapon) are Combat's choice (see _spell_bonus_action).
+        """
+        spells = {s.name: s for s in getattr(combatant, 'spells', {}).values()
+                  if getattr(s, 'combat', True) and getattr(s, 'effect', None) and not getattr(s, 'bonus_action', False)}
+        if not spells or not enemies:
+            return None
+        active = [e for e in enemies if not is_spellbound(e)]
+        holding = concentration.concentrating_on(combatant)
+
+        if holding == 'Call Lightning' and 'Call Lightning' in spells and active:
+            return self._effect_plan(combatant, spells['Call Lightning'], active, free=True)
+        if holding == 'Moonbeam' and 'Moonbeam' in spells and active:
+            in_beam = [c for c in concentration.held_by(combatant) if c.is_alive()
+                       and any('moonbeam' in b.metadata for b in getattr(getattr(c, 'buffs', None), 'active_buffs', []))]
+            if not in_beam:
+                return self._effect_plan(combatant, spells['Moonbeam'], max(active, key=lambda e: e.hp), free=True)
+
+        def castable(name: str) -> bool:
+            spell = spells.get(name)
+            return spell is not None and lowest_slot(combatant, spell.level) is not None and \
+                not (spell.concentration and holding)
+
+        dc = combatant.spell_save_dc() if hasattr(combatant, 'spell_save_dc') else 10
+        if castable('Hypnotic Pattern'):
+            affected = sum(_save_fails(e, 'wis', dc) for e in active if not _immune(e, 'charmed'))
+            if affected >= CONTROL_MIN_AFFECTED + 0.5:
+                return self._effect_plan(combatant, spells['Hypnotic Pattern'], active)
+        if castable('Sleep'):
+            pool, slept = SLEEP_AVERAGE_POOL, 0
+            for enemy in sorted(active, key=lambda e: e.hp):
+                if getattr(enemy, 'creature_type', None) == 'undead' or _immune(enemy, 'charmed'):
+                    continue
+                if enemy.hp > pool:
+                    break
+                pool -= enemy.hp
+                slept += 1
+            if slept >= min(SLEEP_MIN_ENEMIES, len(active)) and slept:
+                return self._effect_plan(combatant, spells['Sleep'], active)
+        # A caster who can Fireball the crowd does that instead of webbing it
+        blaster = any(s.area_effect and s.damage_dice and s.level > 0 and lowest_slot(combatant, s.level) is not None
+                      for s in combat_spells(combatant))
+        for name in ('Web', 'Entangle'):
+            if castable(name) and len(active) >= 2 and not blaster:
+                spell = spells[name]
+                ranked = sorted((e for e in active if not _immune(e, 'restrained') and not _restrained(e)),
+                                key=lambda e: -e.hp)
+                affected = sum(_save_fails(e, spell.save_type, dc) for e in ranked[:getattr(spell, 'max_targets', 4)])
+                if affected >= CONTROL_MIN_AFFECTED:
+                    return self._effect_plan(combatant, spell, ranked)
+        biggest = max(active, key=lambda e: e.hp, default=None)
+        if castable('Moonbeam') and biggest is not None and biggest.hp >= LASTING_SPELL_MIN_HP:
+            return self._effect_plan(combatant, spells['Moonbeam'], biggest)
+        if castable('Call Lightning') and sum(e.hp for e in active) >= 2 * LASTING_SPELL_MIN_HP:
+            return self._effect_plan(combatant, spells['Call Lightning'], active)
+        warded = spells.get('Protection from Evil and Good')
+        if castable('Protection from Evil and Good') and not combatant.buffs.has_buff(warded.buff_data.get('name', warded.name)):
+            kinds = set(warded.buff_data.get('metadata', {}).get('protection_from', []))
+            if sum(getattr(e, 'creature_type', None) in kinds for e in active) * 2 > len(active):
+                return self._effect_plan(combatant, warded, combatant)
+        if castable('Mirror Image') and not combatant.buffs.has_buff('Mirror Image') and \
+                combatant.hp < combatant.max_hp * MIRROR_IMAGE_HP:
+            return self._effect_plan(combatant, spells['Mirror Image'], combatant)
+        return None
+
+    @staticmethod
+    def _effect_plan(combatant: Any, spell: Any, target: Any, free: bool = False) -> Dict[str, Any]:
+        """
+        Cast it (free: keep using it). Without an arena an area spell catches the first
+        max_targets enemies offered, or all of them if it doesn't say (an arena aims it instead).
+        """
+        if not spell.area_effect:
+            target = target[0] if isinstance(target, list) else target
+        elif spell.max_targets > 1:
+            target = target[:spell.max_targets]
+        action = SpellAction(spell, spell_slot_level=None if free else lowest_slot(combatant, spell.level), free=free)
+        names = target.name if not isinstance(target, list) else ', '.join(t.name for t in target)
+        logger.info(f"[PartyAI] {combatant.name} {'uses' if free else 'casts'} {spell.name} on {names}")
+        return {'type': 'cast_spell', 'spell': action, 'target': target}
 
     def _try_finish_regenerator(self, combatant: Any, downed: List[Any]) -> Optional[Dict[str, Any]]:
         """
@@ -560,7 +708,7 @@ class PartyAIStrategy(AIStrategy):
         for creature in downed:
             stops = {t.lower() for t in creature.regeneration.get('suppressed_by', [])}
             cantrips = [
-                s for s in getattr(combatant, 'spells', {}).values()
+                s for s in combat_spells(combatant)
                 if getattr(s, 'level', None) == 0 and getattr(s, 'damage_dice', None)
                 and not getattr(s, 'healing', False) and (getattr(s, 'damage_type', None) or '').lower() in stops
             ]
@@ -600,9 +748,9 @@ class PartyAIStrategy(AIStrategy):
         Returns:
             Attack action dictionary, or None if no attack available
         """
-        # Select most dangerous enemy, leaving turned undead alone while there are others (damage
-        # would end the turning)
-        enemies = [e for e in enemies if not is_turned(e)] or enemies
+        # Select most dangerous enemy, leaving turned, sleeping and hypnotized enemies alone while
+        # there are others (damage would wake them)
+        enemies = [e for e in enemies if not is_spellbound(e)] or enemies
         dangerous = max(enemies, key=lambda e: self.threat_assessment(e, combat_state))
 
         # Check if combatant is a spellcaster
@@ -614,14 +762,14 @@ class PartyAIStrategy(AIStrategy):
         # Check if this is a pure offensive caster (has no healing spells)
         has_healing_spells = False
         if is_offensive_caster:
-            all_spells = getattr(combatant, 'spells', {}).values()
+            all_spells = combat_spells(combatant)
             has_healing_spells = any(hasattr(s, 'healing') and s.healing for s in all_spells)
 
         # OFFENSIVE CASTER AGGRESSIVE STRATEGY
         # Pure offensive casters (wizards without healing) should prioritize damage spells in early rounds
         if is_offensive_caster and not has_healing_spells and current_round <= AGGRESSIVE_SPELL_ROUNDS:
             damaging_spells = [
-                s for s in getattr(combatant, 'spells', {}).values()
+                s for s in combat_spells(combatant)
                 if hasattr(s, 'damage_dice') and s.damage_dice and getattr(s, 'level', 0) > 0
             ]
 
@@ -664,7 +812,7 @@ class PartyAIStrategy(AIStrategy):
         # Spellcasters prefer cantrips (resource conservation)
         if is_spellcaster:
             cantrips = [
-                s for s in getattr(combatant, 'spells', {}).values()
+                s for s in combat_spells(combatant)
                 if getattr(s, 'level', None) == 0 and getattr(s, 'damage_dice', None)
                 and not getattr(s, 'healing', False)
             ]
@@ -697,7 +845,7 @@ class PartyAIStrategy(AIStrategy):
 
         # Try damaging spells as last resort
         damaging_spells = [
-            s for s in getattr(combatant, 'spells', {}).values()
+            s for s in combat_spells(combatant)
             if hasattr(s, 'damage_dice') and s.damage_dice
         ]
 

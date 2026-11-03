@@ -46,7 +46,8 @@ class Monster:
         size: str = 'medium',
         speed: Optional[Dict[str, Any]] = None,
         creature_type: Optional[str] = None,
-        saving_throws: Optional[Dict[str, int]] = None
+        saving_throws: Optional[Dict[str, int]] = None,
+        condition_immunities: Optional[List[str]] = None
     ) -> None:
         """
         Initialize a new Monster instance.
@@ -70,6 +71,7 @@ class Monster:
             creature_type: e.g. 'undead', 'fiend' (Turn Undead, Divine Smite)
             saving_throws: Total bonuses for the saves the monster is proficient in, e.g.
                 {'dex': 6, 'wis': 3}; other saves use the ability modifier
+            condition_immunities: Conditions that can't affect it, e.g. ['charmed', 'poisoned']
         Raises:
             ValueError: If ability scores, size or speed are invalid
         """
@@ -96,6 +98,7 @@ class Monster:
         self.speed = normalize_speed(speed)
         self.creature_type = (creature_type or '').lower() or None
         self.saving_throws = dict(saving_throws or {})
+        self.condition_immunities = [str(c).lower() for c in condition_immunities or []]
         # Results of abilities triggered outside the monster's own turn (e.g. Undead Fortitude),
         # waiting for the combat log
         self.pending_log_entries: List[Dict[str, Any]] = []
