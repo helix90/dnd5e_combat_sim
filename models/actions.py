@@ -11,7 +11,7 @@ import re
 from models.arena import Area
 from models.buffs import BuffManager, create_paralyzed_condition, is_paralyzed
 from models.damage import apply_damage
-from models.rolls import attack_hits, attack_roll, roll_saving_throw
+from models.rolls import attack_hits, attack_roll, is_critical, roll_saving_throw
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -281,7 +281,7 @@ class AttackAction(Action):
                     total_attack = d20.result + bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
                     hit = attack_hits(d20.result, total_attack, target_ac)
-                    critical = hit and self._is_auto_critical(t)
+                    critical = hit and (is_critical(d20.result, attacker) or self._is_auto_critical(t))
                     damage = (self.damage_roll(attacker, critical=True) if critical else base_damage) if hit else 0
 
                     # Apply damage
@@ -325,7 +325,7 @@ class AttackAction(Action):
             total_attack = d20.result + bonus + buff_bonus
             target_ac = getattr(targets_list[0], 'ac', 10) + ac_bonus
             hit = attack_hits(d20.result, total_attack, target_ac)
-            critical = hit and self._is_auto_critical(attack_target, within_5ft)
+            critical = hit and (is_critical(d20.result, attacker) or self._is_auto_critical(attack_target, within_5ft))
             damage = (self.damage_roll(attacker, critical=True) if critical else self.damage_roll(attacker)) if hit else 0
 
             # Apply damage to target HP if hit and target has hp

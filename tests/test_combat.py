@@ -237,8 +237,8 @@ def test_no_double_ability_modifier_for_monster_attacks(monkeypatch):
     from models.monster import Monster
     from models.actions import AttackAction
 
-    # Patch random.randint to always return max value for predictability
-    monkeypatch.setattr('random.randint', lambda a, b: b)
+    # Patch random.randint to always return max value for predictability (19 on the d20, not a crit)
+    monkeypatch.setattr('random.randint', lambda a, b: 19 if b == 20 else b)
 
     # Kobold: DEX 15 (+2), attack is '1d4+2' (should NOT add DEX mod again)
     kobold = Monster(

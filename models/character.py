@@ -185,18 +185,21 @@ class Character:
         score = self.ability_scores[ability]
         return (score - 10) // 2
     
-    def saving_throw_bonus(self, ability: str, proficient: bool = False) -> int:
+    def saving_throw_bonus(self, ability: str, proficient: Optional[bool] = None) -> int:
         """
         Calculate the saving throw bonus for a given ability.
         
         Args:
             ability: The ability name ('str', 'dex', 'con', 'int', 'wis', 'cha')
-            proficient: Whether the character is proficient in this saving throw
-            
+            proficient: Whether the character is proficient in this saving throw; None to go by
+                the character's saving throw proficiencies
+
         Returns:
             The saving throw bonus (ability modifier + proficiency bonus if proficient)
         """
         modifier = self.ability_modifier(ability)
+        if proficient is None:
+            proficient = ability in self.saving_throw_proficiencies
         if proficient:
             return modifier + self.proficiency_bonus
         return modifier

@@ -44,7 +44,9 @@ class Monster:
         regeneration: Optional[Dict[str, Any]] = None,
         damage_vulnerabilities: Optional[List[str]] = None,
         size: str = 'medium',
-        speed: Optional[Dict[str, Any]] = None
+        speed: Optional[Dict[str, Any]] = None,
+        creature_type: Optional[str] = None,
+        saving_throws: Optional[Dict[str, int]] = None
     ) -> None:
         """
         Initialize a new Monster instance.
@@ -65,6 +67,9 @@ class Monster:
             damage_vulnerabilities: Damage types that deal double damage to the monster
             size: Creature size ('tiny' to 'gargantuan'), which sets the squares it takes up
             speed: Speeds in feet by movement mode, e.g. {'walk': 40, 'fly': 80}
+            creature_type: e.g. 'undead', 'fiend' (Turn Undead, Divine Smite)
+            saving_throws: Total bonuses for the saves the monster is proficient in, e.g.
+                {'dex': 6, 'wis': 3}; other saves use the ability modifier
         Raises:
             ValueError: If ability scores, size or speed are invalid
         """
@@ -89,6 +94,8 @@ class Monster:
         size_in_squares(size)
         self.size = size.lower()
         self.speed = normalize_speed(speed)
+        self.creature_type = (creature_type or '').lower() or None
+        self.saving_throws = dict(saving_throws or {})
         # Results of abilities triggered outside the monster's own turn (e.g. Undead Fortitude),
         # waiting for the combat log
         self.pending_log_entries: List[Dict[str, Any]] = []
@@ -126,6 +133,12 @@ class Monster:
         score = self.ability_scores[ability]
         return (score - 10) // 2
     
+    def saving_throw_bonus(self, ability: str) -> int:
+        """The monster's bonus to a saving throw: its listed bonus if proficient, else the ability modifier."""
+        if ability in self.saving_throws:
+            return self.saving_throws[ability]
+        return self.ability_modifier(ability)
+
     def attack_bonus(self, weapon_type: str = "melee") -> int:
         """
         Calculate the attack bonus for a weapon attack.

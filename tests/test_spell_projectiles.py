@@ -92,7 +92,7 @@ def test_each_dart_is_reduced_by_resistance_on_its_own():
 
 def test_scorching_ray_rolls_an_attack_for_each_ray():
     caster, target = wizard(), goblin(ac=15)
-    rolls = iter([20, 6, 6, 2, 12, 6, 6])  # ray 1 hits (2d6), ray 2 misses, ray 3 hits (2d6)
+    rolls = iter([19, 6, 6, 2, 12, 6, 6])  # ray 1 hits (2d6), ray 2 misses, ray 3 hits (2d6)
     with patch('random.randint', side_effect=lambda a, b: next(rolls)):
         result = caster.cast_spell('Scorching Ray', target)
     assert [a['hit'] for a in result['attacks']] == [True, False, True]
@@ -118,7 +118,7 @@ def test_leftover_projectiles_go_back_to_the_chosen_target():
 
 def test_rays_allow_for_misses_when_splitting():
     caster, first, other = wizard(), goblin('First', hp=6, ac=19), goblin('Other')
-    with patch('random.randint', side_effect=d20_then(20, 3)):
+    with patch('random.randint', side_effect=d20_then(19, 3)):
         result = SpellAction(spells.get_spell('Scorching Ray')).execute(caster, first, other_targets=[(other, {})])
     # +7 to hit against AC 19 hits 45% of the time, so 6 HP is worth two rays (3.15 each)
     assert [a['target'] for a in result['attacks']] == ['First', 'First', 'Other']
@@ -157,7 +157,7 @@ def test_combat_spreads_darts_and_logs_the_hits():
     caster, weak, other = wizard(), goblin('Weak', hp=7), goblin('Other')
     combat = Combat([caster, weak, other])
     plan = {'type': 'cast_spell', 'spell': SpellAction(spells.get_spell('Scorching Ray')), 'target': weak}
-    with patch('random.randint', side_effect=d20_then(20, 3)):
+    with patch('random.randint', side_effect=d20_then(19, 3)):
         result = combat._execute_action(caster, plan)
     assert result['hits'] == 3 and result['target'] == 'Weak, Other'
     combat.logger.log_action(caster, result, 1)
@@ -171,7 +171,7 @@ def test_fire_from_one_ray_stops_a_troll_regenerating():
     combat = Combat([caster, troll])
     assert troll in combat._regenerators
     plan = {'type': 'cast_spell', 'spell': SpellAction(spells.get_spell('Scorching Ray')), 'target': troll}
-    rolls = iter([20, 3, 3] + [2] * 4)  # only the first ray hits
+    rolls = iter([19, 3, 3] + [2] * 4)  # only the first ray hits
     with patch('random.randint', side_effect=lambda a, b: next(rolls)):
         result = combat._take_turn(caster, plan)
     combat._note_regeneration_damage({troll: troll.max_hp}, result)

@@ -69,8 +69,16 @@ def has_disadvantage(creature: Any, *roll_keys: str) -> bool:
 
 
 def attack_hits(natural_roll: int, total_attack: int, target_ac: int) -> bool:
-    """A natural 1 on the d20 always misses; otherwise the attack hits if the total meets the target's AC."""
-    return natural_roll != 1 and total_attack >= target_ac
+    """A natural 1 on the d20 always misses and a natural 20 always hits; otherwise the attack hits
+    if the total meets the target's AC."""
+    return natural_roll == 20 or (natural_roll != 1 and total_attack >= target_ac)
+
+
+def is_critical(natural_roll: int, attacker: Any) -> bool:
+    """A natural 20 is a critical hit, or 19-20 for a Champion fighter (see critical_threshold)."""
+    threshold = attacker.critical_threshold() if callable(getattr(attacker, 'critical_threshold', None)) else 20
+    # isinstance guards against test doubles whose auto-created methods return mocks
+    return natural_roll >= (threshold if isinstance(threshold, int) else 20)
 
 
 def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> D20Roll:
