@@ -67,7 +67,10 @@ class Spell:
         is_buff_spell: bool = False,  # True if spell applies buffs
         buff_data: Optional[Dict[str, Any]] = None,  # Buff configuration data
         max_targets: int = 1,  # Maximum number of targets (e.g., 3 for Bless)
-        area: Optional[Dict[str, Any]] = None  # Shape on an arena, e.g. {'shape': 'sphere', 'size': 20}
+        area: Optional[Dict[str, Any]] = None,  # Shape on an arena, e.g. {'shape': 'sphere', 'size': 20}
+        projectiles: int = 1,  # Darts, rays or beams, each rolled on its own (3 for Magic Missile)
+        projectiles_per_slot: int = 0,  # More of them for each slot level above the spell's level
+        cantrip_projectiles: bool = False  # A cantrip that gains beams with level, not dice (Eldritch Blast)
     ) -> None:
         self.name = name
         self.level = level
@@ -90,6 +93,9 @@ class Spell:
         self.max_targets = max_targets
         self.range_feet = parse_range_feet(range)  # None if the range isn't a distance
         self.area = Area.from_dict(area)
+        self.projectiles = projectiles
+        self.projectiles_per_slot = projectiles_per_slot
+        self.cantrip_projectiles = cantrip_projectiles
 
     @classmethod
     def from_api(cls, name, api_client=None):
@@ -135,8 +141,8 @@ class Spell:
         if not self.damage_dice:
             return 0
             
-        # For cantrips, damage scales with level
-        if self.level == 0:
+        # For cantrips, damage scales with level (Eldritch Blast gains beams instead)
+        if self.level == 0 and not self.cantrip_projectiles:
             dice = self.damage_dice
             if caster_level >= 17:
                 dice = dice.replace('1d', '4d')  # 4x damage at level 17+
@@ -166,6 +172,32 @@ class Spell:
         die = int(die)
         rolls = [random.randint(1, die) for _ in range(num)]
         return sum(rolls) + modifier
+
+    def projectile_count(self, caster_level: int = 1, slot_level: Optional[int] = None) -> int:
+        """
+        How many darts, rays or beams the spell makes: Magic Missile has 3 plus one per slot level
+        above 1st, Scorching Ray 3 plus one per level above 2nd, and Eldritch Blast one beam, two
+        at level 5, three at 11 and four at 17.
+        """
+        count = self.projectiles
+        if self.level == 0 and self.cantrip_projectiles:
+            count += sum(caster_level >= level for level in (5, 11, 17))
+        elif slot_level and slot_level > self.level:
+            count += self.projectiles_per_slot * (slot_level - self.level)
+        return count
+
+    def average_damage(self, caster_level: int = 1, slot_level: Optional[int] = None) -> float:
+        """Average damage of the whole spell if everything hits, for every projectile together."""
+        if not self.damage_dice:
+            return 0.0
+        dice = self.damage_dice.lower().replace(' ', '')
+        match = re.fullmatch(r'(\d+)d(\d+)([+-]\d+)?', dice)
+        if not match:
+            return 0.0
+        num, die, modifier = int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
+        if self.level == 0 and not self.cantrip_projectiles:
+            num *= 1 + sum(caster_level >= level for level in (5, 11, 17))
+        return (num * (die + 1) / 2 + modifier) * self.projectile_count(caster_level, slot_level)
 
     def get_save_dc(self, caster: Any) -> int:
         """
@@ -280,9 +312,78 @@ class SpellAction(Action):
                 healing += caster.ability_modifier(ability)
         return healing
 
+    def _execute_projectiles(self, caster: Any, count: int, candidates: List[Any],
+                             advantage: bool) -> Dict[str, Any]:
+        """
+        Magic Missile's darts, Scorching Ray's rays and Eldritch Blast's beams: each one rolls its
+        own damage (and its own attack, for rays and beams) and can go to a different creature.
+        Like a player, the caster splits them before rolling anything (the darts strike at once):
+        the chosen target gets enough to drop it on average, then the next candidate, and any left
+        over go back to the chosen target.
+        """
+        attack_bonus = caster.spell_attack_bonus() if hasattr(caster, 'spell_attack_bonus') else 0
+        buff_bonus = caster.buffs.calculate_total_bonus('attack_rolls') if hasattr(caster, 'buffs') else 0
+        each = self.spell.average_damage(getattr(caster, 'level', 1)) / self.spell.projectile_count(
+            getattr(caster, 'level', 1))
+
+        def expected(creature: Any, options: Dict[str, Any]) -> float:
+            if not self.spell.is_attack_spell:
+                return each
+            needed = getattr(creature, 'ac', 10) + options.get('ac_bonus', 0) - attack_bonus - buff_bonus
+            chance = min(0.95, max(0.05, (21 - needed) / 20))
+            if options.get('disadvantage') and not advantage:
+                chance *= chance
+            return each * chance
+
+        shots: List[Any] = []
+        for i, (creature, options) in enumerate(candidates):
+            left = count - len(shots)
+            if left <= 0:
+                break
+            needed = -(-max(getattr(creature, 'hp', 0), 0) // max(expected(creature, options), 0.1))
+            shots += [(creature, options)] * int(min(left, max(needed, 1 if i == 0 else 0)))
+        shots += [candidates[0]] * (count - len(shots))
+
+        attacks = []
+        for creature, options in shots:
+            entry: Dict[str, Any] = {'target': getattr(creature, 'name', str(creature))}
+            hit = True
+            if self.spell.is_attack_spell:
+                d20 = roll_attack(caster, creature, advantage, options.get('disadvantage', False))
+                total_attack = d20.result + attack_bonus + buff_bonus
+                target_ac = getattr(creature, 'ac', 10) + options.get('ac_bonus', 0)
+                hit = attack_hits(d20.result, total_attack, target_ac)
+                entry.update({'attack_roll': d20.result, 'attack_rolls': d20.rolls, 'advantage': d20.advantage,
+                              'disadvantage': d20.disadvantage, 'total_attack': total_attack,
+                              'target_ac': target_ac})
+            damage = 0
+            if hit:
+                damage = apply_damage(creature, self.spell.calculate_damage(getattr(caster, 'level', 1)),
+                                      self.spell.damage_type)
+            entry.update({'hit': hit, 'damage': damage, 'damage_type': self.spell.damage_type,
+                          'hp_after': creature.hp})
+            attacks.append(entry)
+
+        names = list(dict.fromkeys(a['target'] for a in attacks))
+        result: Dict[str, Any] = {
+            'target': names[0] if len(names) == 1 else ', '.join(names),
+            'damage': sum(a['damage'] for a in attacks),
+            'damage_type': self.spell.damage_type,
+            'attacks': attacks,
+            'projectiles': count,
+            'hits': sum(a['hit'] for a in attacks),
+        }
+        if self.spell.is_attack_spell:
+            result.update({'attack_bonus': attack_bonus, 'buff_bonus': buff_bonus,
+                           'hit': any(a['hit'] for a in attacks)})
+        if len(names) == 1:
+            result['target_hp_after'] = attacks[-1]['hp_after']
+        return result
+
     def execute(self, caster: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
                 ac_bonus: int = 0, save_bonus: int = 0,
-                save_bonuses: Optional[Dict[Any, int]] = None) -> Dict[str, Any]:
+                save_bonuses: Optional[Dict[Any, int]] = None,
+                other_targets: Optional[List[Any]] = None) -> Dict[str, Any]:
         """
         Execute the spell: handle attack rolls, saving throws, and damage/healing.
 
@@ -294,6 +395,9 @@ class SpellAction(Action):
             ac_bonus: Added to a single target's AC against a spell attack (cover)
             save_bonus: Added to a single target's saving throw (cover, for DEX saves)
             save_bonuses: For an area effect, each target's cover bonus to its saving throw
+            other_targets: For a spell with several darts, rays or beams, (creature, options) pairs
+                of other enemies they can go to, best first, with each one's 'ac_bonus' and
+                'disadvantage' (see _execute_projectiles)
 
         Returns:
             dict: Result of the spell cast
@@ -373,6 +477,13 @@ class SpellAction(Action):
                     'reason': 'No targets could receive buffs'
                 })
 
+            return result
+
+        projectiles = self.spell.projectile_count(getattr(caster, 'level', 1), self.spell_slot_level)
+        if projectiles > 1 and not self.spell.area_effect and not self.spell.healing and not self.spell.save_type:
+            first = (targets_list[0], {'ac_bonus': ac_bonus, 'disadvantage': disadvantage})
+            result.update(self._execute_projectiles(caster, projectiles, [first] + list(other_targets or []),
+                                                    advantage))
             return result
 
         # Handle spell attack rolls

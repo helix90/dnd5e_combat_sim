@@ -274,8 +274,10 @@ class TestSpellCombatIntegration:
         # Verify Eldritch Blast result
         assert result2['success'] is True
         assert result2['spell'] == "Eldritch Blast"
-        assert result2['attack_roll'] == 5
-        assert result2['total_attack'] == 12
+        # Two beams at level 5, each its own attack roll for 1d10
+        assert result2['projectiles'] == 2 and result2['hits'] == 2
+        assert [(a['attack_roll'], a['total_attack'], a['hit'], a['damage']) for a in result2['attacks']] == \
+            [(5, 12, True, 8), (5, 12, True, 8)]
         assert result2['hit'] is True
         assert result2['damage'] == 16
         assert self.goblin.hp == 0  # Already at 0, stays floored at 0

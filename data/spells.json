@@ -64,7 +64,8 @@
       "is_attack_spell": true,
       "healing": false,
       "area_effect": false,
-      "concentration": false
+      "concentration": false,
+      "cantrip_projectiles": true
     }
   ],
   "level_1": [
@@ -88,7 +89,9 @@
       "is_attack_spell": false,
       "healing": false,
       "area_effect": false,
-      "concentration": false
+      "concentration": false,
+      "projectiles": 3,
+      "projectiles_per_slot": 1
     },
     {
       "name": "Cure Wounds",
@@ -235,7 +238,9 @@
       "is_attack_spell": true,
       "healing": false,
       "area_effect": false,
-      "concentration": false
+      "concentration": false,
+      "projectiles": 3,
+      "projectiles_per_slot": 1
     },
     {
       "name": "Healing Word",

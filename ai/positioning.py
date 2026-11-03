@@ -130,7 +130,8 @@ class _Spell:
         self.spell_action = spell_action
         spell = spell_action.spell
         self.spell = spell
-        self.average = _average(getattr(spell, 'damage_dice', None)) if not spell.healing else 0.0
+        self.average = 0.0 if spell.healing else spell.average_damage(getattr(creature, 'level', 1),
+                                                                      spell_action.spell_slot_level)
         self.bonus = creature.spell_attack_bonus() if hasattr(creature, 'spell_attack_bonus') else 0
         range_feet = getattr(spell, 'range_feet', None)
         self.max_distance = float('inf') if range_feet is None else range_feet
