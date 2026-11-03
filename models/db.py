@@ -1,5 +1,7 @@
+import json
 import sqlite3
 import os
+import zlib
 import threading
 from typing import List, Dict, Any, Optional
 from contextlib import contextmanager
@@ -76,7 +78,8 @@ class DatabaseManager:
             raise DatabaseError(f"Failed to initialize database: {e}")
     
     # Columns added after the first release, for databases created before them
-    ADDED_COLUMNS = [('simulations', 'arena', 'TEXT'), ('batch_simulations', 'arena', 'TEXT')]
+    ADDED_COLUMNS = [('simulations', 'arena', 'TEXT'), ('batch_simulations', 'arena', 'TEXT'),
+                     ('simulations', 'replay', 'BLOB'), ('batch_simulations', 'baseline_batch_id', 'INTEGER')]
 
     def _add_missing_columns(self, conn: sqlite3.Connection) -> None:
         for table, column, kind in self.ADDED_COLUMNS:
@@ -158,10 +161,26 @@ class DatabaseManager:
                 )
                 result = cursor.fetchone()
             self._log_slow_query("get_simulation", time.time() - start_time)
-            return dict(result) if result else None
+            if not result:
+                return None
+            record = dict(result)
+            record.pop('replay', None)  # large; see get_replay
+            return record
         except Exception as e:
             log_exception(e)
             raise DatabaseError(f"Failed to get simulation: {e}")
+
+    def get_replay(self, sim_id: int) -> Optional[Dict[str, Any]]:
+        """The battle-map replay of a simulation on an arena (see Combat.replay), or None."""
+        try:
+            with self._get_connection() as conn:
+                row = conn.execute("SELECT replay FROM simulations WHERE id = ?", (sim_id,)).fetchone()
+            if not row or row['replay'] is None:
+                return None
+            return json.loads(zlib.decompress(row['replay']).decode('utf-8'))
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to get replay: {e}")
     
     def get_simulation_history(self, session_id: str) -> List[Dict[str, Any]]:
         """
@@ -186,7 +205,7 @@ class DatabaseManager:
                     """,
                     (session_id,)
                 )
-                results = [dict(row) for row in cursor.fetchall()]
+                results = [{k: v for k, v in dict(row).items() if k != 'replay'} for row in cursor.fetchall()]
             self._log_slow_query("get_simulation_history", time.time() - start_time)
             return results
         except Exception as e:
@@ -374,12 +393,20 @@ class DatabaseManager:
             text += f"; then moves {_as_int(after.get('feet'))} ft"
         return text
 
+    @staticmethod
+    def _pack_replay(replay: Optional[Dict[str, Any]]) -> Optional[bytes]:
+        """A replay compressed for storage (a few KB instead of tens)."""
+        if not replay:
+            return None
+        return zlib.compress(json.dumps(replay, separators=(',', ':')).encode('utf-8'))
+
     def _insert_simulation_result(self, conn: sqlite3.Connection, session_id: str, result: Dict[str, Any]) -> int:
         """Insert a simulation and its combat logs on conn without committing."""
         cursor = conn.execute(
             """
-            INSERT INTO simulations (session_id, party_level, encounter_type, result, rounds, party_hp_remaining, arena)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO simulations (session_id, party_level, encounter_type, result, rounds, party_hp_remaining, arena,
+                                     replay)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 session_id,
@@ -388,7 +415,8 @@ class DatabaseManager:
                 str(result.get('winner', 'unknown')),
                 result.get('rounds', 0),
                 result.get('party_hp_remaining', 0),
-                result.get('arena')
+                result.get('arena'),
+                self._pack_replay(result.get('replay'))
             )
         )
         sim_id = cursor.lastrowid
@@ -531,17 +559,20 @@ class DatabaseManager:
             raise DatabaseError(f"Failed to save simulation: {e}")
 
     def create_batch_simulation(self, session_id: str, batch_name: str, party_level: int, encounter_type: str,
-                                arena: Optional[str] = None) -> int:
-        """Create a new batch simulation record (arena: map name, or None for no arena)."""
+                                arena: Optional[str] = None, baseline_batch_id: Optional[int] = None) -> int:
+        """
+        Create a new batch simulation record (arena: map name, or None for no arena;
+        baseline_batch_id: the batch fighting the same encounter without the arena).
+        """
         try:
             start_time = time.time()
             with self._get_connection() as conn:
                 cursor = conn.execute(
                     """
-                    INSERT INTO batch_simulations (session_id, batch_name, party_level, encounter_type, total_runs, party_wins, monster_wins, average_rounds, average_party_hp_remaining, arena)
-                    VALUES (?, ?, ?, ?, 0, 0, 0, 0.0, 0.0, ?)
+                    INSERT INTO batch_simulations (session_id, batch_name, party_level, encounter_type, total_runs, party_wins, monster_wins, average_rounds, average_party_hp_remaining, arena, baseline_batch_id)
+                    VALUES (?, ?, ?, ?, 0, 0, 0, 0.0, 0.0, ?, ?)
                     """,
-                    (session_id, batch_name, party_level, encounter_type, arena)
+                    (session_id, batch_name, party_level, encounter_type, arena, baseline_batch_id)
                 )
                 batch_id = cursor.lastrowid
                 conn.commit()
@@ -583,6 +614,17 @@ class DatabaseManager:
                 result = cursor.fetchone()
             self._log_slow_query("get_batch_simulation", time.time() - start_time)
             return dict(result) if result else None
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to get batch simulation: {e}")
+
+    def get_batch_with_baseline(self, baseline_batch_id: int) -> Optional[Dict[str, Any]]:
+        """The arena batch whose no-arena baseline is this batch, if any."""
+        try:
+            with self._get_connection() as conn:
+                row = conn.execute("SELECT * FROM batch_simulations WHERE baseline_batch_id = ?",
+                                   (baseline_batch_id,)).fetchone()
+            return dict(row) if row else None
         except Exception as e:
             log_exception(e)
             raise DatabaseError(f"Failed to get batch simulation: {e}")

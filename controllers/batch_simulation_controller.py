@@ -1,7 +1,7 @@
 import copy
 import threading
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from models.arena_library import get_arena
 from models.combat import Combat
 from models.db import DatabaseManager
@@ -20,10 +20,14 @@ class BatchSimulationController:
         self.state_lock = threading.Lock()  # Thread safety for shared state
 
     def execute_batch_simulation(self, party, monsters, num_runs: int, batch_name: str, session_id: str,
-                                 arena_name: str = None):
+                                 arena_name: str = None, compare_without_arena: bool = False):
         """
         Start a batch combat simulation in a background thread, on the named arena (a map in
         data/arenas.json) or without one. Returns the batch_id for tracking.
+
+        With an arena and compare_without_arena, each run is fought again without the arena,
+        saved as a second batch (the "baseline") that the first one points to, so the results
+        page can show what the map changed.
         """
         from utils.logging import logger
 
@@ -48,9 +52,15 @@ class BatchSimulationController:
                           for char in party)
         encounter_type = 'custom'  # Could be enhanced to detect prebuilt encounters
         logger.info(f"Creating batch simulation record: party_level={party_level}, encounter_type={encounter_type}")
+        baseline_id = None
+        if arena is not None and compare_without_arena:
+            baseline_id = self.db.create_batch_simulation(session_id, f"{batch_name} (no arena)", party_level,
+                                                          encounter_type)
         batch_id = self.db.create_batch_simulation(session_id, batch_name, party_level, encounter_type,
-                                                   arena=arena_name or None)
-        logger.info(f"Created batch simulation with ID: {batch_id}")
+                                                   arena=arena_name or None, baseline_batch_id=baseline_id)
+        logger.info(f"Created batch simulation with ID: {batch_id}" +
+                    (f" and baseline batch {baseline_id}" if baseline_id else ''))
+        fights = [(batch_id, arena)] + ([(baseline_id, None)] if baseline_id else [])
 
         # Initialize state BEFORE starting thread so it's immediately available for progress polling
         with self.state_lock:
@@ -66,8 +76,25 @@ class BatchSimulationController:
                 'done': False,
                 'error': None
             }
+            if baseline_id:
+                self.batch_states[batch_id]['baseline'] = {
+                    'batch_id': baseline_id, 'completed_runs': 0, 'failed_runs': 0, 'party_wins': 0,
+                    'monster_wins': 0, 'total_rounds': 0, 'total_party_hp_remaining': 0,
+                }
 
         logger.info(f"Initialized batch state for batch_id={batch_id}")
+
+        def tally(target_id: int) -> Dict[str, Any]:
+            """The state's counters for one of the batches (the main one or its baseline)."""
+            state = self.batch_states[batch_id]
+            return state if target_id == batch_id else state['baseline']
+
+        def update_progress() -> None:
+            state = self.batch_states[batch_id]
+            processed = state['completed_runs'] + state['failed_runs']
+            if 'baseline' in state:
+                processed += state['baseline']['completed_runs'] + state['baseline']['failed_runs']
+            state['progress'] = (processed / (state['total_runs'] * len(fights))) * 100
 
         def run():
             try:
@@ -75,74 +102,57 @@ class BatchSimulationController:
 
                 # Run simulations
                 for run_number in range(1, num_runs + 1):
-                    logger.debug(f"Batch {batch_id}: Starting run {run_number}/{num_runs}")
-                    try:
-                        # Fresh Character objects each run, since combat changes HP, slots and buffs.
-                        # Rebuilding from dicts is cheap; already-built objects are copied.
-                        character_objects = build_party(copy.deepcopy(party), self.spell_manager)
-                        
-                        # Fresh Monster objects each run too
-                        monster_objects = build_monsters(copy.deepcopy(monsters))
+                    for target_id, fight_arena in fights:
+                        logger.debug(f"Batch {target_id}: Starting run {run_number}/{num_runs}")
+                        try:
+                            # Fresh Character and Monster objects each run, since combat changes HP,
+                            # slots and buffs. Rebuilding from dicts is cheap; built objects are copied.
+                            character_objects = build_party(copy.deepcopy(party), self.spell_manager)
+                            monster_objects = build_monsters(copy.deepcopy(monsters))
+                            combat = Combat(character_objects + monster_objects, arena=fight_arena)
+                            result = combat.run()
+                            logger.debug(f"Batch {target_id} run {run_number}: winner={result.get('winner', 'unknown')}, rounds={result.get('rounds', 0)}")
 
-                        # Create combat and run simulation
-                        logger.debug(f"Batch {batch_id} run {run_number}: Creating combat with {len(character_objects)} characters and {len(monster_objects)} monsters")
-                        combat = Combat(character_objects + monster_objects, arena=arena)
-                        logger.debug(f"Batch {batch_id} run {run_number}: Running combat simulation")
-                        result = combat.run()
-                        logger.debug(f"Batch {batch_id} run {run_number}: Combat finished, winner={result.get('winner', 'unknown')}, rounds={result.get('rounds', 0)}")
+                            # Save the simulation and its batch run row atomically
+                            self.db.save_batch_run_result(session_id, target_id, run_number, result)
 
-                        # Save the simulation and its batch run row atomically
-                        sim_id = self.db.save_batch_run_result(session_id, batch_id, run_number, result)
-                        logger.debug(f"Batch {batch_id} run {run_number}: Saved simulation as ID {sim_id}")
+                            with self.state_lock:
+                                counts = tally(target_id)
+                                counts['completed_runs'] += 1
+                                counts['total_rounds'] += result.get('rounds', 0)
+                                counts['total_party_hp_remaining'] += result.get('party_hp_remaining', 0)
+                                if result.get('winner') == 'party':
+                                    counts['party_wins'] += 1
+                                else:
+                                    counts['monster_wins'] += 1
+                                update_progress()
 
-                        # Update batch statistics with thread safety
-                        with self.state_lock:
-                            state = self.batch_states[batch_id]
-                            state['completed_runs'] += 1
-                            state['total_rounds'] += result.get('rounds', 0)
-                            state['total_party_hp_remaining'] += result.get('party_hp_remaining', 0)
-
-                            if result.get('winner') == 'party':
-                                state['party_wins'] += 1
-                            else:
-                                state['monster_wins'] += 1
-
-                            # Update progress (includes both completed and failed)
-                            total_processed = state['completed_runs'] + state['failed_runs']
-                            state['progress'] = (total_processed / state['total_runs']) * 100
-
-                    except Exception as e:
-                        logger.error(f"Batch {batch_id} run {run_number} failed with error: {e}", exc_info=True)
-                        log_exception(e)
-                        # Track failed runs
-                        with self.state_lock:
-                            state = self.batch_states[batch_id]
-                            state['failed_runs'] += 1
-                            total_processed = state['completed_runs'] + state['failed_runs']
-                            state['progress'] = (total_processed / state['total_runs']) * 100
-                        # Continue with next run even if one fails
-                        continue
+                        except Exception as e:
+                            logger.error(f"Batch {target_id} run {run_number} failed with error: {e}", exc_info=True)
+                            log_exception(e)
+                            with self.state_lock:
+                                tally(target_id)['failed_runs'] += 1
+                                update_progress()
+                            # Continue with next run even if one fails
+                            continue
 
                 logger.info(f"Batch {batch_id} completed all {num_runs} runs, finalizing statistics")
 
                 # Snapshot final statistics under the lock, but write them to the DB
                 # outside it so progress polling and other batches aren't blocked on I/O
                 with self.state_lock:
-                    state = self.batch_states[batch_id]
-                    completed_runs = state['completed_runs']
-                    party_wins = state['party_wins']
-                    monster_wins = state['monster_wins']
-                    if completed_runs > 0:
-                        avg_rounds = state['total_rounds'] / completed_runs
-                        avg_party_hp = state['total_party_hp_remaining'] / completed_runs
-                    else:
-                        avg_rounds = 0
-                        avg_party_hp = 0
-
-                logger.info(f"Batch {batch_id}: Updating database statistics")
-                self.db.update_batch_statistics(
-                    batch_id, completed_runs, party_wins, monster_wins, avg_rounds, avg_party_hp
-                )
+                    totals = [(target_id, dict(tally(target_id))) for target_id, _ in fights]
+                for target_id, counts in totals:
+                    completed_runs = counts['completed_runs']
+                    avg_rounds = counts['total_rounds'] / completed_runs if completed_runs else 0
+                    avg_party_hp = counts['total_party_hp_remaining'] / completed_runs if completed_runs else 0
+                    logger.info(f"Batch {target_id}: Updating database statistics")
+                    self.db.update_batch_statistics(
+                        target_id, completed_runs, counts['party_wins'], counts['monster_wins'], avg_rounds,
+                        avg_party_hp
+                    )
+                completed_runs, party_wins, monster_wins = (totals[0][1]['completed_runs'], totals[0][1]['party_wins'],
+                                                            totals[0][1]['monster_wins'])
 
                 # Only mark done once the stats are in the DB, since the results page reads them from there
                 with self.state_lock:
@@ -176,7 +186,7 @@ class BatchSimulationController:
         Get the current progress of a batch simulation.
         """
         with self.state_lock:
-            return self.batch_states.get(batch_id, {
+            state = self.batch_states.get(batch_id, {
                 'progress': 0,
                 'completed_runs': 0,
                 'failed_runs': 0,
@@ -185,7 +195,11 @@ class BatchSimulationController:
                 'monster_wins': 0,
                 'done': False,
                 'error': None
-            }).copy()  # Return a copy to avoid external modifications
+            })
+            progress = dict(state)  # a copy, so callers can't change it or see it change
+            if 'baseline' in progress:
+                progress['baseline'] = dict(progress['baseline'])
+            return progress
 
     def get_batch_results(self, batch_id: int) -> Dict[str, Any]:
         """
@@ -198,23 +212,48 @@ class BatchSimulationController:
             
             runs = self.db.get_batch_runs(batch_id)
             
-            # Calculate additional statistics
-            win_rate = (batch['party_wins'] / batch['total_runs']) * 100 if batch['total_runs'] > 0 else 0
-            loss_rate = (batch['monster_wins'] / batch['total_runs']) * 100 if batch['total_runs'] > 0 else 0
-            
             return {
                 'batch': batch,
                 'runs': runs,
-                'statistics': {
-                    'win_rate': round(win_rate, 2),
-                    'loss_rate': round(loss_rate, 2),
-                    'average_rounds': round(batch['average_rounds'], 2),
-                    'average_party_hp_remaining': round(batch['average_party_hp_remaining'], 2)
-                }
+                'statistics': self._statistics(batch),
+                'comparison': self._comparison(batch),
             }
         except Exception as e:
             log_exception(e)
             raise BatchSimulationError(f"Failed to get batch results: {e}")
+
+    @staticmethod
+    def _statistics(batch: Dict[str, Any]) -> Dict[str, float]:
+        total = batch['total_runs']
+        return {
+            'win_rate': round(batch['party_wins'] / total * 100, 2) if total > 0 else 0,
+            'loss_rate': round(batch['monster_wins'] / total * 100, 2) if total > 0 else 0,
+            'average_rounds': round(batch['average_rounds'], 2),
+            'average_party_hp_remaining': round(batch['average_party_hp_remaining'], 2),
+        }
+
+    def _comparison(self, batch: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        For a batch run on an arena with a no-arena baseline (or for that baseline), the same
+        statistics for both and the arena's effect on each. None for batches without a pair.
+        """
+        if batch.get('baseline_batch_id'):
+            with_arena, without = batch, self.db.get_batch_simulation(batch['baseline_batch_id'])
+        else:
+            with_arena, without = self.db.get_batch_with_baseline(batch['id']), batch
+        if not with_arena or not without:
+            return None
+        on, off = self._statistics(with_arena), self._statistics(without)
+        rows = [(label, key, on[key], off[key], round(on[key] - off[key], 2))
+                for label, key in (('Party win rate (%)', 'win_rate'), ('Average rounds', 'average_rounds'),
+                                   ('Average party HP remaining', 'average_party_hp_remaining'))]
+        return {
+            'arena': with_arena.get('arena'),
+            'arena_batch_id': with_arena['id'],
+            'baseline_batch_id': without['id'],
+            'rows': [{'label': label, 'key': key, 'with_arena': a, 'without_arena': b, 'difference': d}
+                     for label, key, a, b, d in rows],
+        }
 
     def get_batch_history(self, session_id: str) -> List[Dict[str, Any]]:
         """

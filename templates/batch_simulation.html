@@ -34,6 +34,16 @@
               </div>
             </div>
             
+            {% if arena %}
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="compareWithoutArena" name="compare_without_arena" checked>
+              <label class="form-check-label" for="compareWithoutArena">
+                Also run every fight without the arena, to compare
+              </label>
+              <div class="form-text">Fights without an arena take a few milliseconds, so this adds little time.</div>
+            </div>
+            {% endif %}
+
             <button type="submit" class="btn btn-primary" id="startBatchBtn">
               <i class="fas fa-play"></i> Start Batch Simulation
             </button>
@@ -105,7 +115,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const formData = new FormData(batchForm);
     const data = {
       num_runs: parseInt(formData.get('num_runs')),
-      batch_name: formData.get('batch_name') || `Batch ${Date.now()}`
+      batch_name: formData.get('batch_name') || `Batch ${Date.now()}`,
+      compare_without_arena: formData.get('compare_without_arena') === 'on'
     };
 
     console.log('Batch simulation data:', data);
@@ -165,13 +176,18 @@ document.addEventListener('DOMContentLoaded', function() {
           
           const progress = data.progress || 0;
           progressBar.style.width = progress + '%';
-          progressBar.textContent = progress + '%';
+          progressBar.textContent = Math.round(progress) + '%';
           
           progressDetails.innerHTML = `
             <p><strong>Progress:</strong> ${data.completed_runs || 0} / ${data.total_runs || 0} runs completed</p>
             <p><strong>Party Wins:</strong> ${data.party_wins || 0}</p>
             <p><strong>Monster Wins:</strong> ${data.monster_wins || 0}</p>
           `;
+          if (data.baseline) {
+            progressDetails.innerHTML += `
+              <p><strong>Without the arena:</strong> ${data.baseline.completed_runs || 0} / ${data.total_runs || 0} runs,
+                 ${data.baseline.party_wins || 0} party wins</p>`;
+          }
           
           if (data.done) {
             document.getElementById('viewResultsBtn').style.display = 'inline-block';

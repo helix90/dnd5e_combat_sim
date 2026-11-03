@@ -1,6 +1,6 @@
 # Arena Plan: positions, distance, cover and ranged attacks
 
-Status: phases 1-5 done; phase 6 next.
+Status: all six phases done.
 
 ## Why
 
@@ -241,6 +241,32 @@ Each phase is its own branch, merged only when the full test suite passes.
   good as their bow, so they stay and stab.
 - Speed: fights on the encounter maps take 68-763 ms (mean about 250 ms).
 
+## Phase 6 as built
+
+- Replay: on an arena, Combat records a frame for every action it logs (`CombatLogger.on_action`):
+  where each creature still on the map stands, everyone's HP, the moves the action made, the
+  squares of an area effect and the targets. Frame i goes with the i-th action of the log, so it
+  lines up with the stored log rows; an opportunity attack's frame shows the mover where it was
+  attacked. `Combat.replay()` adds the map (`Arena.drawing()`: size and each terrain square with
+  its kind from the map file), the creatures (side, size, max HP) and the start positions, and
+  the fight's result carries it as `replay`. Recording adds about 3 ms to a fight.
+- Storage: `simulations.replay` holds it as zlib-compressed JSON (1-3 KB instead of 10-60 KB), for
+  single simulations and batch runs alike; `DatabaseManager.get_replay` reads it, and
+  `get_simulation` and the history leave it out. Older databases get the column on startup.
+- Results page: fights on an arena get a "Battle Map" card: an SVG grid with terrain coloured by
+  kind, creatures as tokens coloured by side and sized by their space, with HP bars, the acting
+  creature ringed, its targets dashed, its moves as arrows and area effects shaded. Buttons step
+  by action or by round, play it back, and a slider scrubs through it; the log beside the map
+  follows along (naming the target of each attack) and clicking a line jumps there. The legend
+  lists only the terrain the map has.
+- Batches: with an arena chosen, the batch page offers (and ticks by default) "Also run every
+  fight without the arena". Each run is then fought on the map and without it; the no-arena runs
+  are saved as their own batch ("<name> (no arena)"), which the arena batch points to
+  (`batch_simulations.baseline_batch_id`). Progress shows both, and both results pages get a
+  "With and Without the Arena" table: party win rate, average rounds and average party HP left,
+  with the arena's effect on each. Fights without an arena take a few milliseconds, so the
+  comparison adds little time.
+
 ## Simplifications
 
 - Flying is treated like walking (no elevation); a creature moves at its best speed, so the
@@ -256,3 +282,5 @@ Each phase is its own branch, merged only when the full test suite passes.
   Polearm Master), Hide and other bonus actions aren't modelled.
 - Squeezing, and moving through a hostile creature two sizes larger, aren't modelled.
 - Facing, elevation and light/vision aren't modelled.
+- The replay shows each action's result, not the steps of a move: a move is an arrow from start
+  to end.

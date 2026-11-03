@@ -81,6 +81,49 @@
     </div>
   </div>
   
+  {% if results.comparison %}
+  {% set comparison = results.comparison %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card" id="arenaComparison">
+        <div class="card-header">
+          <h5 class="mb-0">With and Without the Arena</h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-2">
+            The same encounter fought on {{ comparison.arena }} and without an arena, with the same number of runs.
+          </p>
+          <table class="table table-sm mb-2">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="text-end">On {{ comparison.arena }}</th>
+                <th class="text-end">No arena</th>
+                <th class="text-end">Arena's effect</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in comparison.rows %}
+              <tr>
+                <td>{{ row.label }}</td>
+                <td class="text-end">{{ row.with_arena }}</td>
+                <td class="text-end">{{ row.without_arena }}</td>
+                <td class="text-end fw-semibold">{{ '%+.2f'|format(row.difference) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% if results.batch.id == comparison.arena_batch_id %}
+          <a href="{{ url_for('batch_simulation_results', batch_id=comparison.baseline_batch_id) }}">Runs without the arena</a>
+          {% else %}
+          <a href="{{ url_for('batch_simulation_results', batch_id=comparison.arena_batch_id) }}">Runs on {{ comparison.arena }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="row mt-4">
     <div class="col-12">
       <div class="card">

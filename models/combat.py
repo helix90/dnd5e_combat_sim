@@ -41,16 +41,21 @@ class CombatLogger:
     def __init__(self) -> None:
         self.log: List[Dict[str, Any]] = []
         self._round_cache = {}  # Cache for round-specific data
-    
+        # Called with each action entry as it's logged (Combat records replay frames with it)
+        self.on_action: Optional[Any] = None
+
     def log_action(self, actor: Any, action_result: dict, round_number: int = 0) -> None:
         """Log action with optimized data structure."""
-        self.log.append({
+        entry = {
             'type': 'action',
             'actor': getattr(actor, 'name', str(actor)),
             'result': action_result,
             'round': round_number,
             'timestamp': len(self.log)  # Use index as timestamp for efficiency
-        })
+        }
+        self.log.append(entry)
+        if self.on_action is not None:
+            self.on_action(entry)
 
     def log_round_start(self, round_num: int) -> None:
         """Log round start with caching."""
@@ -114,6 +119,51 @@ class Combat:
                                            present=lambda c: c.is_alive() or self._will_regenerate(c))
             self.battlefield.place_all()
         self.start_positions = self.battlefield.snapshot() if self.battlefield else None
+        # On an arena, where everyone stands and their HP after each logged action, for the replay
+        self.frames: List[Dict[str, Any]] = []
+        if self.battlefield is not None:
+            self.logger.on_action = self._record_frame
+        self._start_hp = self._hit_points()
+
+    def _positions(self) -> Dict[str, List[int]]:
+        bf = self.battlefield
+        return {getattr(c, 'name', str(c)): list(p.position) for c, p in bf.placements.items() if bf.present(c)}
+
+    def _hit_points(self) -> Dict[str, int]:
+        return {getattr(p, 'name', str(p)): p.hp for p in self.participants}
+
+    def _record_frame(self, entry: Dict[str, Any]) -> None:
+        """
+        One replay frame per logged action: positions and HP after it, the moves it made and
+        the squares of an area effect. Frame i goes with the i-th action entry of the log.
+        """
+        result = entry['result']
+        frame: Dict[str, Any] = {'round': entry['round'], 'actor': entry['actor'],
+                                 'positions': self._positions(), 'hp': self._hit_points()}
+        moves = [[m['from'], m['to']] for m in (result.get('movement'), result.get('movement_after'))
+                 if m and m.get('from') != m.get('to')]
+        if moves:
+            frame['moves'] = moves
+        if result.get('area_squares'):
+            frame['area'] = result['area_squares']
+        targets = result.get('target')
+        if targets:
+            frame['targets'] = [str(t) for t in targets] if isinstance(targets, list) else \
+                [t.strip() for t in str(targets).split(',')]
+        self.frames.append(frame)
+
+    def replay(self) -> Optional[Dict[str, Any]]:
+        """Everything needed to draw the fight round by round, or None without an arena."""
+        bf = self.battlefield
+        if bf is None:
+            return None
+        return {
+            'arena': bf.arena.drawing(),
+            'creatures': [{'name': getattr(c, 'name', str(c)), 'side': bf.sides[c], 'size': p.size,
+                           'max_hp': getattr(c, 'max_hp', c.hp)} for c, p in bf.placements.items()],
+            'start': {'positions': self.start_positions, 'hp': self._start_hp},
+            'frames': self.frames,
+        }
 
     def _get_alive_participants(self) -> List[Any]:
         """Get alive participants with caching for efficiency."""
@@ -335,6 +385,9 @@ class Combat:
         result = execute([target for target, _ in hits], bonuses)
         result['aim'] = aim
         result['area'] = {'shape': area.shape, 'size': area.size}
+        toward = tuple(aim['toward']) if aim.get('toward') is not None else None
+        result['area_squares'] = sorted([list(s) for s in
+                                         self.battlefield.arena.area_squares(area, tuple(aim['origin']), toward)])
         covered = {getattr(t, 'name', str(t)): cover for t, cover in hits if cover != COVER_NONE}
         if covered:
             result['cover_by_target'] = covered
@@ -966,6 +1019,7 @@ class Combat:
             if self.battlefield is not None:
                 result['arena'] = self.battlefield.arena.name
                 result['start_positions'] = self.start_positions
+                result['replay'] = self.replay()
             return result
             
         except Exception as e:
