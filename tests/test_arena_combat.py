@@ -328,6 +328,7 @@ def test_archer_steps_away_from_melee_before_shooting():
     combat = fight(ranger, orc)
     put(combat, ranger, 5, 5)
     put(combat, orc, 6, 5)
+    combat.battlefield.reacted.add(orc)   # no opportunity attack to fear
     # Ranger: the bow is its only attack; standing still would mean disadvantage
     plan = plan_for(combat, ranger, {'type': 'attack', 'action': ranger.actions[0], 'target': orc})
     assert plan['action'].name == 'Shortbow' and 'move_to' in plan

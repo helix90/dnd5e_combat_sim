@@ -15,7 +15,8 @@ from models.rolls import roll_saving_throw
 from models.buffs import is_paralyzed
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, describe_area
-from models.battlefield import MONSTERS, PARTY, Battlefield, area_of, area_range, ignores_cover
+from models.battlefield import (MONSTERS, PARTY, Battlefield, area_of, area_range, bonus_dash, bonus_disengage,
+                                ignores_cover, melee_attacks)
 from models.multiattack import parse_multiattack
 from models.damage import apply_damage, has_ability
 import logging
@@ -24,6 +25,14 @@ logger = logging.getLogger('dnd5e_combat_sim.combat')
 if TYPE_CHECKING:
     from models.character import Character
     from models.monster import Monster
+
+def _average_damage(action: Any) -> float:
+    try:
+        num, die, mod = AttackAction.parse_dice(str(action.damage_dice))
+        return num * (die + 1) / 2 + mod
+    except (TypeError, ValueError):
+        return 0.0
+
 
 class CombatLogger:
     """
@@ -89,6 +98,8 @@ class Combat:
         self._alive_participants_cache = None
         self._last_alive_check = 0
         self.tactical = TacticalAnalyzer()
+        # True while the creature taking its turn has Disengaged (no opportunity attacks)
+        self._disengaged = False
         # Regeneration (e.g. trolls): damage types that stopped it since the creature's last turn,
         # and creatures that started a turn at 0 HP without regenerating, which are dead for good
         self._regenerators = [p for p in participants if isinstance(getattr(p, 'regeneration', None), dict)]
@@ -229,6 +240,8 @@ class Combat:
             participant = self.initiative_order[idx]
             if participant in alive_set:
                 self.current_turn = idx + 1
+                if self.battlefield is not None:
+                    self.battlefield.reacted.discard(participant)  # its reaction is back
                 # Wrapping past the end of the initiative order starts a new round. (Checking for
                 # the last slot instead would stall the round count once that creature is dead.)
                 if start + i >= n:
@@ -397,12 +410,29 @@ class Combat:
     # Arena turns
 
     def _take_turn(self, participant: Any, action_plan: Dict[str, Any]) -> Dict[str, Any]:
-        """Move first if the plan says so (on an arena), then act."""
+        """
+        Move first if the plan says so (on an arena), then act, then move again if the plan says
+        so. A bonus action (Cunning Action, Nimble Escape) can Disengage or Dash for the turn.
+        """
         movement = None
-        if self.battlefield is not None and action_plan.get('move_to') is not None:
-            movement = self._move(participant, tuple(action_plan['move_to']),
-                                  dash=action_plan.get('type') == 'dash', path=action_plan.get('path'))
-        if action_plan.get('type') == 'dash':
+        kind = action_plan.get('type')
+        bonus, feature = self._bonus_action(participant, action_plan)
+        self._disengaged = kind == 'disengage' or bonus == 'Disengage'
+        budget = 0
+        if self.battlefield is not None:
+            budget = self.battlefield.speed(participant) * (1 + (kind == 'dash') + (bonus == 'Dash'))
+            if action_plan.get('move_to') is not None:
+                movement = self._move(participant, tuple(action_plan['move_to']), budget,
+                                      path=action_plan.get('path'))
+        if not participant.is_alive():
+            result = {
+                'action': 'Move',
+                'type': 'wait',
+                'success': False,
+                'reason': 'downed',
+                'description': 'is dropped by an opportunity attack',
+            }
+        elif kind == 'dash':
             target = action_plan.get('target')
             result = {
                 'action': 'Dash',
@@ -410,37 +440,101 @@ class Combat:
                 'target': getattr(target, 'name', '') if target is not None else '',
                 'description': 'Dashes' + (f" toward {target.name}" if target is not None else ''),
             }
+        elif kind == 'disengage':
+            result = {'action': 'Disengage', 'type': 'disengage', 'description': 'Disengages'}
         else:
             result = self._execute_action(participant, action_plan)
         if movement:
             result['movement'] = movement
+        if bonus:
+            result['bonus_action'] = {'action': bonus, 'feature': feature}
         if self.battlefield is not None and action_plan.get('move_after') is not None and participant.is_alive():
             used = movement['feet'] if movement else 0
-            after = self._move(participant, tuple(action_plan['move_after']),
-                               budget=self.battlefield.speed(participant) - used,
+            after = self._move(participant, tuple(action_plan['move_after']), budget - used,
                                path=action_plan.get('path_after'))
             if after:
                 result['movement_after'] = after
+        self._disengaged = False
         return result
 
-    def _move(self, participant: Any, destination: Any, dash: bool = False,
-              budget: Optional[int] = None, path: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
+    @staticmethod
+    def _bonus_action(participant: Any, plan: Dict[str, Any]) -> Any:
+        """The bonus action the plan asks for, if the participant has a feature allowing it:
+        (action, feature) or (None, None)."""
+        wanted = plan.get('bonus_action')
+        feature = {'Disengage': bonus_disengage, 'Dash': bonus_dash}.get(wanted, lambda c: None)(participant)
+        return (wanted, feature) if feature else (None, None)
+
+    def _move(self, participant: Any, destination: Any, budget: int,
+              path: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
         """
-        Move if the participant's speed (doubled by Dash) allows it, along the planned path if
-        it's still clear, otherwise the cheapest one.
+        Move if the participant's movement allows it, along the planned path if it's still clear,
+        otherwise the cheapest one. Leaving an enemy's reach provokes an opportunity attack
+        (unless the participant Disengaged); one that drops it ends the move there.
         """
-        start = self.battlefield.position(participant)
-        if budget is None:
-            budget = self.battlefield.speed(participant) * (2 if dash else 1)
+        bf = self.battlefield
+        start = bf.position(participant)
+        if destination == start:
+            return None
         try:
-            feet = self.battlefield.move(participant, destination, budget,
-                                         path=[tuple(step) for step in path] if path else None)
+            route = bf.route(participant, destination, budget,
+                             path=[tuple(step) for step in path] if path else None)
         except ValueError as e:
             logger.warning(f"Move refused: {e}")
             return None
-        if not feet:
+        stop = len(route) - 1
+        provoked = []
+        if not self._disengaged:
+            for step, enemy in bf.provoked(participant, route):
+                if not bf.can_react(enemy):
+                    continue
+                bf.set_position(participant, route[step])
+                if self._opportunity_attack(enemy, participant):
+                    provoked.append(enemy.name)
+                if not participant.is_alive():
+                    stop = bf.last_stop(participant, route, step)
+                    break
+        bf.set_position(participant, route[stop])
+        feet = bf.path_cost(participant, route[:stop + 1])
+        if not feet and not provoked:
             return None
-        return {'from': list(start), 'to': list(destination), 'feet': feet}
+        movement = {'from': list(start), 'to': list(route[stop]), 'feet': feet}
+        if provoked:
+            movement['provoked'] = provoked
+        if stop < len(route) - 1:
+            movement['stopped'] = True
+        return movement
+
+    def _opportunity_attack(self, attacker: Any, target: Any) -> bool:
+        """
+        The attacker uses its reaction for one melee attack on the target (its best one that
+        reaches), which is logged as the attacker's. Returns False if no attack reaches.
+        """
+        choices = []
+        for action in melee_attacks(attacker):
+            notes: Dict[str, Any] = {}
+            options = self._attack_options(attacker, target, action, notes)
+            if options is not None and notes.get('distance', 0) <= action.reach:
+                choices.append((action, options, notes))
+        if not choices:
+            return False
+        action, options, notes = max(choices, key=lambda c: (_average_damage(c[0]), c[0].hit_bonus(attacker)))
+        self.battlefield.reacted.add(attacker)
+        hp_before = {c: c.hp for c in self._regenerators}
+        if self._is_character_weapon_attack(attacker, action, target):
+            options.pop('advantage', None)  # Pack Tactics is a monster trait
+        result = action.execute(attacker, target, **options)
+        result.update(notes)
+        sneak_dice = attacker.sneak_attack_dice() if hasattr(attacker, 'sneak_attack_dice') else None
+        if sneak_dice and self._can_sneak_attack(attacker, action, result, target):
+            self._add_sneak_attack(result, target, sneak_dice)
+        result['reaction'] = 'Opportunity Attack'
+        if result.get('damage', 0) > 0:
+            self._alive_participants_cache = None
+        self._note_regeneration_damage(hp_before, result)
+        self.logger.log_action(attacker, result, self.current_round)
+        self._log_pending_entries()
+        return True
 
     def _attack_options(self, participant: Any, target: Any, action: Any,
                         result_notes: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
@@ -902,7 +996,9 @@ class Combat:
                     toward = f" toward {result['target']}" if result.get('target') else ''
                     lines.append(f"{actor} dashes {feet} ft{toward}.")
                     continue
-                if result.get('reason') in ('out of range', 'no one in the area', 'not recharged'):
+                if result.get('type') == 'disengage':
+                    lines.append(f"{actor} disengages.")
+                elif result.get('reason') in ('out of range', 'no one in the area', 'not recharged', 'downed'):
                     lines.append(f"{actor} {result.get('description', 'is out of range')}.")
                 elif result.get('type') == 'condition':
                     lines.append(f"{actor} {result.get('description', '')}.")
@@ -934,6 +1030,8 @@ class Combat:
                     lines.append(f"{actor} takes an action.")
                 if len(lines) > start:
                     lines[start] = self._with_position_notes(lines[start], actor, result)
+                    if result.get('reaction'):
+                        lines[start] = f"{result['reaction']}: {lines[start]}"
         return lines
 
     @staticmethod
@@ -947,6 +1045,9 @@ class Combat:
         movement = result.get('movement')
         if movement:
             line = f"{actor} moves {movement['feet']} ft. " + line
+        bonus = result.get('bonus_action')
+        if bonus:
+            line = f"{actor} uses {bonus['feature']} to {bonus['action']}. " + line
         if result.get('recharged'):
             line = f"{actor}'s {', '.join(result['recharged'])} recharges. " + line
         if result.get('area'):

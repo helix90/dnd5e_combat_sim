@@ -13,6 +13,7 @@ from models.actions import AttackAction
 from models.arena import (COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Area, Arena, Placement, Point,
                           Square, size_in_squares)
 from models.buffs import is_paralyzed
+from models.damage import has_ability
 
 PARTY = 'party'
 MONSTERS = 'monsters'
@@ -80,6 +81,34 @@ def attack_distances(action: Any) -> Tuple[Optional[int], Optional[Tuple[int, in
     return SQUARE_FEET, None
 
 
+def melee_attacks(creature: Any) -> List[AttackAction]:
+    """The single-target melee attacks a creature can make as an opportunity attack."""
+    spells = getattr(creature, 'spells', None) or {}
+    return [a for a in getattr(creature, 'actions', [])
+            if isinstance(a, AttackAction) and a.action_type == 'attack' and not a.area_effect
+            and a.reach is not None and not a.recharge and a.name not in spells]
+
+
+def melee_reach(creature: Any) -> Optional[int]:
+    """How far the creature's melee attacks reach, or None if it has none."""
+    return max((a.reach for a in melee_attacks(creature)), default=None)
+
+
+def bonus_disengage(creature: Any) -> Optional[str]:
+    """The feature that lets the creature Disengage as a bonus action (a rogue's Cunning Action,
+    a goblin's Nimble Escape), or None."""
+    if 'Cunning Action' in (getattr(creature, 'class_features', None) or []):
+        return 'Cunning Action'
+    if has_ability(creature, 'Nimble Escape'):
+        return 'Nimble Escape'
+    return None
+
+
+def bonus_dash(creature: Any) -> Optional[str]:
+    """The feature that lets the creature Dash as a bonus action (Cunning Action), or None."""
+    return 'Cunning Action' if 'Cunning Action' in (getattr(creature, 'class_features', None) or []) else None
+
+
 Threatened = Callable[[], bool]
 
 
@@ -138,6 +167,8 @@ class Battlefield:
         self.sides = dict(sides)
         self.present = present or (lambda creature: creature.is_alive())
         self.placements: Dict[Any, Placement] = {}
+        # Creatures that have used their reaction since the start of their last turn (Combat keeps it)
+        self.reacted: set = set()
 
     # Setting up
 
@@ -276,14 +307,12 @@ class Battlefield:
         return all(self.arena.fits(self.placement(creature, step))
                    and not (self.placement(creature, step).squares() & enemy_squares) for step in path)
 
-    def move(self, creature: Any, destination: Square, movement_ft: float,
-             path: Optional[List[Square]] = None) -> int:
+    def route(self, creature: Any, destination: Square, movement_ft: float,
+              path: Optional[List[Square]] = None) -> List[Square]:
         """
-        Move the creature if it can get there with this much movement, along `path` if one is
-        given and clear, or the cheapest route. Returns feet moved.
+        The route the creature takes to the destination with this much movement: `path` if one
+        is given and clear, or the cheapest. Raises ValueError if it can't get there.
         """
-        if destination == self.position(creature):
-            return 0
         if path is not None and (path[-1] != destination or not self._clear(creature, path)
                                  or not self.can_end_at(creature, destination)):
             path = None
@@ -295,8 +324,71 @@ class Battlefield:
         if cost > movement_ft:
             raise ValueError(f"{getattr(creature, 'name', creature)} needs {cost} ft to reach "
                              f"{destination} but has {movement_ft} ft")
+        return path
+
+    def move(self, creature: Any, destination: Square, movement_ft: float,
+             path: Optional[List[Square]] = None) -> int:
+        """
+        Move the creature if it can get there with this much movement, along `path` if one is
+        given and clear, or the cheapest route. Returns feet moved. Opportunity attacks are
+        Combat's business (see provoked).
+        """
+        if destination == self.position(creature):
+            return 0
+        path = self.route(creature, destination, movement_ft, path)
         self.placements[creature] = self.placement(creature, destination)
-        return cost
+        return self.path_cost(creature, path)
+
+    def last_stop(self, creature: Any, path: List[Square], step: int) -> int:
+        """The last step of the path, up to `step`, where the creature can end its move."""
+        while step > 0 and not self.can_end_at(creature, path[step]):
+            step -= 1
+        return step
+
+    def set_position(self, creature: Any, square: Square) -> None:
+        self.placements[creature] = self.placement(creature, square)
+
+    # Opportunity attacks
+
+    def can_react(self, creature: Any) -> bool:
+        """Is the creature on the map, not incapacitated and with its reaction unused?"""
+        return self.present(creature) and creature.is_alive() and not is_paralyzed(creature) \
+            and creature not in self.reacted
+
+    def provoked(self, creature: Any, path: List[Square]) -> List[Tuple[int, Any]]:
+        """
+        Enemies that get an opportunity attack as the creature moves along the path: each enemy
+        that can react, the first time the creature leaves its reach, with the step it's on
+        when the enemy attacks. In order along the path.
+        """
+        triggers = []
+        placements = [self.placement(creature, step) for step in path]
+        for enemy in self.enemies_of(creature):
+            reach = melee_reach(enemy)
+            if reach is None or not self.can_react(enemy):
+                continue
+            theirs = self.placements[enemy]
+            inside = [self.arena.distance(p, theirs) <= reach for p in placements]
+            for i in range(len(path) - 1):
+                if inside[i] and not inside[i + 1]:
+                    triggers.append((i, enemy))
+                    break
+        return sorted(triggers, key=lambda t: t[0])
+
+    def threats(self, creature: Any, at: Optional[Square] = None) -> List[Any]:
+        """Enemies that can react and have the creature (standing at `at`) within their reach."""
+        placement = self.placement(creature, at)
+        found = []
+        for enemy in self.enemies_of(creature):
+            reach = melee_reach(enemy)
+            if reach is not None and self.can_react(enemy) and \
+                    self.arena.distance(placement, self.placements[enemy]) <= reach:
+                found.append(enemy)
+        return found
+
+    def in_reach_of(self, enemy: Any, creature: Any, at: Optional[Square] = None) -> bool:
+        reach = melee_reach(enemy)
+        return reach is not None and self.arena.distance(self.placement(creature, at), self.placements[enemy]) <= reach
 
     # Rules
 

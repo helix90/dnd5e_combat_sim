@@ -1,6 +1,6 @@
 # Arena Plan: positions, distance, cover and ranged attacks
 
-Status: phases 1-4 done; phase 5 next.
+Status: phases 1-5 done; phase 6 next.
 
 ## Why
 
@@ -208,6 +208,39 @@ Each phase is its own branch, merged only when the full test suite passes.
   that would catch no one isn't used and spends no slot. Logs read e.g. "uses Fire Breath on
   Aldric, Dax: 80 damage (30-ft cone)" and "Young Dragon's Fire Breath recharges."
 
+## Phase 5 as built
+
+- Opportunity attacks: `Battlefield.provoked` walks a move's path and gives each enemy that can
+  react (on the map, not incapacitated, reaction unused) one melee attack the first time the mover
+  leaves its reach, from the square the mover is leaving. Reach comes from the creature's melee
+  attacks (`melee_reach`), so the Hill Giant's 10-ft greatclub provokes further out and an archer
+  with no melee attack doesn't provoke at all. Combat makes the attack with the enemy's best melee
+  attack that reaches (one attack, never a Multiattack; Sneak Attack applies) and logs it as that
+  enemy's entry ("Opportunity Attack: Orc uses Greataxe on Aldric: 9 damage (5 ft)."). An attack
+  that drops the mover ends its move there, and it loses its action. A creature's reaction comes
+  back at the start of its turn (`Battlefield.reacted`).
+- Disengage: a plan of type `disengage` (the action) or a `bonus_action` of `Disengage` stops
+  opportunity attacks for the rest of the turn. Combat honours a bonus action only for creatures
+  with the feature: Cunning Action (rogues: Disengage or Dash) and Nimble Escape (goblins:
+  Disengage). Dash as a bonus action adds the creature's speed again, so a rogue can move 60 ft
+  and still attack, or 90 ft with the Dash action too.
+- AI: a square is worth less by the expected damage of the opportunity attacks that ending a move
+  there provokes (from enemies whose reach the creature is in now and that can react). A creature
+  that can Disengage as a bonus action does so when its move leaves an enemy's reach and pays
+  nothing; a rogue moving beyond its speed uses the bonus action to Dash instead and pays for the
+  attacks. If reaching the strategy's target provokes, the creature compares it with every other
+  target first, so an orc held by a fighter keeps hitting the fighter rather than walking past it
+  to the wizard. Archers and casters in melee usually stay and shoot with disadvantage.
+- Sweep (party win %, 200 runs, phase 4 -> phase 5; without an arena nothing changed, which a
+  seeded run of 400 fights confirms exactly): on the Open Field, Orc Raiders 48 -> 64.5 (orcs
+  that switch targets get cut down by opportunity attacks), while Goblin Ambush 42.5 -> 30.5,
+  Wolf Pack 64.5 -> 51 and Vampire Spawn Pack 19.5 -> 11 got harder (the party can no longer step
+  back from melee for free). On the encounter maps: Kobold Mob 65.5 -> 56, Vampire Spawn Pack
+  45.5 -> 32.5, Ghoul Nest 88 -> 81, Undead Crypt 16 -> 10, Wraith's Domain 22.5 -> 15.5; the
+  rest moved by 6 points or less. Goblins rarely use Nimble Escape: in melee their scimitar is as
+  good as their bow, so they stay and stab.
+- Speed: fights on the encounter maps take 68-763 ms (mean about 250 ms).
+
 ## Simplifications
 
 - Flying is treated like walking (no elevation); a creature moves at its best speed, so the
@@ -216,6 +249,10 @@ Each phase is its own branch, merged only when the full test suite passes.
 - Areas follow the grid's diagonal rule, so with 5-ft diagonals a sphere is a square block.
 - Cover against an area effect comes from terrain only, and Web is never cast (the AI only picks
   damaging spells).
-- Moving away from an adjacent enemy is free until opportunity attacks arrive in phase 5.
+- The AI never takes the Disengage action itself (it only Disengages as a bonus action), and it
+  judges opportunity attacks by where a move ends: an enemy whose reach it passes through on the
+  way still attacks, but the AI doesn't foresee it.
+- Opportunity attacks need no sight of the mover, and reach-extending reactions (Sentinel,
+  Polearm Master), Hide and other bonus actions aren't modelled.
 - Squeezing, and moving through a hostile creature two sizes larger, aren't modelled.
 - Facing, elevation and light/vision aren't modelled.
