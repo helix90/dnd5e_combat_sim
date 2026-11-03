@@ -5,7 +5,7 @@ Shared by the single and batch simulation controllers so both get the same weapo
 class features and spells.
 """
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from models.actions import AttackAction
 from models.character import Character
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def build_weapon_actions(action_dicts: List[Dict[str, Any]], character_class: str,
-                         spell_names: List[str]) -> List[AttackAction]:
+                         spell_names: List[str], features: Optional[List[str]] = None) -> List[AttackAction]:
     """
     Turn a character's action entries into weapon attacks. Entries named after a spell the
     character knows (e.g. 'Fire Bolt') are skipped: those are cast through the spell system,
@@ -37,6 +37,8 @@ def build_weapon_actions(action_dicts: List[Dict[str, Any]], character_class: st
             on_hit=ad.get('on_hit'),
             reach=ad.get('reach'),
             range=ad.get('range'),
+            # Ki-Empowered Strikes (monk 6th level): unarmed strikes count as magical
+            magical=bool(ad.get('magical')) or (name == 'Unarmed Strike' and 'Ki-Empowered Strikes' in (features or [])),
         ))
     return actions
 
@@ -65,7 +67,7 @@ def build_character(data: Dict[str, Any], spell_manager: Any = None) -> Characte
         hp=data.get('hp', 10),
         ac=data.get('ac', 10),
         proficiency_bonus=data.get('proficiency_bonus', 2),
-        actions=(build_weapon_actions(data['actions'], character_class, spell_list)
+        actions=(build_weapon_actions(data['actions'], character_class, spell_list, data.get('class_features'))
                  if 'actions' in data else None),
         equipment=data.get('equipment', []),
         spell_slots=data.get('spell_slots', {}),

@@ -299,3 +299,56 @@ def is_paralyzed(creature: Any) -> bool:
     buffs = getattr(creature, 'buffs', None)
     # isinstance guards against test doubles whose auto-created attributes are truthy
     return isinstance(buffs, BuffManager) and buffs.has_condition('paralyzed')
+
+
+def create_stunned_condition(source: str) -> Buff:
+    """
+    The Stunned condition (Stunning Strike): incapacitated, automatically fails STR and DEX
+    saves, and attacks against it have advantage. Stunning Strike's lasts until the end of the
+    monk's next turn: Combat removes it then (see metadata 'ends_after_turn_of'). The two-round
+    duration ends it anyway if the monk goes down before then.
+    """
+    return Buff(
+        name="Stunned",
+        source=source,
+        duration_rounds=2,
+        metadata={
+            "condition": "stunned",
+            "advantage": ["attacks_against"],
+            "ends_after_turn_of": source,
+            "turns_left": 2,  # the rest of the monk's current turn, then its next one
+        }
+    )
+
+
+def create_turned_condition(source: str, duration: int = 10) -> Buff:
+    """
+    Turned (Turn Undead): for 1 minute, or until it takes damage, the creature spends its turns
+    moving away from the cleric, can't take reactions, and takes no other action than Dash.
+    """
+    return Buff(
+        name="Turned",
+        source=source,
+        duration_rounds=duration,
+        metadata={"condition": "turned"}
+    )
+
+
+def _has(creature: Any, condition: str) -> bool:
+    buffs = getattr(creature, 'buffs', None)
+    return isinstance(buffs, BuffManager) and buffs.has_condition(condition)
+
+
+def is_stunned(creature: Any) -> bool:
+    """True if the creature currently has the Stunned condition."""
+    return _has(creature, 'stunned')
+
+
+def is_turned(creature: Any) -> bool:
+    """True if the creature is turned (Turn Undead)."""
+    return _has(creature, 'turned')
+
+
+def is_incapacitated(creature: Any) -> bool:
+    """Paralyzed and stunned creatures are incapacitated: no actions or reactions."""
+    return is_paralyzed(creature) or is_stunned(creature)

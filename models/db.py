@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 from contextlib import contextmanager
 import time
 from models.arena import describe_area
+from models.class_features import feature_notes
 from utils.exceptions import DatabaseError
 from utils.logging import log_exception
 from utils.paths import PROJECT_ROOT
@@ -346,6 +347,9 @@ class DatabaseManager:
                         result_text = "Disengages"
                     elif action_type == 'condition':
                         result_text = result.get('description', action_name_str)
+                    elif action_name_str == 'Turn Undead':
+                        description = result.get('description', '')
+                        result_text = description[:1].upper() + description[1:]
                     else:
                         result_text = f"{action_name_str} on {target}"
                         if damage > 0:
@@ -354,7 +358,10 @@ class DatabaseManager:
                         result_text = self._with_position_notes(result_text, result)
                     if result.get('reaction'):
                         result_text = f"{result['reaction']}: " + result_text
-                
+                    notes = feature_notes(result)
+                    if notes:
+                        result_text += '; ' + '; '.join(notes)
+
                 converted_logs.append({
                     'round_number': current_round,
                     'action_order': action_order,

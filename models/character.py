@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Any
 from models.actions import AttackAction
 from models.spells import Spell, SpellAction
 from models.buffs import BuffManager
+from models import class_features as feature_rules
 from models.arena import normalize_speed, size_in_squares
 
 
@@ -165,6 +166,10 @@ class Character:
                     damage_type="piercing"
                 )
             ]
+        # Uses of limited features for the fight (rages, ki, Lay on Hands...), and passive ones
+        self.resources = feature_rules.starting_resources(self)
+        for buff in feature_rules.passive_buffs(self):
+            self.buffs.add_buff(buff)
     
     def ability_modifier(self, ability: str) -> int:
         """
@@ -185,18 +190,21 @@ class Character:
         score = self.ability_scores[ability]
         return (score - 10) // 2
     
-    def saving_throw_bonus(self, ability: str, proficient: bool = False) -> int:
+    def saving_throw_bonus(self, ability: str, proficient: Optional[bool] = None) -> int:
         """
         Calculate the saving throw bonus for a given ability.
         
         Args:
             ability: The ability name ('str', 'dex', 'con', 'int', 'wis', 'cha')
-            proficient: Whether the character is proficient in this saving throw
-            
+            proficient: Whether the character is proficient in this saving throw; None to go by
+                the character's saving throw proficiencies
+
         Returns:
             The saving throw bonus (ability modifier + proficiency bonus if proficient)
         """
         modifier = self.ability_modifier(ability)
+        if proficient is None:
+            proficient = ability in self.saving_throw_proficiencies
         if proficient:
             return modifier + self.proficiency_bonus
         return modifier
@@ -222,8 +230,16 @@ class Character:
             ability_mod = max(str_mod, dex_mod)
         else:  # melee
             ability_mod = self.ability_modifier('str')
-        
-        return ability_mod + self.proficiency_bonus
+
+        return ability_mod + self.proficiency_bonus + feature_rules.attack_bonus_for(self, weapon_type)
+
+    def critical_threshold(self) -> int:
+        """Lowest d20 roll that's a critical hit: 20, or 19 with Improved Critical."""
+        return feature_rules.critical_threshold(self)
+
+    def weapon_damage_bonus(self, action: Any) -> int:
+        """Extra damage on a weapon attack from class features (Rage)."""
+        return feature_rules.weapon_damage_bonus(self, action)
     
     def roll_initiative(self) -> int:
         """

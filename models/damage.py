@@ -7,12 +7,25 @@ spells and class features.
 """
 from typing import Any, Optional
 
+from models.buffs import BuffManager
 from models.rolls import roll_saving_throw
+
+# The SRD monsters here that resist weapon damage (wraith, vampire spawn, mummy) resist it "from
+# nonmagical attacks", so a magical attack (e.g. a monk's Ki-Empowered Strikes) gets through.
+WEAPON_DAMAGE_TYPES = {'bludgeoning', 'piercing', 'slashing'}
 
 
 def _types(creature: Any, attribute: str) -> set:
     values = getattr(creature, attribute, None)
     return {str(v).lower() for v in values} if isinstance(values, (list, tuple, set)) else set()
+
+
+def _buff_resistances(creature: Any) -> set:
+    """Resistances from active effects, e.g. a raging barbarian's to weapon damage."""
+    buffs = getattr(creature, 'buffs', None)
+    if not isinstance(buffs, BuffManager):
+        return set()
+    return {str(t).lower() for b in buffs.active_buffs for t in b.metadata.get('resistances', ())}
 
 
 def has_ability(creature: Any, name: str) -> bool:
@@ -21,17 +34,19 @@ def has_ability(creature: Any, name: str) -> bool:
     return isinstance(abilities, list) and name in abilities
 
 
-def adjust_damage(creature: Any, amount: int, damage_type: Optional[str]) -> int:
+def adjust_damage(creature: Any, amount: int, damage_type: Optional[str], magical: bool = False) -> int:
     """
     Damage after the creature's defenses: 0 if immune, halved (rounded down) if resistant,
-    doubled if vulnerable. Resistance and vulnerability to the same type cancel out.
+    doubled if vulnerable. Resistance and vulnerability to the same type cancel out. A magical
+    attack ignores a monster's resistance to weapon damage (see WEAPON_DAMAGE_TYPES).
     """
     if amount <= 0 or not damage_type:
         return max(0, amount)
     kind = damage_type.lower()
     if kind in _types(creature, 'damage_immunities'):
         return 0
-    resistant = kind in _types(creature, 'damage_resistances')
+    resistant = (kind in _types(creature, 'damage_resistances')
+                 and not (magical and kind in WEAPON_DAMAGE_TYPES)) or kind in _buff_resistances(creature)
     vulnerable = kind in _types(creature, 'damage_vulnerabilities')
     if resistant and not vulnerable:
         return amount // 2
@@ -64,9 +79,16 @@ def _undead_fortitude(creature: Any, dealt: int, damage_type: Optional[str], cri
     })
 
 
-def apply_damage(creature: Any, amount: int, damage_type: Optional[str], critical: bool = False) -> int:
-    """Reduce the creature's HP by the adjusted damage and return the damage actually dealt."""
-    dealt = adjust_damage(creature, amount, damage_type)
+def apply_damage(creature: Any, amount: int, damage_type: Optional[str], critical: bool = False,
+                 magical: bool = False) -> int:
+    """
+    Reduce the creature's HP by the adjusted damage and return the damage actually dealt. Any
+    damage ends Turn Undead's effect on the creature.
+    """
+    dealt = adjust_damage(creature, amount, damage_type, magical)
+    buffs = getattr(creature, 'buffs', None)
+    if dealt > 0 and isinstance(buffs, BuffManager) and buffs.has_condition('turned'):
+        buffs.active_buffs = [b for b in buffs.active_buffs if b.metadata.get('condition') != 'turned']
     if hasattr(creature, 'hp'):
         hp_before = creature.hp
         creature.hp -= dealt
@@ -75,3 +97,17 @@ def apply_damage(creature: Any, amount: int, damage_type: Optional[str], critica
                 and isinstance(getattr(creature, 'pending_log_entries', None), list)):
             _undead_fortitude(creature, dealt, damage_type, critical)
     return dealt
+
+
+def damage_after_save(creature: Any, damage: int, save_type: Optional[str], saved: bool,
+                      half_on_save: bool) -> int:
+    """
+    Damage from an effect that allows a saving throw: full on a failure, and on a success half
+    (Fireball, breath weapons) or none (Sacred Flame). Evasion turns a DEX save for half into
+    none on a success and half on a failure.
+    """
+    evasion = (half_on_save and save_type == 'dex'
+               and 'Evasion' in (getattr(creature, 'class_features', None) or []))
+    if saved:
+        return 0 if evasion or not half_on_save else damage // 2
+    return damage // 2 if evasion else damage

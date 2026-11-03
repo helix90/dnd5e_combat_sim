@@ -29,7 +29,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from ai.aiming import aim_area
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Square
-from models.buffs import is_paralyzed
+from models.buffs import is_incapacitated, is_turned
 from models.battlefield import (Battlefield, Situation, Threatened, area_of, attack_distances, bonus_dash,
                                 bonus_disengage, ignores_cover, judge_attack, judge_spell, melee_attacks)
 from models.multiattack import parse_multiattack
@@ -175,7 +175,8 @@ class _Planner:
         self.size = bf.placements[creature].size
         enemies = bf.enemies_of(creature)
         self._enemy_placements = [bf.placements[e] for e in enemies]
-        self._threat_placements = [bf.placements[e] for e in enemies if not is_paralyzed(e)]
+        self._threat_placements = [bf.placements[e] for e in enemies
+                                   if not is_incapacitated(e) and not is_turned(e)]
         self._enemies = enemies
         self._cover: Dict[Tuple[Square, Any], str] = {}
         self._shelter: Dict[Square, float] = {}

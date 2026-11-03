@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from models.actions import AttackAction
 from models.arena import (COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Area, Arena, Placement, Point,
                           Square, size_in_squares)
-from models.buffs import is_paralyzed
+from models.buffs import is_incapacitated, is_turned
 from models.damage import has_ability
 
 PARTY = 'party'
@@ -351,9 +351,9 @@ class Battlefield:
     # Opportunity attacks
 
     def can_react(self, creature: Any) -> bool:
-        """Is the creature on the map, not incapacitated and with its reaction unused?"""
-        return self.present(creature) and creature.is_alive() and not is_paralyzed(creature) \
-            and creature not in self.reacted
+        """Is the creature on the map, not incapacitated or turned, and with its reaction unused?"""
+        return self.present(creature) and creature.is_alive() and not is_incapacitated(creature) \
+            and not is_turned(creature) and creature not in self.reacted
 
     def provoked(self, creature: Any, path: List[Square]) -> List[Tuple[int, Any]]:
         """
@@ -396,14 +396,14 @@ class Battlefield:
         """Enemies next to the creature that aren't incapacitated (they make ranged attacks harder)."""
         placement = self.placement(creature, at)
         return [e for e in self.enemies_of(creature)
-                if not is_paralyzed(e) and self.arena.distance(placement, self.placements[e]) <= SQUARE_FEET]
+                if not is_incapacitated(e) and self.arena.distance(placement, self.placements[e]) <= SQUARE_FEET]
 
     def ally_next_to(self, target: Any, attacker: Any) -> bool:
         """
         True if one of the attacker's allies, other than the attacker, is within 5 ft of the
         target and not incapacitated (Sneak Attack, Pack Tactics).
         """
-        return any(not is_paralyzed(a) and self.distance(a, target) <= SQUARE_FEET
+        return any(not is_incapacitated(a) and self.distance(a, target) <= SQUARE_FEET
                    for a in self.allies_of(attacker))
 
     def cover(self, attacker: Any, target: Any, at: Optional[Square] = None, creatures: bool = True) -> str:

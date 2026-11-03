@@ -10,8 +10,8 @@ import re
 
 from models.actions import Action
 from models.arena import Area
-from models.damage import apply_damage
-from models.rolls import attack_hits, attack_roll as roll_attack, roll_saving_throw
+from models.damage import apply_damage, damage_after_save
+from models.rolls import attack_hits, attack_roll as roll_attack, is_critical, roll_saving_throw
 from utils.api_client import APIClient
 from utils.exceptions import APIError
 
@@ -19,6 +19,9 @@ if TYPE_CHECKING:
     from models.character import Character
     from models.monster import Monster
 
+
+# Save spells that still deal half damage on a successful save; the rest deal none
+HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt'}
 
 FEET_PER_MILE = 5280
 TOUCH_RANGE_FEET = 5
@@ -128,13 +131,14 @@ class Spell:
         }
         return cls(**kwargs)
 
-    def calculate_damage(self, caster_level: int = 1) -> int:
+    def calculate_damage(self, caster_level: int = 1, critical: bool = False) -> int:
         """
         Calculate spell damage, including scaling for cantrips.
         
         Args:
             caster_level: The level of the spellcaster
-            
+            critical: Roll the damage dice twice (a spell attack's critical hit)
+
         Returns:
             int: Total damage
         """
@@ -168,7 +172,7 @@ class Spell:
             dice_str = dice_part
 
         num, die = dice_str.split('d')
-        num = int(num)
+        num = int(num) * (2 if critical else 1)
         die = int(die)
         rolls = [random.randint(1, die) for _ in range(num)]
         return sum(rolls) + modifier
@@ -347,19 +351,20 @@ class SpellAction(Action):
         attacks = []
         for creature, options in shots:
             entry: Dict[str, Any] = {'target': getattr(creature, 'name', str(creature))}
-            hit = True
+            hit, critical = True, False
             if self.spell.is_attack_spell:
                 d20 = roll_attack(caster, creature, advantage, options.get('disadvantage', False))
                 total_attack = d20.result + attack_bonus + buff_bonus
                 target_ac = getattr(creature, 'ac', 10) + options.get('ac_bonus', 0)
                 hit = attack_hits(d20.result, total_attack, target_ac)
+                critical = hit and is_critical(d20.result, caster)
                 entry.update({'attack_roll': d20.result, 'attack_rolls': d20.rolls, 'advantage': d20.advantage,
                               'disadvantage': d20.disadvantage, 'total_attack': total_attack,
-                              'target_ac': target_ac})
+                              'target_ac': target_ac, 'critical': critical})
             damage = 0
             if hit:
-                damage = apply_damage(creature, self.spell.calculate_damage(getattr(caster, 'level', 1)),
-                                      self.spell.damage_type)
+                damage = apply_damage(creature, self.spell.calculate_damage(getattr(caster, 'level', 1), critical),
+                                      self.spell.damage_type, critical)
             entry.update({'hit': hit, 'damage': damage, 'damage_type': self.spell.damage_type,
                           'hp_after': creature.hp})
             attacks.append(entry)
@@ -575,6 +580,7 @@ class SpellAction(Action):
                 total_attack = attack_roll + attack_bonus + buff_bonus
                 target_ac = getattr(targets_list[0], 'ac', 10) + ac_bonus
                 hit = attack_hits(attack_roll, total_attack, target_ac)
+                critical = hit and not self.spell.healing and is_critical(attack_roll, caster)
 
                 result.update({
                     'attack_roll': attack_roll,
@@ -585,7 +591,8 @@ class SpellAction(Action):
                     'buff_bonus': buff_bonus,
                     'total_attack': total_attack,
                     'target_ac': target_ac,
-                    'hit': hit
+                    'hit': hit,
+                    'critical': critical
                 })
 
                 if hit:
@@ -597,8 +604,8 @@ class SpellAction(Action):
                             'target_hp_after': targets_list[0].hp
                         })
                     else:
-                        damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                        damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
+                        damage = self.spell.calculate_damage(getattr(caster, 'level', 1), critical)
+                        damage = apply_damage(targets_list[0], damage, self.spell.damage_type, critical)
                         result.update({
                             'damage': damage,
                             'damage_type': self.spell.damage_type,
@@ -628,10 +635,8 @@ class SpellAction(Action):
                                              cover_bonus=(save_bonuses or {}).get(t, 0))
                     save_success = save['save_success']
 
-                    # Apply damage (half on successful save for certain spells)
-                    damage = base_damage
-                    if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
-                        damage = damage // 2
+                    damage = damage_after_save(t, base_damage, self.spell.save_type, save_success,
+                                               self.spell.name in HALF_ON_SAVE_SPELLS)
 
                     # Apply damage
                     damage = apply_damage(t, damage, self.spell.damage_type)
@@ -673,10 +678,10 @@ class SpellAction(Action):
                         'target_hp_after': targets_list[0].hp
                     })
                 else:
-                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
-                    # Some spells do half damage on successful save
-                    if save_success and self.spell.name in ['Fireball', 'Lightning Bolt']:
-                        damage = damage // 2
+                    damage = damage_after_save(targets_list[0],
+                                               self.spell.calculate_damage(getattr(caster, 'level', 1)),
+                                               self.spell.save_type, save_success,
+                                               self.spell.name in HALF_ON_SAVE_SPELLS)
                     damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
                     result.update({
                         'damage': damage,

@@ -84,6 +84,8 @@ def build_monster(data: Dict[str, Any]) -> Monster:
         actions=build_monster_actions(data.get('actions', [])),
         size=data.get('size', 'medium'),
         speed=data.get('speed'),
+        creature_type=data.get('type'),
+        saving_throws=data.get('saving_throws'),
     )
 
 
