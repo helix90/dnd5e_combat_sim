@@ -5,6 +5,7 @@
   
   <div class="row">
     <div class="col-md-8">
+      {% include '_battlefield_picker.html' %}
       <div class="card">
         <div class="card-header">
           <h5>Configure Batch Simulation</h5>
@@ -29,20 +30,17 @@
               <div class="alert alert-info">
                 <strong>Party:</strong> <span id="currentParty">Loading...</span><br>
                 <strong>Encounter:</strong> <span id="currentEncounter">Loading...</span><br>
-                <strong>Arena:</strong> <span id="currentArena">{{ arena or 'No arena' }}</span>
-                <a href="{{ url_for('encounter_selection') }}" class="small ms-1">change</a>
+                <strong>Battlefield:</strong> <span id="currentArena">{{ arena or 'No map' }}</span>
               </div>
             </div>
             
-            {% if arena %}
-            <div class="form-check mb-3">
+            <div class="form-check mb-3{% if not arena %} d-none{% endif %}" id="compareWithoutArenaGroup">
               <input class="form-check-input" type="checkbox" id="compareWithoutArena" name="compare_without_arena" checked>
               <label class="form-check-label" for="compareWithoutArena">
                 Also run every fight without the arena, to compare
               </label>
               <div class="form-text">Fights without an arena take a few milliseconds, so this adds little time.</div>
             </div>
-            {% endif %}
 
             <button type="submit" class="btn btn-primary" id="startBatchBtn">
               <i class="fas fa-play"></i> Start Batch Simulation
@@ -102,6 +100,13 @@ document.addEventListener('DOMContentLoaded', function() {
   loadCurrentSetup();
   loadBatchHistory();
 
+  // The Battlefield picker: comparing with no map only makes sense when there is a map
+  document.addEventListener('battlefield-change', event => {
+    const map = event.detail.map;
+    document.getElementById('currentArena').textContent = map || 'No map';
+    document.getElementById('compareWithoutArenaGroup').classList.toggle('d-none', !map);
+  });
+
   const batchForm = document.getElementById('batchForm');
   console.log('batchForm element:', batchForm);
   const progressModal = new bootstrap.Modal(document.getElementById('progressModal'));
@@ -116,7 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const data = {
       num_runs: parseInt(formData.get('num_runs')),
       batch_name: formData.get('batch_name') || `Batch ${Date.now()}`,
-      compare_without_arena: formData.get('compare_without_arena') === 'on'
+      compare_without_arena: formData.get('compare_without_arena') === 'on' &&
+        !document.getElementById('compareWithoutArenaGroup').classList.contains('d-none')
     };
 
     console.log('Batch simulation data:', data);

@@ -28,7 +28,7 @@ from controllers.batch_simulation_controller import BatchSimulationController
 from controllers.encounter_controller import EncounterController
 from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
-from models.arena_library import ENCOUNTER_MAP, arena_choices, resolve_arena_choice
+from models.arena_library import DEFAULT_MAP, ENCOUNTER_MAP, arena_choices, get_arena, resolve_arena_choice
 from models.db import DatabaseManager
 from utils.exceptions import (
     AppError, ValidationError
@@ -234,11 +234,15 @@ def load_arena_from_session() -> Optional[str]:
     template = next((t for t in encounter_controller.templates if t.get('name') == name), None) if name else None
     return resolve_arena_choice(session.get('arena'), template)
 
+def battlefield_context() -> Dict[str, Any]:
+    """What the Battlefield picker (templates/_battlefield_picker.html) needs: the maps and the current choice."""
+    return {'arenas': arena_choices(), 'encounter_map': ENCOUNTER_MAP, 'default_map': DEFAULT_MAP,
+            'selected_arena': session.get('arena') or '', 'battlefield_map': load_arena_from_session() or ''}
+
 def render_encounter_page(tab: Optional[str] = None) -> str:
     """The encounter page, with the arena choices and the current one."""
     kwargs = {'tab': tab} if tab else {}
-    return render_template('encounter_selection.html', arenas=arena_choices(), encounter_map=ENCOUNTER_MAP,
-                           selected_arena=session.get('arena') or '', **kwargs)
+    return render_template('encounter_selection.html', **battlefield_context(), **kwargs)
 
 def load_monsters_from_session() -> List[Any]:
     """
@@ -443,15 +447,19 @@ def encounter_prebuilt() -> Any:
 
     return render_encounter_page('prebuilt')
 
-@app.route('/encounter/arena', methods=['POST'])
+@app.route('/encounter/arena', methods=['GET', 'POST'])
 def encounter_arena() -> Tuple[Any, int]:
     """
     Choose the arena (battle map) for the next simulations: a map name, ENCOUNTER_MAP for each
-    pre-built encounter's own map, or an empty name for no arena.
+    pre-built encounter's own map, or an empty name for no arena. GET returns the current choice
+    and the map the next fight would use with the selected encounter.
 
     Returns:
         JSON response with the chosen arena, or an error for an unknown map
     """
+    if request.method == 'GET':
+        return jsonify({'arena': session.get('arena') or None, 'map': load_arena_from_session(),
+                        'encounter': session.get('selected_encounter')}), 200
     data = request.get_json(silent=True)
     name = (data.get('arena') if isinstance(data, dict) else None) or ''
     if not isinstance(name, str):
@@ -464,7 +472,17 @@ def encounter_arena() -> Tuple[Any, int]:
     else:
         session.pop('arena', None)
     logger.info(f"Arena set to {name or 'none'}")
-    return jsonify({'success': True, 'arena': name or None}), 200
+    return jsonify({'success': True, 'arena': name or None, 'map': load_arena_from_session()}), 200
+
+@app.route('/api/arenas/<path:name>', methods=['GET'])
+def api_arena_drawing(name: str) -> Tuple[Any, int]:
+    """A map's terrain and start zones, for drawing a preview of it."""
+    if name not in {a['name'] for a in arena_choices()}:
+        return jsonify({'error': f'Unknown arena: {name}'}), 404
+    arena = get_arena(name)
+    description = next(a['description'] for a in arena_choices() if a['name'] == name)
+    return jsonify({**arena.drawing(), 'description': description,
+                    'start_zones': {side: [list(sq) for sq in squares] for side, squares in arena.start_zones.items()}}), 200
 
 @app.route('/encounter/clear', methods=['POST'])
 def encounter_clear() -> Tuple[Any, int]:
@@ -769,7 +787,7 @@ def simulate() -> Any:
             flash('Failed to start simulation', 'danger')
             return redirect(url_for('encounter_selection'))
 
-    return render_template('simulation.html')
+    return render_template('simulation.html', arena=load_arena_from_session())
 
 @app.route('/simulate/status', methods=['GET'])
 def simulate_status() -> Any:
@@ -826,7 +844,7 @@ def batch_simulation() -> str:
     Returns:
         Rendered HTML template
     """
-    return render_template('batch_simulation.html', arena=load_arena_from_session())
+    return render_template('batch_simulation.html', arena=load_arena_from_session(), **battlefield_context())
 
 @app.route('/batch/start', methods=['POST'])
 def batch_simulation_start() -> Tuple[Any, int]:

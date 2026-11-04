@@ -1,0 +1,59 @@
+{# The Battlefield picker: fight without a map, on each encounter's own map, or on a chosen map.
+   Needs arenas, encounter_map, default_map and selected_arena (see battlefield_context in app.py).
+   The choice is saved in the session as soon as it's made and used by single and batch simulations. #}
+{% set mode = 'none' if not selected_arena else ('own' if selected_arena == encounter_map else 'map') %}
+<div class="card mb-3" id="battlefield-picker" data-encounter-map="{{ encounter_map }}" data-default-map="{{ default_map }}"
+     data-arena="{{ selected_arena }}" data-map="{{ battlefield_map }}">
+  <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+    <span>Battlefield</span>
+    <small class="text-muted fw-normal" id="battlefield-summary"></small>
+  </div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="battlefield-mode" id="battlefield-none" value="none" {% if mode == 'none' %}checked{% endif %}>
+          <label class="form-check-label" for="battlefield-none">
+            <strong>No map</strong>
+            <span class="d-block small text-muted">Everyone can reach everyone: positions, movement, range and cover are ignored.</span>
+          </label>
+        </div>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="radio" name="battlefield-mode" id="battlefield-own" value="own" {% if mode == 'own' %}checked{% endif %}>
+          <label class="form-check-label" for="battlefield-own">
+            <strong>Each encounter's own map</strong>
+            <span class="d-block small text-muted">A pre-built encounter is fought on its own map; a custom encounter on the {{ default_map }}.</span>
+          </label>
+        </div>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="radio" name="battlefield-mode" id="battlefield-map" value="map" {% if mode == 'map' %}checked{% endif %}>
+          <label class="form-check-label" for="battlefield-map">
+            <strong>Choose a map</strong>
+            <span class="d-block small text-muted">Fight every encounter on the same map.</span>
+          </label>
+        </div>
+        <select id="arena-select" class="form-select form-select-sm mt-2 ms-4" style="max-width: 16rem"
+                aria-label="Map" {% if mode != 'map' %}disabled{% endif %}>
+          <optgroup label="Maps for any encounter">
+            {% for arena in (arenas or []) if arena.generic %}
+            <option value="{{ arena.name }}" title="{{ arena.description }}" {% if arena.name == selected_arena %}selected{% endif %}>{{ arena.name }}</option>
+            {% endfor %}
+          </optgroup>
+          <optgroup label="Pre-built encounter maps">
+            {% for arena in (arenas or []) if not arena.generic %}
+            <option value="{{ arena.name }}" title="{{ arena.description }}" {% if arena.name == selected_arena %}selected{% endif %}>{{ arena.name }}</option>
+            {% endfor %}
+          </optgroup>
+        </select>
+        <small class="text-danger d-none d-block mt-2" id="arena-error"></small>
+      </div>
+      <div class="col-md-6">
+        <div id="battlefield-preview" class="border rounded" style="background: #f6f3ea; min-height: 6rem;"></div>
+        <div id="battlefield-caption" class="small text-muted mt-1"></div>
+        <div id="battlefield-legend" class="small text-muted mt-1 d-flex flex-wrap gap-3"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/arena_map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/battlefield.js') }}"></script>

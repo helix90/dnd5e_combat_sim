@@ -10,26 +10,7 @@
   .qty-btn { width: 1.75rem; padding: 0; }
 </style>
 <h2>Select Encounter</h2>
-<div class="d-flex flex-wrap align-items-center gap-2 mb-3" id="arena-picker">
-  <label for="arena-select" class="form-label mb-0 fw-semibold">Arena</label>
-  <select id="arena-select" class="form-select form-select-sm" style="max-width: 14rem">
-    <option value="" {% if not selected_arena %}selected{% endif %}>No arena (everyone in reach)</option>
-    <option value="{{ encounter_map }}" {% if selected_arena == encounter_map %}selected{% endif %}
-            title="Each pre-built encounter is fought on its own map; custom encounters use the Open Field.">The encounter's own map</option>
-    <optgroup label="Maps for any encounter">
-      {% for arena in (arenas or []) if arena.generic %}
-      <option value="{{ arena.name }}" title="{{ arena.description }}" {% if arena.name == selected_arena %}selected{% endif %}>{{ arena.name }}</option>
-      {% endfor %}
-    </optgroup>
-    <optgroup label="Pre-built encounter maps">
-      {% for arena in (arenas or []) if not arena.generic %}
-      <option value="{{ arena.name }}" title="{{ arena.description }}" {% if arena.name == selected_arena %}selected{% endif %}>{{ arena.name }}</option>
-      {% endfor %}
-    </optgroup>
-  </select>
-  <small class="text-muted" id="arena-description"></small>
-  <small class="text-danger d-none" id="arena-error"></small>
-</div>
+{% include '_battlefield_picker.html' %}
 <ul class="nav nav-tabs" id="encounterTab" role="tablist">
   <li class="nav-item" role="presentation">
     <button class="nav-link active" id="custom-tab" data-bs-toggle="tab" data-bs-target="#custom" type="button" role="tab">Custom Encounter</button>
@@ -67,6 +48,7 @@
             <ul id="selected-monsters" class="list-unstyled mb-0"></ul>
             <p id="custom-empty" class="text-muted mb-0">Click <strong>Add</strong> on a monster to build an encounter.</p>
             <div id="custom-balance" class="mt-3"></div>
+            <div class="small text-muted mt-2 battlefield-note" data-custom="1"></div>
             <div class="d-flex gap-2 mt-3">
               <button id="custom-continue" class="btn btn-success" disabled>Continue</button>
               <button id="custom-clear" class="btn btn-outline-secondary d-none">Clear</button>
@@ -147,39 +129,23 @@ function monsterSummary(enc) {
   return enc.monsters.map(m => `${m.count}× ${m.name}`).join(' · ');
 }
 
-// Arena: saved in the session as soon as it's chosen, and used by single and batch simulations
-function showArenaDescription() {
-  const select = document.getElementById('arena-select');
-  const option = select.options[select.selectedIndex];
-  document.getElementById('arena-description').textContent =
-    select.value ? option.title : 'Positions, movement and range are ignored, as in earlier versions.';
+// Where the fight happens, from the Battlefield picker, for the encounter summaries
+function battlefieldText(map) {
+  return map ? `Battlefield: ${escapeHtml(map)}` : 'Battlefield: no map';
 }
 
-function setupArenaPicker() {
-  const select = document.getElementById('arena-select');
-  if (!select) return;
-  showArenaDescription();
-  select.addEventListener('change', () => {
-    const error = document.getElementById('arena-error');
-    error.classList.add('d-none');
-    showArenaDescription();
-    fetch('/encounter/arena', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ arena: select.value })
-    })
-    .then(response => response.json().then(body => {
-      if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`);
-    }))
-    .catch(err => {
-      error.textContent = `Couldn't save the arena: ${err.message}`;
-      error.classList.remove('d-none');
-    });
+function showBattlefield(detail) {
+  const picker = document.getElementById('battlefield-picker');
+  // A custom encounter has no map of its own: "each encounter's own map" means the default one
+  const customMap = detail.arena === picker.dataset.encounterMap ? picker.dataset.defaultMap : detail.map;
+  document.querySelectorAll('.battlefield-note').forEach(note => {
+    note.innerHTML = battlefieldText(note.dataset.custom ? customMap : detail.map);
   });
 }
 
+document.addEventListener('battlefield-change', event => showBattlefield(event.detail));
+
 document.addEventListener('DOMContentLoaded', function() {
-  setupArenaPicker();
   const partyLoaded = fetch('/api/party/current')
     .then(response => response.json())
     .then(party => { currentParty = party; })
@@ -347,7 +313,8 @@ function renderPrebuiltDetails(name, result) {
   let html = `<h5 class="mb-1">${escapeHtml(name)}</h5>
     <div class="small text-muted mb-2">Level ${escapeHtml(template.level)} · ${escapeHtml(capitalize(template.type))}
       · your party: level ${escapeHtml(currentParty.party_level)}, ${escapeHtml(currentParty.party_size)} characters
-      ${template.arena ? `<br>Map: ${escapeHtml(template.arena)} (used when the arena is “The encounter's own map”)` : ''}</div>`;
+      ${template.arena ? `<br>Its own map: ${escapeHtml(template.arena)}` : ''}
+      <br><span class="battlefield-note"></span></div>`;
 
   if (result.balance) {
     const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
@@ -375,6 +342,8 @@ function renderPrebuiltDetails(name, result) {
       </tbody></table>`;
   }
   document.getElementById('prebuilt-details').innerHTML = html;
+  // With "each encounter's own map", choosing an encounter changes the map
+  Battlefield.refresh();
 }
 
 function clearPrebuiltSelection() {
@@ -386,6 +355,7 @@ function clearPrebuiltSelection() {
         '<p class="text-muted mb-0">Pick an encounter from the list to see its difficulty for your party.</p>';
       document.getElementById('prebuilt-clear').classList.add('d-none');
       setContinueButton('prebuilt-continue', null);
+      Battlefield.refresh();
     })
     .catch(error => {
       console.error('Error clearing selection:', error);
