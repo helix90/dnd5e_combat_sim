@@ -44,6 +44,7 @@ def build_monster_actions(action_dicts: Optional[List[Dict[str, Any]]]) -> List[
                 area=ad.get('area'),
                 recharge=ad.get('recharge'),
                 extra_damage=ad.get('extra_damage'),
+                target_condition=ad.get('target_condition'),
             ))
         elif ad.get('type') == 'special':
             if 'damage_dice' in ad and 'save_dc' in ad:

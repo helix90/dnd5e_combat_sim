@@ -12,14 +12,14 @@ from ai.tactical import TacticalAnalyzer
 from ai.aiming import aim_area
 from ai.positioning import fit_plan
 from models.rolls import roll_saving_throw
-from models.buffs import (BuffManager, cannot_move, create_stood_up_effect, is_incapacitated, is_paralyzed, is_prone,
-                          is_spellbound, is_stunned, is_turned)
+from models.buffs import (BuffManager, cannot_move, create_poisoned_condition, create_stood_up_effect, is_incapacitated,
+                          is_paralyzed, is_prone, is_spellbound, is_stunned, is_turned)
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, describe_area
 from models.battlefield import (MONSTERS, PARTY, Battlefield, area_of, area_range, bonus_dash, bonus_disengage,
                                 ignores_cover, melee_attacks)
-from models.multiattack import parse_multiattack
-from models.damage import apply_damage, has_ability
+from models.multiattack import for_target, parse_multiattack
+from models.damage import apply_damage, has_ability, regain_hp
 from models import class_features as feature_rules
 from models import concentration, spell_effects
 from models.spells import SpellAction
@@ -44,7 +44,10 @@ def _average_damage(action: Any) -> float:
 
 # How the log describes a condition an attack applied: "Aldric is knocked prone!"
 CONDITION_TEXT = {'Paralyzed': 'is paralyzed', 'Prone': 'is knocked prone',
-                  'Infernal Wound': 'has an infernal wound'}
+                  'Infernal Wound': 'has an infernal wound', 'Mummy Rot': 'is cursed with mummy rot'}
+
+# A ghast's Stench: the CON save a creature starting its turn next to one makes
+STENCH_DC = 10
 
 class CombatLogger:
     """
@@ -126,6 +129,10 @@ class Combat:
         self._regenerators = [p for p in participants if isinstance(getattr(p, 'regeneration', None), dict)]
         self._regen_suppressed: Dict[Any, set] = {}
         self._regen_dead: set = set()
+        # Ghasts' Stench: the (creature, ghast) pairs where the creature has saved and is immune to
+        # that ghast's stench, and without an arena, whom each creature last attacked in melee
+        self._stench_immune: set = set()
+        self._melee_target: Dict[Any, Any] = {}
         # Positions on the arena, if there is one. Creatures that are down for good leave the map;
         # a downed troll that will get back up stays on it.
         self.battlefield: Optional[Battlefield] = None
@@ -257,8 +264,7 @@ class Combat:
         elif participant.hp >= participant.max_hp:
             return None
         else:
-            healed = min(int(regen.get('hp', 0)), participant.max_hp - participant.hp)
-            participant.hp += healed
+            healed = regain_hp(participant, int(regen.get('hp', 0)), magical=False)
             description = f"regenerates {healed} HP" + (" and gets back up" if was_down else "")
         self._alive_participants_cache = None
         return {
@@ -336,6 +342,7 @@ class Combat:
                     return participant
                 if self._infernal_wound(participant):
                     return participant
+                self._stench(participant)
                 if is_paralyzed(participant):
                     # Incapacitated: no action this turn, then repeat the save at the end of it
                     result = self._paralyzed_turn(participant)
@@ -365,6 +372,7 @@ class Combat:
                         action_plan = fit_plan(participant, action_plan, combat_state)
                     hp_before = {c: c.hp for c in self._regenerators}
                     result = self._take_turn(participant, action_plan)
+                    self._note_melee_target(participant, action_plan)
                     if recharged:
                         result['recharged'] = recharged
                     if stood_up:
@@ -444,6 +452,54 @@ class Combat:
         }, self.current_round)
         self._alive_participants_cache = None
         return not participant.is_alive()
+
+    def _stench(self, participant: Any) -> None:
+        """
+        A creature that starts its turn within 5 ft of a ghast makes a DC 10 CON save against its
+        Stench, or is poisoned until the start of its next turn. On a success it's immune to that
+        ghast's stench for the rest of the fight (24 hours).
+        """
+        if not participant.is_alive() or 'poisoned' in (getattr(participant, 'condition_immunities', None) or []):
+            return
+        for ghast in self.participants:
+            if ghast is participant or not ghast.is_alive() or not has_ability(ghast, 'Stench') or \
+                    (participant, ghast) in self._stench_immune or not self._next_to(participant, ghast):
+                continue
+            save = roll_saving_throw(participant, 'con', STENCH_DC)
+            if save['save_success']:
+                self._stench_immune.add((participant, ghast))
+                description = f"holds out against {ghast.name}'s stench"
+            else:
+                if isinstance(participant.buffs, BuffManager) and not participant.buffs.has_condition('poisoned'):
+                    participant.buffs.add_buff(create_poisoned_condition(ghast.name))
+                description = f"is poisoned by {ghast.name}'s stench"
+            self.logger.log_action(participant, {
+                'action': 'Stench', 'type': 'condition', 'condition': 'poisoned', 'source': ghast.name,
+                'save_type': 'con', 'save_dc': STENCH_DC, **save, 'description': description,
+            }, self.current_round)
+
+    def _next_to(self, a: Any, b: Any) -> bool:
+        """
+        Within 5 ft of each other. Without an arena, that's when either one last attacked the other
+        in melee.
+        """
+        if self.battlefield is not None:
+            return (a in self.battlefield.placements and b in self.battlefield.placements
+                    and self.battlefield.distance(a, b) <= SQUARE_FEET)
+        return self._melee_target.get(a) is b or self._melee_target.get(b) is a
+
+    def _note_melee_target(self, participant: Any, plan: Dict[str, Any]) -> None:
+        """Without an arena, remember whom the participant attacked in melee this turn (see _next_to)."""
+        if self.battlefield is not None:
+            return
+        action, target = plan.get('action'), plan.get('target')
+        melee = plan.get('type') in ('attack', 'special') and not isinstance(target, list) and target is not None and (
+            getattr(action, 'name', '').lower() == 'multiattack'
+            or (getattr(action, 'weapon_type', 'ranged') != 'ranged' and not getattr(action, 'area_effect', False)))
+        if melee:
+            self._melee_target[participant] = target
+        else:
+            self._melee_target.pop(participant, None)
 
     @staticmethod
     def _stand_up(participant: Any) -> bool:
@@ -1351,6 +1407,8 @@ class Combat:
                 first = next(iter(notes.values()), {})
                 return self._out_of_range('Multiattack', target, first.get('distance'), first.get('cover', COVER_NONE))
 
+        if not isinstance(target, list):
+            attacks_to_perform = for_target(attacks_to_perform, target)
         for attack_action in attacks_to_perform:
             attack_result = self._attack(participant, attack_action, target, options[attack_action])
             attack_result.update(notes.get(attack_action, {}))
@@ -1518,13 +1576,13 @@ class Combat:
                     elif 'damage' in result:
                         crit = " (critical hit)" if result.get('critical') else ""
                         line = f"{actor} uses {action} on {self._target_text(result)}: {result['damage']} damage{crit}."
-                        if result.get('condition_applied'):
-                            line += f" {self._target_text(result)} {CONDITION_TEXT.get(result['condition_applied'], 'is ' + result['condition_applied'].lower())}!"
-                        lines.append(line)
+                        lines.append(line + self._rider_text(actor, result))
                     elif result.get('action') == 'Turn Undead':
                         lines.append(f"{actor} {result['description']}.")
                     elif 'total_damage' in result:
-                        lines.append(f"{actor} uses {action} on {self._target_text(result)}: {result['total_damage']} damage.")
+                        riders = ''.join(self._rider_text(actor, a) for a in result.get('individual_attacks', []))
+                        lines.append(f"{actor} uses {action} on {self._target_text(result)}: {result['total_damage']} damage."
+                                     + riders)
                     elif 'healing' in result:
                         lines.append(f"{actor} uses {action} on {self._target_text(result)}: heals {result['healing']} HP.")
                     else:
@@ -1540,6 +1598,20 @@ class Combat:
                     if result.get('reaction'):
                         lines[start] = f"{result['reaction']}: {lines[start]}"
         return lines
+
+    @classmethod
+    def _rider_text(cls, actor: str, result: Dict[str, Any]) -> str:
+        """What an attack's hit did besides damage: a condition, a drained maximum, the attacker healing."""
+        target = cls._target_text(result)
+        text = ''
+        if result.get('condition_applied'):
+            condition = result['condition_applied']
+            text += f" {target} {CONDITION_TEXT.get(condition, 'is ' + condition.lower())}!"
+        if result.get('hp_drained'):
+            text += f" {target}'s hit point maximum drops by {result['hp_drained']} (to {result['target_max_hp_after']})."
+        if result.get('attacker_healed'):
+            text += f" {actor} regains {result['attacker_healed']} HP."
+        return text
 
     @staticmethod
     def _target_text(result: Dict[str, Any]) -> str:

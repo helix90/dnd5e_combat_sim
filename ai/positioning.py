@@ -32,7 +32,7 @@ from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, S
 from models.buffs import is_incapacitated, is_turned
 from models.battlefield import (Battlefield, Situation, Threatened, area_of, attack_distances, bonus_dash,
                                 bonus_disengage, ignores_cover, judge_attack, judge_spell, melee_attacks)
-from models.multiattack import parse_multiattack
+from models.multiattack import for_target, parse_multiattack
 from models.spells import SpellAction
 
 # A target the strategy chose is worth this much more than another one
@@ -90,7 +90,7 @@ class _Weapon:
     def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened,
                  ac_bonus: int = 0) -> Optional[float]:
         situation = judge_attack(self.action, distance, threatened)
-        if not situation.in_range:
+        if not situation.in_range or not self.action.usable_on(target):
             return None
         return self.count * self.average * _hit_chance(self.bonus, getattr(target, 'ac', 10) + ac_bonus,
                                                        situation.disadvantage)
@@ -111,8 +111,8 @@ class _Multiattack:
     def evaluate(self, creature: Any, target: Any, distance: int, threatened: Threatened,
                  ac_bonus: int = 0) -> Optional[float]:
         situations: Dict[Any, Situation] = {a: judge_attack(a, distance, threatened) for a in self.attacks}
-        attacks = parse_multiattack(getattr(self.action, 'description', ''), self.attacks,
-                                    usable=lambda a: situations[a].in_range)
+        attacks = for_target(parse_multiattack(getattr(self.action, 'description', ''), self.attacks,
+                                               usable=lambda a: situations[a].in_range), target)
         if not attacks:
             return None
         ac = getattr(target, 'ac', 10) + ac_bonus

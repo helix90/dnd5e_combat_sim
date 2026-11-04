@@ -405,6 +405,29 @@ def create_infernal_wound(source: str, dice: str) -> Buff:
                 metadata={"condition": "infernal_wound", "wound_dice": [dice]})
 
 
+def create_poisoned_condition(source: str) -> Buff:
+    """
+    Poisoned by a ghast's Stench until the start of the creature's next turn: disadvantage on
+    its attack rolls.
+    """
+    return Buff(name="Poisoned", source=source, duration_rounds=-1,
+                metadata={"condition": "poisoned", "disadvantage": ["attack_rolls"], "until_turn_start": True})
+
+
+def create_mummy_rot(source: str) -> Buff:
+    """
+    Cursed with mummy rot: the creature can't regain hit points (its maximum also withers every 24
+    hours, which never matters within a fight). Only Remove Curse ends it.
+    """
+    return Buff(name="Mummy Rot", source=source, duration_rounds=-1,
+                metadata={"condition": "mummy_rot", "no_healing": True})
+
+
+def cannot_regain_hp(creature: Any) -> bool:
+    """True if the creature can't regain hit points (mummy rot)."""
+    return has_flag(creature, 'no_healing')
+
+
 def is_prone(creature: Any) -> bool:
     """True if the creature is prone."""
     return _has(creature, 'prone')
@@ -421,9 +444,13 @@ def close_wounds(creature: Any) -> List[str]:
     return closed
 
 
-def _has(creature: Any, condition: str) -> bool:
+def has_condition(creature: Any, condition: str) -> bool:
+    """True if the creature has the named condition ('restrained', 'poisoned', ...)."""
     buffs = getattr(creature, 'buffs', None)
     return isinstance(buffs, BuffManager) and buffs.has_condition(condition)
+
+
+_has = has_condition
 
 
 def is_stunned(creature: Any) -> bool:

@@ -8,7 +8,7 @@ spells and class features.
 from typing import Any, Optional
 
 from models import concentration
-from models.buffs import BuffManager, end_on_damage
+from models.buffs import BuffManager, cannot_regain_hp, close_wounds, end_on_damage
 from models.rolls import roll_saving_throw
 
 # The SRD monsters here that resist weapon damage (wraith, vampire spawn, mummy) resist it "from
@@ -114,3 +114,33 @@ def damage_after_save(creature: Any, damage: int, save_type: Optional[str], save
     if saved:
         return 0 if evasion or not half_on_save else damage // 2
     return damage // 2 if evasion else damage
+
+
+def regain_hp(creature: Any, amount: int, magical: bool = True) -> int:
+    """
+    Heal the creature by amount, up to its hit point maximum, and return the hit points it
+    regained. A creature cursed with mummy rot regains none. Magical healing (spells, Lay on Hands)
+    also closes infernal wounds.
+    """
+    if cannot_regain_hp(creature):
+        return 0
+    if magical:
+        close_wounds(creature)
+    hp_before = creature.hp
+    creature.hp = min(creature.hp + max(0, amount), getattr(creature, 'max_hp', creature.hp))
+    return max(0, creature.hp - hp_before)
+
+
+def reduce_max_hp(creature: Any, amount: int) -> int:
+    """
+    Reduce the creature's hit point maximum (a wight's or wraith's Life Drain, a vampire spawn's
+    bite) until it finishes a long rest; its hit points can't stay above the new maximum. A
+    creature whose maximum reaches 0 dies, so healing can't bring it back. Returns the reduction.
+    """
+    max_hp = getattr(creature, 'max_hp', None)
+    if not isinstance(max_hp, int) or amount <= 0:
+        return 0
+    reduced = min(amount, max_hp)
+    creature.max_hp = max_hp - reduced
+    creature.hp = min(creature.hp, creature.max_hp)
+    return reduced
