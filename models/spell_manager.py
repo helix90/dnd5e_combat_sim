@@ -105,7 +105,8 @@ class SpellManager:
             cantrip_projectiles=spell_data.get('cantrip_projectiles', False),
             effect=spell_data.get('effect'),
             combat=spell_data.get('combat', True),
-            hit_point_dice=spell_data.get('hit_point_dice')
+            hit_point_dice=spell_data.get('hit_point_dice'),
+            on_failed_save=spell_data.get('on_failed_save')
         )
     
     def get_spell(self, spell_name: str) -> Optional[Spell]:

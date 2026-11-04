@@ -219,8 +219,8 @@ class TestSpellCombatIntegration:
         
         # Check spell slot consumption
         print(f"Cleric spell slots after: {self.cleric.spell_slots_remaining}")
-        assert self.cleric.spell_slots_remaining[1] == 3  # Used 1 level 1 slot (Cure Wounds)
-        assert self.cleric.spell_slots_remaining[2] == 2  # Used 1 level 2 slot (Healing Word)
+        assert self.cleric.spell_slots_remaining[1] == 2  # Cure Wounds and Healing Word are both 1st level
+        assert self.cleric.spell_slots_remaining[2] == 3
 
     @patch('random.randint')
     def test_spell_attack_rolls(self, mock_randint):

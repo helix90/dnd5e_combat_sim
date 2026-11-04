@@ -341,6 +341,15 @@ HANDLERS: Dict[str, Handler] = {
 }
 
 
+def debuff(caster: Any, target: Any, data: Dict[str, Any]) -> None:
+    """A buff from a spell's on_failed_save data on a target that failed its save (Vicious Mockery)."""
+    if not _has_buffs(target) or not target.is_alive():
+        return
+    target.buffs.remove_buff(data['name'])
+    target.buffs.add_buff(Buff(name=data['name'], source=_name(caster), duration_rounds=data.get('duration_rounds', 1),
+                               metadata=copy.deepcopy(data.get('metadata', {}))))
+
+
 def call_lightning_storm(caster: Any, action: Any) -> None:
     """After the first bolt, the storm stays while the caster concentrates: later bolts take an action but no slot."""
     caster.buffs.add_buff(Buff(name='Call Lightning', source=_name(caster), duration_rounds=_duration(action),

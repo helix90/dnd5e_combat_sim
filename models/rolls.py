@@ -90,12 +90,19 @@ def protected_from(attacker: Any, target: Any) -> bool:
 
 
 def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> D20Roll:
-    """Roll an attack's d20, combining effects on the attacker and the target with any explicit sources."""
-    return roll_d20(
+    """
+    Roll an attack's d20, combining effects on the attacker and the target with any explicit
+    sources. Effects that only apply to the attacker's next attack roll (Vicious Mockery) end.
+    """
+    roll = roll_d20(
         advantage=advantage or has_advantage(attacker, ATTACK_ROLLS) or has_advantage(target, ATTACKS_AGAINST),
         disadvantage=(disadvantage or has_disadvantage(attacker, ATTACK_ROLLS)
                       or has_disadvantage(target, ATTACKS_AGAINST) or protected_from(attacker, target)),
     )
+    buffs = _buffs(attacker)
+    if buffs and any(b.metadata.get('next_attack_only') for b in buffs.active_buffs):
+        buffs.active_buffs = [b for b in buffs.active_buffs if not b.metadata.get('next_attack_only')]
+    return roll
 
 
 def roll_saving_throw(creature: Any, save_type: str, save_dc: int,

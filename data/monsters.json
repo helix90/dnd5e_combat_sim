@@ -54,6 +54,7 @@
       "damage_resistances": ["poison"],
       "damage_immunities": ["poison"],
       "condition_immunities": ["poisoned"],
+      "saving_throws": {"wis": 0},
       "multiattack": false,
       "actions": [
         {"name": "Slam", "type": "attack", "damage_dice": "1d6+1", "damage_type": "bludgeoning", "weapon_type": "melee", "reach": 5}
@@ -317,6 +318,7 @@
       "damage_resistances": ["fire"],
       "damage_immunities": [],
       "condition_immunities": [],
+      "saving_throws": {"dex": 3, "con": 6, "wis": 3, "cha": 5},
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The dragon makes three attacks: one with its bite and two with its claws."},
@@ -341,6 +343,7 @@
       "damage_resistances": ["necrotic", "bludgeoning", "piercing", "slashing"],
       "damage_immunities": ["poison"],
       "condition_immunities": [],
+      "saving_throws": {"dex": 6, "wis": 3},
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The vampire spawn makes two attacks, only one of which can be a bite attack."},
@@ -363,6 +366,7 @@
       "damage_vulnerabilities": ["fire"],
       "damage_immunities": ["necrotic", "poison"],
       "condition_immunities": ["charmed", "exhaustion", "frightened", "paralyzed", "poisoned"],
+      "saving_throws": {"wis": 2},
       "multiattack": false,
       "actions": [
         {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot.", "reach": 5}

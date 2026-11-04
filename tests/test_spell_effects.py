@@ -412,3 +412,93 @@ def test_a_caster_with_fireball_doesnt_web_the_crowd_and_no_one_webs_the_webbed(
     plan = PartyAIStrategy().choose_action(caster(cls='Wizard', spells=['Web', 'Fire Bolt'], slots={2: 2}),
                                            {'allies': [webber], 'enemies': ogres, 'round': 1})
     assert plan['spell'].spell.name != 'Web'
+
+
+# Class spell lists and spell levels (SRD)
+
+# The SRD class lists, limited to the spells in data/spells.json; a Fiend warlock adds its expanded
+# spells, and a Lore bard's Additional Magical Secrets (6th level) can come from any class
+CLASS_SPELLS = {
+    'Bard': {'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Vicious Mockery', 'Cure Wounds', 'Healing Word',
+             'Sleep', 'Lesser Restoration', 'Dispel Magic', 'Hypnotic Pattern'},
+    'Cleric': {'Sacred Flame', 'Spare the Dying', 'Bless', 'Cure Wounds', 'Guiding Bolt', 'Healing Word',
+               'Protection from Evil and Good', 'Shield of Faith', 'Lesser Restoration', 'Prayer of Healing',
+               'Spiritual Weapon', 'Dispel Magic', 'Revivify', 'Heal'},
+    'Druid': {'Produce Flame', 'Cure Wounds', 'Entangle', 'Goodberry', 'Healing Word', 'Lesser Restoration',
+              'Moonbeam', 'Pass Without Trace', 'Call Lightning', 'Dispel Magic', 'Heal'},
+    'Paladin': {'Bless', 'Cure Wounds', 'Divine Favor', 'Protection from Evil and Good', 'Shield of Faith',
+                'Lesser Restoration', 'Magic Weapon'},
+    'Ranger': {'Cure Wounds', 'Goodberry', "Hunter's Mark", 'Lesser Restoration', 'Pass Without Trace'},
+    'Sorcerer': {'Fire Bolt', 'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Burning Hands', 'Mage Armor',
+                 'Magic Missile', 'Shield', 'Sleep', 'Mirror Image', 'Scorching Ray', 'Web', 'Counterspell',
+                 'Dispel Magic', 'Fireball', 'Hypnotic Pattern'},
+    'Warlock': {'Eldritch Blast', 'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Protection from Evil and Good',
+                'Mirror Image', 'Counterspell', 'Dispel Magic', 'Hypnotic Pattern'},
+    'Wizard': {'Fire Bolt', 'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Burning Hands', 'Mage Armor',
+               'Magic Missile', 'Protection from Evil and Good', 'Shield', 'Sleep', 'Magic Weapon', 'Mirror Image',
+               'Scorching Ray', 'Web', 'Counterspell', 'Dispel Magic', 'Fireball', 'Hypnotic Pattern'},
+}
+FIEND_SPELLS = {'Burning Hands', 'Scorching Ray', 'Fireball'}
+
+
+def test_prebuilt_characters_only_know_spells_from_their_class_list():
+    wrong = []
+    for level in json.load(open(data_path('characters.json'))):
+        for c in level['party']:
+            allowed = set(CLASS_SPELLS.get(c['character_class'], ()))
+            if any('The Fiend' in f for f in c['class_features']):
+                allowed |= FIEND_SPELLS
+            secrets = 2 if any('Lore' in f for f in c['class_features']) and level['level'] >= 6 else 0
+            off = [s for s in c.get('spell_list', []) if s not in allowed]
+            if len(off) > secrets:
+                wrong.append((level['level'], c['name'], off))
+    assert not wrong
+
+
+def test_spell_levels_match_the_srd():
+    assert SPELLS.get_spell('Healing Word').level == 1
+    assert SPELLS.get_spell('Spare the Dying').level == 0
+    assert SPELLS.get_spell('Heal').level == 6
+
+
+def test_vicious_mockery_gives_disadvantage_on_the_next_attack_only():
+    bard = caster(cls='Bard', spells=['Vicious Mockery'])
+    orc = foe('Orc', hp=30)
+    with patch('random.randint', return_value=2):  # fails the WIS save; 2d4 = 4 psychic at level 5
+        result = cast(bard, 'Vicious Mockery', orc)
+    assert result['damage'] == 4 and orc.buffs.has_buff('Vicious Mockery')
+    assert attack_roll(orc, bard).disadvantage
+    assert not attack_roll(orc, bard).disadvantage  # the second attack is normal
+
+
+def test_vicious_mockery_ends_at_the_end_of_its_targets_turn():
+    bard = caster(cls='Bard', spells=['Vicious Mockery'], hp=100)
+    orc = foe('Orc', hp=30)
+    with patch('random.randint', return_value=2):
+        cast(bard, 'Vicious Mockery', orc)
+    combat = Combat([bard, orc])
+    combat._end_of_turn_effects(bard)
+    assert orc.buffs.has_buff('Vicious Mockery')
+    combat._end_of_turn_effects(orc)
+    assert not orc.buffs.has_buff('Vicious Mockery')
+
+
+def test_burning_hands_does_half_on_a_save_and_produce_flame_is_a_spell_attack():
+    mage = caster(cls='Wizard', spells=['Burning Hands', 'Produce Flame'])
+    goblins = [foe(f'Goblin {i}', hp=30) for i in range(2)]
+    with patch('random.randint', side_effect=lambda a, b: 20 if b == 20 else 4):  # both save; 3d6 = 12
+        result = cast(mage, 'Burning Hands', goblins)
+    assert [t['damage'] for t in result['target_results']] == [6, 6]  # 12 halved
+    with patch('random.randint', side_effect=lambda a, b: 15 if b == 20 else 3):
+        flame = cast(mage, 'Produce Flame', goblins[0])
+    assert flame['hit'] and flame['damage'] == 6 and flame['damage_type'] == 'fire'  # 2d8 at level 5
+
+
+def test_monster_saving_throws_come_from_the_data():
+    from models.monster_builder import build_monsters
+    data = {m['name']: m for m in json.load(open(data_path('monsters.json')))['monsters']}
+    zombie, spawn, goblin = build_monsters([data['Zombie'], data['Vampire Spawn'], data['Goblin']])
+    assert zombie.saving_throw_bonus('wis') == 0 and zombie.saving_throw_bonus('dex') == -2
+    assert spawn.saving_throw_bonus('dex') == 6 and spawn.saving_throw_bonus('wis') == 3
+    assert spawn.saving_throw_bonus('con') == 3
+    assert goblin.saving_throws == {}

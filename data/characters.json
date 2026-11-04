@@ -324,7 +324,7 @@
         ],
         "spell_list": [
           "Eldritch Blast",
-          "Magic Missile"
+          "Burning Hands"
         ],
         "saving_throw_proficiencies": [
           "wis",
@@ -384,8 +384,8 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
-          "Fire Bolt"
+          "Sleep",
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -398,12 +398,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -673,8 +667,8 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
-          "Fire Bolt"
+          "Entangle",
+          "Produce Flame"
         ],
         "saving_throw_proficiencies": [
           "int",
@@ -689,9 +683,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -895,8 +889,8 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
-          "Fire Bolt"
+          "Sleep",
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -909,12 +903,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -1178,7 +1166,7 @@
           "Goodberry",
           "Healing Word",
           "Entangle",
-          "Fire Bolt"
+          "Produce Flame"
         ],
         "saving_throw_proficiencies": [
           "int",
@@ -1193,9 +1181,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -1705,7 +1693,7 @@
         ],
         "spell_list": [
           "Eldritch Blast",
-          "Magic Missile",
+          "Burning Hands",
           "Scorching Ray"
         ],
         "saving_throw_proficiencies": [
@@ -1767,9 +1755,9 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
-          "Fire Bolt"
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -1782,12 +1770,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -2014,7 +1996,7 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt"
+          "Hunter's Mark"
         ],
         "saving_throw_proficiencies": [
           "str",
@@ -2076,9 +2058,9 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
+          "Entangle",
           "Healing Word",
-          "Fire Bolt"
+          "Produce Flame"
         ],
         "saving_throw_proficiencies": [
           "int",
@@ -2093,9 +2075,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -2311,9 +2293,9 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
-          "Fire Bolt"
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -2326,12 +2308,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -2612,7 +2588,7 @@
           "Goodberry",
           "Healing Word",
           "Entangle",
-          "Fire Bolt",
+          "Produce Flame",
           "Moonbeam"
         ],
         "saving_throw_proficiencies": [
@@ -2628,9 +2604,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -3163,9 +3139,9 @@
         ],
         "spell_list": [
           "Eldritch Blast",
-          "Magic Missile",
+          "Burning Hands",
           "Scorching Ray",
-          "Web"
+          "Mirror Image"
         ],
         "saving_throw_proficiencies": [
           "wis",
@@ -3229,10 +3205,10 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
-          "Fire Bolt"
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -3245,12 +3221,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -3487,8 +3457,8 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
-          "Healing Word"
+          "Hunter's Mark",
+          "Goodberry"
         ],
         "saving_throw_proficiencies": [
           "str",
@@ -3551,11 +3521,11 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
+          "Entangle",
           "Healing Word",
           "Lesser Restoration",
-          "Spiritual Weapon",
-          "Fire Bolt"
+          "Moonbeam",
+          "Produce Flame"
         ],
         "saving_throw_proficiencies": [
           "int",
@@ -3570,9 +3540,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -3797,10 +3767,10 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
-          "Fire Bolt",
+          "Vicious Mockery",
           "Mage Hand"
         ],
         "saving_throw_proficiencies": [
@@ -3814,12 +3784,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -4108,7 +4072,7 @@
           "Goodberry",
           "Healing Word",
           "Entangle",
-          "Fire Bolt",
+          "Produce Flame",
           "Moonbeam",
           "Pass Without Trace"
         ],
@@ -4125,9 +4089,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -4674,9 +4638,9 @@
         ],
         "spell_list": [
           "Eldritch Blast",
-          "Magic Missile",
+          "Burning Hands",
           "Scorching Ray",
-          "Web"
+          "Mirror Image"
         ],
         "saving_throw_proficiencies": [
           "wis",
@@ -4741,10 +4705,10 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
-          "Fire Bolt"
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -4757,12 +4721,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -5003,8 +4961,8 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
-          "Healing Word"
+          "Hunter's Mark",
+          "Goodberry"
         ],
         "saving_throw_proficiencies": [
           "str",
@@ -5068,11 +5026,11 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
+          "Entangle",
           "Healing Word",
           "Lesser Restoration",
-          "Spiritual Weapon",
-          "Fire Bolt"
+          "Moonbeam",
+          "Produce Flame"
         ],
         "saving_throw_proficiencies": [
           "int",
@@ -5087,9 +5045,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -5319,10 +5277,10 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
-          "Fire Bolt",
+          "Vicious Mockery",
           "Mage Hand"
         ],
         "saving_throw_proficiencies": [
@@ -5336,12 +5294,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "1d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -5636,7 +5588,7 @@
           "Goodberry",
           "Healing Word",
           "Entangle",
-          "Fire Bolt",
+          "Produce Flame",
           "Moonbeam",
           "Pass Without Trace"
         ],
@@ -5653,9 +5605,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "1d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -6468,9 +6420,9 @@
         ],
         "spell_list": [
           "Eldritch Blast",
-          "Magic Missile",
+          "Burning Hands",
           "Scorching Ray",
-          "Web",
+          "Mirror Image",
           "Fireball"
         ],
         "saving_throw_proficiencies": [
@@ -6538,11 +6490,11 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
-          "Fireball",
-          "Fire Bolt"
+          "Hypnotic Pattern",
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -6555,12 +6507,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "2d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -6812,8 +6758,8 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
-          "Healing Word",
+          "Hunter's Mark",
+          "Goodberry",
           "Lesser Restoration"
         ],
         "saving_throw_proficiencies": [
@@ -6879,12 +6825,12 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
+          "Entangle",
           "Healing Word",
           "Lesser Restoration",
-          "Spiritual Weapon",
-          "Fireball",
-          "Fire Bolt"
+          "Moonbeam",
+          "Call Lightning",
+          "Produce Flame"
         ],
         "saving_throw_proficiencies": [
           "int",
@@ -6899,9 +6845,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "2d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -7139,11 +7085,11 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
           "Hypnotic Pattern",
-          "Fire Bolt",
+          "Vicious Mockery",
           "Mage Hand",
           "Minor Illusion"
         ],
@@ -7158,12 +7104,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "2d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -7209,7 +7149,7 @@
           "Goodberry",
           "Healing Word",
           "Entangle",
-          "Fire Bolt",
+          "Produce Flame",
           "Moonbeam",
           "Pass Without Trace",
           "Call Lightning"
@@ -7227,9 +7167,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "2d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -7799,9 +7739,9 @@
         ],
         "spell_list": [
           "Eldritch Blast",
-          "Magic Missile",
+          "Burning Hands",
           "Scorching Ray",
-          "Web",
+          "Mirror Image",
           "Fireball",
           "Counterspell"
         ],
@@ -7871,12 +7811,13 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
+          "Hypnotic Pattern",
           "Fireball",
           "Counterspell",
-          "Fire Bolt"
+          "Vicious Mockery"
         ],
         "saving_throw_proficiencies": [
           "dex",
@@ -7889,12 +7830,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "2d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -8149,8 +8084,8 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
-          "Healing Word",
+          "Hunter's Mark",
+          "Goodberry",
           "Lesser Restoration"
         ],
         "saving_throw_proficiencies": [
@@ -8217,12 +8152,12 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Guiding Bolt",
+          "Entangle",
           "Healing Word",
           "Lesser Restoration",
-          "Spiritual Weapon",
-          "Fireball",
-          "Fire Bolt"
+          "Moonbeam",
+          "Call Lightning",
+          "Produce Flame"
         ],
         "saving_throw_proficiencies": [
           "int",
@@ -8237,9 +8172,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "2d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
@@ -8479,11 +8414,11 @@
         ],
         "spell_list": [
           "Cure Wounds",
-          "Bless",
+          "Sleep",
           "Healing Word",
           "Lesser Restoration",
           "Hypnotic Pattern",
-          "Fire Bolt",
+          "Vicious Mockery",
           "Mage Hand",
           "Minor Illusion"
         ],
@@ -8498,12 +8433,6 @@
             "damage_dice": "1d8",
             "damage_type": "piercing",
             "reach": 5
-          },
-          {
-            "name": "Fire Bolt",
-            "type": "attack",
-            "damage_dice": "2d10",
-            "damage_type": "fire"
           }
         ]
       },
@@ -8810,7 +8739,7 @@
           "Goodberry",
           "Healing Word",
           "Entangle",
-          "Fire Bolt",
+          "Produce Flame",
           "Moonbeam",
           "Pass Without Trace",
           "Call Lightning"
@@ -8828,9 +8757,9 @@
             "reach": 5
           },
           {
-            "name": "Fire Bolt",
+            "name": "Produce Flame",
             "type": "attack",
-            "damage_dice": "2d10",
+            "damage_dice": "1d8",
             "damage_type": "fire"
           }
         ]
