@@ -262,4 +262,5 @@ def test_encounter_map_choice_uses_the_prebuilt_encounters_map(client):
 def test_encounter_page_lists_generic_and_encounter_maps(client):
     page = client.get('/encounter').get_data(as_text=True)
     assert 'Maps for any encounter' in page and 'Pre-built encounter maps' in page
-    assert f'value="{ENCOUNTER_MAP}"' in page and '<option value="Troll Bridge"' in page
+    assert f'data-encounter-map="{ENCOUNTER_MAP}"' in page and 'id="battlefield-own"' in page
+    assert '<option value="Troll Bridge"' in page

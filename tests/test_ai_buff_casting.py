@@ -1,5 +1,6 @@
 """Test that AI casts buff spells in combat."""
 import pytest
+from unittest.mock import patch
 from models.character import Character
 from models.monster import Monster
 from models.combat import Combat
@@ -193,10 +194,13 @@ class TestAIBuffCasting:
         # Track initial spell slots
         initial_slots = cleric.spell_slots_remaining.get(1, 0)
 
-        # Simulate several rounds
+        # Simulate several rounds. The cleric always keeps concentration: losing it to a hit would
+        # end Bless and rightly allow a recast, which isn't what this test is about.
         max_rounds = 5
-        while not combat.is_combat_over() and combat.current_round < max_rounds:
-            combat.next_turn()
+        keep = lambda caster, ability, dc: {'save_success': True, 'total_save': dc}
+        with patch('models.concentration.roll_saving_throw', side_effect=keep):
+            while not combat.is_combat_over() and combat.current_round < max_rounds:
+                combat.next_turn()
 
         # Count how many times Bless was cast
         log = combat.get_combat_log()

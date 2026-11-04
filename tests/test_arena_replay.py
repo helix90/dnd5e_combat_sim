@@ -182,10 +182,11 @@ def test_batch_without_comparison_has_none(tmp_path):
 def test_batch_page_offers_the_comparison_only_with_an_arena(client):
     with client.session_transaction() as s:
         s['arena'] = 'Open Field'
-    assert 'compareWithoutArena' in client.get('/batch').get_data(as_text=True)
+    page = client.get('/batch').get_data(as_text=True)
+    assert 'id="compareWithoutArena"' in page and 'mb-3 d-none" id="compareWithoutArenaGroup"' not in page
     with client.session_transaction() as s:
         s.pop('arena', None)
-    assert 'compareWithoutArena' not in client.get('/batch').get_data(as_text=True)
+    assert 'mb-3 d-none" id="compareWithoutArenaGroup"' in client.get('/batch').get_data(as_text=True)
     with client.session_transaction() as s:
         s['arena'] = 'Open Field'
         s['encounter_monsters'] = goblins(1)
