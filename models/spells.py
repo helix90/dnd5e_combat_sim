@@ -23,7 +23,8 @@ if TYPE_CHECKING:
 
 
 # Save spells that still deal half damage on a successful save; the rest deal none
-HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt', 'Moonbeam', 'Call Lightning', 'Burning Hands'}
+HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt', 'Moonbeam', 'Call Lightning', 'Burning Hands', 'Ice Storm',
+                       'Blight', 'Cone of Cold', 'Flame Strike'}
 
 FEET_PER_MILE = 5280
 TOUCH_RANGE_FEET = 5
@@ -61,6 +62,21 @@ def parse_range_feet(text: Optional[str]) -> Optional[int]:
     return amount * FEET_PER_MILE if match.group(2).startswith('mile') else amount
 
 
+def roll_dice(dice: Optional[str], critical: bool = False) -> int:
+    """Roll plain dice like '2d6' (twice as many on a critical hit); 0 for None."""
+    if not dice:
+        return 0
+    num, die = (int(x) for x in dice.lower().split('d'))
+    return sum(random.randint(1, die) for _ in range(num * (2 if critical else 1)))
+
+
+def average_dice(dice: Optional[str]) -> float:
+    if not dice:
+        return 0.0
+    num, die = (int(x) for x in dice.lower().split('d'))
+    return num * (die + 1) / 2
+
+
 class Spell:
     """
     Represents a D&D 5e spell with all its properties and effects.
@@ -93,7 +109,11 @@ class Spell:
         effect: Optional[str] = None,  # What it does besides damage and healing, see models/spell_effects.py
         combat: bool = True,  # False for spells with no use in a fight (Prestidigitation, Revivify)
         hit_point_dice: Optional[str] = None,  # Sleep's pool of hit points
-        on_failed_save: Optional[Dict[str, Any]] = None  # A buff the target gets if it fails its save (Vicious Mockery)
+        on_failed_save: Optional[Dict[str, Any]] = None,  # A buff the target gets if it fails its save (Vicious Mockery)
+        higher_level_dice: Optional[str] = None,  # Added for each slot level above the spell's level ('1d6' for Fireball)
+        higher_level_step: int = 1,  # Slot levels per higher_level_dice (2 for Spiritual Weapon)
+        extra_damage: Optional[Dict[str, Any]] = None,  # A second part of another type, e.g. {'dice': '4d6', 'type': 'cold'}
+        no_effect_on: Optional[List[str]] = None  # Creature types the spell does nothing to (Blight: undead, constructs)
     ) -> None:
         self.name = name
         self.level = level
@@ -123,6 +143,24 @@ class Spell:
         self.combat = combat
         self.hit_point_dice = hit_point_dice
         self.on_failed_save = on_failed_save
+        self.higher_level_dice = higher_level_dice
+        self.higher_level_step = max(1, higher_level_step)
+        self.extra_damage = extra_damage
+        self.no_effect_on = [t.lower() for t in no_effect_on or []]
+
+    def upcast_dice(self, slot_level: Optional[int]) -> Optional[str]:
+        """The dice a higher slot adds: Fireball in a 5th-level slot adds '2d6'."""
+        if not self.higher_level_dice or not slot_level or self.level == 0:
+            return None
+        steps = (slot_level - self.level) // self.higher_level_step
+        if steps <= 0:
+            return None
+        num, die = self.higher_level_dice.lower().split('d')
+        return f"{int(num) * steps}d{die}"
+
+    def affects(self, creature: Any) -> bool:
+        """False for a creature type the spell has no effect on (Blight on undead and constructs)."""
+        return str(getattr(creature, 'creature_type', '') or '').lower() not in self.no_effect_on
 
     @property
     def bonus_action(self) -> bool:
@@ -164,13 +202,14 @@ class Spell:
         }
         return cls(**kwargs)
 
-    def calculate_damage(self, caster_level: int = 1, critical: bool = False) -> int:
+    def calculate_damage(self, caster_level: int = 1, critical: bool = False, slot_level: Optional[int] = None) -> int:
         """
-        Calculate spell damage, including scaling for cantrips.
+        Calculate spell damage (or healing), including scaling for cantrips and higher slots.
         
         Args:
             caster_level: The level of the spellcaster
             critical: Roll the damage dice twice (a spell attack's critical hit)
+            slot_level: The slot it's cast with: a higher one adds higher_level_dice
 
         Returns:
             int: Total damage
@@ -204,11 +243,13 @@ class Spell:
             modifier = -int(mod_part)
             dice_str = dice_part
 
+        if 'd' not in dice_str:  # a fixed amount (Heal's 70)
+            return int(dice_str) + modifier
         num, die = dice_str.split('d')
         num = int(num) * (2 if critical else 1)
         die = int(die)
         rolls = [random.randint(1, die) for _ in range(num)]
-        return sum(rolls) + modifier
+        return sum(rolls) + modifier + roll_dice(self.upcast_dice(slot_level), critical)
 
     def projectile_count(self, caster_level: int = 1, slot_level: Optional[int] = None) -> int:
         """
@@ -234,7 +275,8 @@ class Spell:
         num, die, modifier = int(match.group(1)), int(match.group(2)), int(match.group(3) or 0)
         if self.level == 0 and not self.cantrip_projectiles:
             num *= 1 + sum(caster_level >= level for level in (5, 11, 17))
-        return (num * (die + 1) / 2 + modifier) * self.projectile_count(caster_level, slot_level)
+        each = num * (die + 1) / 2 + modifier + average_dice(self.upcast_dice(slot_level))
+        return each * self.projectile_count(caster_level, slot_level) + average_dice((self.extra_damage or {}).get('dice'))
 
     def get_save_dc(self, caster: Any) -> int:
         """
@@ -342,11 +384,45 @@ class SpellAction(Action):
                 return True
         return False
 
+    def roll_damage(self, caster: Any, critical: bool = False) -> int:
+        """
+        The spell's damage (or healing) dice, with a higher slot's extra dice. A wizard with
+        Empowered Evocation adds INT to the damage of an evocation spell.
+        """
+        amount = self.spell.calculate_damage(getattr(caster, 'level', 1), critical, self.spell_slot_level)
+        if not self.spell.healing and self.spell.school == 'Evocation' and 'Empowered Evocation' in (
+                getattr(caster, 'class_features', None) or []) and hasattr(caster, 'ability_modifier'):
+            amount += max(0, caster.ability_modifier('int'))
+        return amount
+
+    def _apply_damage(self, target: Any, amount: int, extra: int = 0, save_success: Optional[bool] = None,
+                      critical: bool = False) -> int:
+        """
+        Damage to one target: nothing to a creature type the spell doesn't affect, halved (or
+        none) on a successful save, and a second part of another type (Flame Strike's radiant)
+        against the target's own resistances.
+        """
+        if not self.spell.affects(target):
+            return 0
+        parts = [(amount, self.spell.damage_type)]
+        if self.spell.extra_damage:
+            parts.append((extra, self.spell.extra_damage.get('type')))
+        total = 0
+        for value, kind in parts:
+            if save_success is not None:
+                value = damage_after_save(target, value, self.spell.save_type, save_success,
+                                          self.spell.name in HALF_ON_SAVE_SPELLS)
+            total += apply_damage(target, value, kind, critical)
+        return total
+
+    def roll_extra_damage(self, critical: bool = False) -> int:
+        return roll_dice((self.spell.extra_damage or {}).get('dice'), critical)
+
     def _get_healing_amount(self, caster: Any) -> int:
         """
         Calculate healing, including spellcasting ability modifier if required.
         """
-        healing = self.spell.calculate_damage(getattr(caster, 'level', 1))
+        healing = self.roll_damage(caster)
         # Add spellcasting ability modifier if the spell description mentions it
         if self.spell.healing and self.spell.description and "spellcasting ability modifier" in self.spell.description:
             if hasattr(caster, 'spellcasting_ability') and hasattr(caster, 'ability_modifier'):
@@ -401,7 +477,8 @@ class SpellAction(Action):
                               'target_ac': target_ac, 'critical': critical})
             damage = 0
             if hit:
-                damage = apply_damage(creature, self.spell.calculate_damage(getattr(caster, 'level', 1), critical),
+                damage = apply_damage(creature, self.spell.calculate_damage(getattr(caster, 'level', 1), critical,
+                                                                            self.spell_slot_level),
                                       self.spell.damage_type, critical)
             entry.update({'hit': hit, 'damage': damage, 'damage_type': self.spell.damage_type,
                           'hp_after': creature.hp})
@@ -506,7 +583,8 @@ class SpellAction(Action):
                 spell_effects.call_lightning_storm(caster, self)
                 affected = [caster]
         if holding and affected:
-            concentration.start(caster, self.spell.name, affected, self.spell.duration_rounds)
+            concentration.start(caster, self.spell.name, affected, self.spell.duration_rounds,
+                                self.spell_slot_level)
         return result
 
     def _resolve(self, caster: Any, target: Any, targets_list: List[Any], result: Dict[str, Any],
@@ -579,7 +657,7 @@ class SpellAction(Action):
                     buff_bonus = caster.buffs.calculate_total_bonus('attack_rolls')
 
                 # Roll damage once for AoE spells (same damage for all targets that are hit)
-                base_damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                base_damage = self.roll_damage(caster)
                 base_healing = self._get_healing_amount(caster) if self.spell.healing else 0
 
                 for t in targets_list:
@@ -672,8 +750,8 @@ class SpellAction(Action):
                             'target_hp_after': targets_list[0].hp
                         })
                     else:
-                        damage = self.spell.calculate_damage(getattr(caster, 'level', 1), critical)
-                        damage = apply_damage(targets_list[0], damage, self.spell.damage_type, critical)
+                        damage = self._apply_damage(targets_list[0], self.roll_damage(caster, critical),
+                                                    self.roll_extra_damage(critical), critical=critical)
                         result.update({
                             'damage': damage,
                             'damage_type': self.spell.damage_type,
@@ -696,18 +774,14 @@ class SpellAction(Action):
                 total_damage_dealt = 0
 
                 # Roll damage once for AoE spells (same base damage for all targets)
-                base_damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                base_damage = self.roll_damage(caster)
+                extra_damage = self.roll_extra_damage()
 
                 for t in targets_list:
                     save = roll_saving_throw(t, self.spell.save_type, save_dc,
                                              cover_bonus=(save_bonuses or {}).get(t, 0))
                     save_success = save['save_success']
-
-                    damage = damage_after_save(t, base_damage, self.spell.save_type, save_success,
-                                               self.spell.name in HALF_ON_SAVE_SPELLS)
-
-                    # Apply damage
-                    damage = apply_damage(t, damage, self.spell.damage_type)
+                    damage = self._apply_damage(t, base_damage, extra_damage, save_success)
                     total_damage_dealt += damage
 
                     target_results.append({
@@ -746,11 +820,10 @@ class SpellAction(Action):
                         'target_hp_after': targets_list[0].hp
                     })
                 else:
-                    damage = damage_after_save(targets_list[0],
-                                               self.spell.calculate_damage(getattr(caster, 'level', 1)),
-                                               self.spell.save_type, save_success,
-                                               self.spell.name in HALF_ON_SAVE_SPELLS)
-                    damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
+                    damage = self._apply_damage(targets_list[0], self.roll_damage(caster), self.roll_extra_damage(),
+                                                save_success)
+                    if not self.spell.affects(targets_list[0]):
+                        result['no_effect'] = True
                     result.update({
                         'damage': damage,
                         'damage_type': self.spell.damage_type,
@@ -759,8 +832,8 @@ class SpellAction(Action):
 
         # Handle spells with no attack or save (like Magic Missile)
         else:
-            # Check if this is an area effect spell
-            if self.spell.area_effect and len(targets_list) > 1:
+            # An area effect spell, or healing for several creatures (Mass Cure Wounds)
+            if (self.spell.area_effect or self.spell.healing) and len(targets_list) > 1:
                 # Area effect spell - apply to all targets
                 target_results = []
                 total_damage_dealt = 0
@@ -775,7 +848,7 @@ class SpellAction(Action):
                             'hp_after': t.hp
                         })
                     else:
-                        damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                        damage = self.roll_damage(caster)
                         damage = apply_damage(t, damage, self.spell.damage_type)
                         total_damage_dealt += damage
                         target_results.append({
@@ -806,7 +879,7 @@ class SpellAction(Action):
                         'target_hp_after': targets_list[0].hp
                     })
                 else:
-                    damage = self.spell.calculate_damage(getattr(caster, 'level', 1))
+                    damage = self.roll_damage(caster)
                     damage = apply_damage(targets_list[0], damage, self.spell.damage_type)
                     result.update({
                         'damage': damage,

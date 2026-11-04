@@ -259,10 +259,15 @@ class Character:
     
     def roll_initiative(self) -> int:
         """
-        Roll initiative: 1d20 + dex modifier.
+        Roll initiative: 1d20 + dex modifier, with advantage from Feral Instinct.
         """
         import random
-        return random.randint(1, 20) + self.ability_modifier('dex')
+        rolls = [random.randint(1, 20) for _ in range(2 if feature_rules.initiative_advantage(self) else 1)]
+        return max(rolls) + self.ability_modifier('dex')
+
+    def brutal_critical_dice(self, action: Any) -> int:
+        """Extra weapon damage dice on a critical hit (Brutal Critical)."""
+        return feature_rules.brutal_critical_dice(self, action)
 
     @property
     def hp(self) -> int:

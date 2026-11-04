@@ -106,7 +106,11 @@ class SpellManager:
             effect=spell_data.get('effect'),
             combat=spell_data.get('combat', True),
             hit_point_dice=spell_data.get('hit_point_dice'),
-            on_failed_save=spell_data.get('on_failed_save')
+            on_failed_save=spell_data.get('on_failed_save'),
+            higher_level_dice=spell_data.get('higher_level_dice'),
+            higher_level_step=spell_data.get('higher_level_step', 1),
+            extra_damage=spell_data.get('extra_damage'),
+            no_effect_on=spell_data.get('no_effect_on')
         )
     
     def get_spell(self, spell_name: str) -> Optional[Spell]:

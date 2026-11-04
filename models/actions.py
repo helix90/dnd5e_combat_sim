@@ -143,6 +143,9 @@ class AttackAction(Action):
         num, die, dice_mod = self.parse_dice(self.damage_dice)
         if critical:
             num *= 2
+            brutal = getattr(attacker, 'brutal_critical_dice', None)
+            extra = brutal(self) if callable(brutal) else 0
+            num += extra if isinstance(extra, int) else 0
         rolls = [random.randint(1, die) for _ in range(num)]
         # Only add ability modifier if dice_mod is zero (i.e., not already included in dice string)
         mod = 0

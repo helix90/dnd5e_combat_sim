@@ -8965,5 +8965,6714 @@
         ]
       }
     ]
+  },
+  {
+    "level": 7,
+    "party": [
+      {
+        "name": "Aldric",
+        "level": 7,
+        "character_class": "Fighter",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 18,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 10,
+          "cha": 10
+        },
+        "hp": 59,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Light Crossbow",
+          "20 bolts"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Action Surge (1)",
+          "Extra Attack",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement",
+          "Remarkable Athlete"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Light Crossbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Branwen",
+        "level": 7,
+        "character_class": "Cleric",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 10,
+          "con": 18,
+          "int": 10,
+          "wis": 18,
+          "cha": 8
+        },
+        "hp": 57,
+        "ac": 19,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Warhammer",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Domain Spell: Revivify",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1/2)",
+          "Blessed Healer"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Prayer of Healing",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Healing Word"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Calyra",
+        "level": 7,
+        "character_class": "Wizard",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 16,
+          "con": 14,
+          "int": 18,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 44,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Evocation",
+          "Ability Score Improvement",
+          "Potent Cantrip"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Mage Armor",
+          "Sleep",
+          "Scorching Ray",
+          "Fireball",
+          "Mirror Image",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Ice Storm",
+          "Blight"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "1d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Dax",
+        "level": 7,
+        "character_class": "Rogue",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 18,
+          "con": 14,
+          "int": 12,
+          "wis": 10,
+          "cha": 14
+        },
+        "hp": 46,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather Armor",
+          "Shortsword",
+          "Shortbow",
+          "20 arrows",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (4d6)",
+          "Cunning Action",
+          "Uncanny Dodge",
+          "Evasion",
+          "Roguish Archetype: Thief",
+          "Ability Score Improvement",
+          "Thieves' Cant"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Mira",
+        "level": 7,
+        "character_class": "Sorcerer",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 18
+        },
+        "hp": 44,
+        "ac": 12,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Component Pouch"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Sorcerous Origin: Wild Magic",
+          "Font of Magic (7)",
+          "Metamagic",
+          "Ability Score Improvement",
+          "Bend Luck"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight"
+        ],
+        "saving_throw_proficiencies": [
+          "con",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Davos",
+        "level": 7,
+        "character_class": "Warlock",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 18
+        },
+        "hp": 45,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Dagger",
+          "Arcane Focus"
+        ],
+        "spell_slots": {
+          "4": 2
+        },
+        "class_features": [
+          "Otherworldly Patron: The Fiend",
+          "Pact Magic",
+          "Pact Boon: Pact of the Blade",
+          "Eldritch Invocations",
+          "Ability Score Improvement",
+          "Dark One's Own Luck"
+        ],
+        "spell_list": [
+          "Eldritch Blast",
+          "Burning Hands",
+          "Scorching Ray",
+          "Mirror Image",
+          "Fireball",
+          "Counterspell",
+          "Blight"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Dagger",
+            "type": "attack",
+            "damage_dice": "1d4",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          },
+          {
+            "name": "Eldritch Blast",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "force"
+          }
+        ]
+      },
+      {
+        "name": "Seraphine",
+        "level": 7,
+        "character_class": "Bard",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 12,
+          "int": 12,
+          "wis": 10,
+          "cha": 18
+        },
+        "hp": 44,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Bardic Inspiration (d8)",
+          "Jack of All Trades",
+          "Song of Rest (d8)",
+          "Bard College: Lore",
+          "Expertise",
+          "Font of Inspiration",
+          "Countercharm",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Fireball",
+          "Counterspell",
+          "Vicious Mockery",
+          "Greater Invisibility"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Galen",
+        "level": 7,
+        "character_class": "Wizard",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 14,
+          "int": 18,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 44,
+        "ac": 12,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Transmutation",
+          "Transmuter's Stone",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight",
+          "Ice Storm"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Sir Cedric",
+        "level": 7,
+        "character_class": "Paladin",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 18,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 59,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Divine Sense (4)",
+          "Lay on Hands (35)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Extra Attack",
+          "Aura of Protection",
+          "Ability Score Improvement",
+          "Aura of Devotion"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Shield of Faith",
+          "Lesser Restoration",
+          "Magic Weapon"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Elowen",
+        "level": 7,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 18,
+          "cha": 12
+        },
+        "hp": 51,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Destroy Undead (CR 1/2)",
+          "Ability Score Improvement",
+          "Blessed Healer"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Thorn",
+        "level": 7,
+        "character_class": "Ranger",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 18,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 47,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Extra Attack",
+          "Ability Score Improvement",
+          "Defensive Tactics"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Hunter's Mark",
+          "Goodberry",
+          "Lesser Restoration",
+          "Pass Without Trace"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Milo",
+        "level": 7,
+        "character_class": "Druid",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 18,
+          "cha": 10
+        },
+        "hp": 45,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Land's Stride",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Entangle",
+          "Healing Word",
+          "Lesser Restoration",
+          "Moonbeam",
+          "Call Lightning",
+          "Produce Flame",
+          "Ice Storm"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Shade",
+        "level": 7,
+        "character_class": "Rogue",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 18,
+          "con": 14,
+          "int": 12,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 52,
+        "ac": 15,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Shortsword",
+          "Dagger",
+          "Shortbow"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (4d6)",
+          "Thieves' Cant",
+          "Expertise (2)",
+          "Cunning Action",
+          "Roguish Archetype: Assassin",
+          "Ability Score Improvement",
+          "Uncanny Dodge",
+          "Evasion"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Vex",
+        "level": 7,
+        "character_class": "Ranger",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 18,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 53,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Defensive Tactics"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Nyssa",
+        "level": 7,
+        "character_class": "Monk",
+        "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 18,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 52,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Dart"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (7 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Kara",
+        "level": 7,
+        "character_class": "Bard",
+        "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 12,
+          "int": 14,
+          "wis": 10,
+          "cha": 18
+        },
+        "hp": 38,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Bardic Inspiration (d8)",
+          "Spellcasting",
+          "Jack of All Trades",
+          "Song of Rest (d8)",
+          "Bard College: Lore",
+          "Expertise",
+          "Ability Score Improvement",
+          "Font of Inspiration",
+          "Countercharm"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Vicious Mockery",
+          "Mage Hand",
+          "Minor Illusion",
+          "Greater Invisibility"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Grom",
+        "level": 7,
+        "character_class": "Barbarian",
+        "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 18,
+          "dex": 14,
+          "con": 16,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 56,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Berserker",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Mindless Rage"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Durgan",
+        "level": 7,
+        "character_class": "Fighter",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 18,
+          "dex": 12,
+          "con": 16,
+          "int": 10,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 61,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Warhammer",
+          "Handaxe"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Fighting Style: Defense",
+          "Action Surge (1)",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement (2)",
+          "Extra Attack",
+          "Remarkable Athlete"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Handaxe",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Rhea",
+        "level": 7,
+        "character_class": "Paladin",
+        "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 18,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 54,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Divine Sense",
+          "Lay on Hands (35)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Aura of Protection",
+          "Aura of Devotion"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Divine Favor",
+          "Protection from Evil and Good",
+          "Lesser Restoration",
+          "Magic Weapon"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Jax",
+        "level": 7,
+        "character_class": "Monk",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 18,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 52,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Dart",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (7 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Willow",
+        "level": 7,
+        "character_class": "Druid",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 14,
+          "int": 12,
+          "wis": 18,
+          "cha": 10
+        },
+        "hp": 52,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Ability Score Improvement",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Goodberry",
+          "Healing Word",
+          "Entangle",
+          "Produce Flame",
+          "Moonbeam",
+          "Pass Without Trace",
+          "Call Lightning",
+          "Blight"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Finn",
+        "level": 7,
+        "character_class": "Ranger",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 18,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 54,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Beast Master",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Exceptional Training"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Bran",
+        "level": 7,
+        "character_class": "Barbarian",
+        "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 16,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 63,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Totem Warrior",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Aspect of the Beast"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Lira",
+        "level": 7,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 18,
+          "cha": 14
+        },
+        "hp": 46,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 1
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Nature",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1/2)",
+          "Dampen Elements"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": 8,
+    "party": [
+      {
+        "name": "Aldric",
+        "level": 8,
+        "character_class": "Fighter",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 10,
+          "cha": 10
+        },
+        "hp": 67,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Light Crossbow",
+          "20 bolts"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Action Surge (1)",
+          "Extra Attack",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement",
+          "Remarkable Athlete"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Light Crossbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Branwen",
+        "level": 8,
+        "character_class": "Cleric",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 10,
+          "con": 18,
+          "int": 10,
+          "wis": 20,
+          "cha": 8
+        },
+        "hp": 65,
+        "ac": 19,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Warhammer",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Domain Spell: Revivify",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1)",
+          "Blessed Healer",
+          "Divine Strike"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Prayer of Healing",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Healing Word"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Calyra",
+        "level": 8,
+        "character_class": "Wizard",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 16,
+          "con": 14,
+          "int": 20,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 50,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Evocation",
+          "Ability Score Improvement",
+          "Potent Cantrip"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Mage Armor",
+          "Sleep",
+          "Scorching Ray",
+          "Fireball",
+          "Mirror Image",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Ice Storm",
+          "Blight"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "1d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Dax",
+        "level": 8,
+        "character_class": "Rogue",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 20,
+          "con": 14,
+          "int": 12,
+          "wis": 10,
+          "cha": 14
+        },
+        "hp": 52,
+        "ac": 17,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather Armor",
+          "Shortsword",
+          "Shortbow",
+          "20 arrows",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (4d6)",
+          "Cunning Action",
+          "Uncanny Dodge",
+          "Evasion",
+          "Roguish Archetype: Thief",
+          "Ability Score Improvement",
+          "Thieves' Cant"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Mira",
+        "level": 8,
+        "character_class": "Sorcerer",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 50,
+        "ac": 12,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Component Pouch"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Sorcerous Origin: Wild Magic",
+          "Font of Magic (8)",
+          "Metamagic",
+          "Ability Score Improvement",
+          "Bend Luck"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight",
+          "Ice Storm"
+        ],
+        "saving_throw_proficiencies": [
+          "con",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Davos",
+        "level": 8,
+        "character_class": "Warlock",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 51,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Dagger",
+          "Arcane Focus"
+        ],
+        "spell_slots": {
+          "4": 2
+        },
+        "class_features": [
+          "Otherworldly Patron: The Fiend",
+          "Pact Magic",
+          "Pact Boon: Pact of the Blade",
+          "Eldritch Invocations",
+          "Ability Score Improvement",
+          "Dark One's Own Luck"
+        ],
+        "spell_list": [
+          "Eldritch Blast",
+          "Burning Hands",
+          "Scorching Ray",
+          "Mirror Image",
+          "Fireball",
+          "Counterspell",
+          "Blight",
+          "Hypnotic Pattern"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Dagger",
+            "type": "attack",
+            "damage_dice": "1d4",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          },
+          {
+            "name": "Eldritch Blast",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "force"
+          }
+        ]
+      },
+      {
+        "name": "Seraphine",
+        "level": 8,
+        "character_class": "Bard",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 12,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 50,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Bardic Inspiration (d8)",
+          "Jack of All Trades",
+          "Song of Rest (d8)",
+          "Bard College: Lore",
+          "Expertise",
+          "Font of Inspiration",
+          "Countercharm",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Fireball",
+          "Counterspell",
+          "Vicious Mockery",
+          "Greater Invisibility"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Galen",
+        "level": 8,
+        "character_class": "Wizard",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 14,
+          "int": 20,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 50,
+        "ac": 12,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Transmutation",
+          "Transmuter's Stone",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight",
+          "Ice Storm"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Sir Cedric",
+        "level": 8,
+        "character_class": "Paladin",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 67,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Divine Sense (4)",
+          "Lay on Hands (40)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Extra Attack",
+          "Aura of Protection",
+          "Ability Score Improvement",
+          "Aura of Devotion"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Shield of Faith",
+          "Lesser Restoration",
+          "Magic Weapon"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Elowen",
+        "level": 8,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 20,
+          "cha": 12
+        },
+        "hp": 58,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Destroy Undead (CR 1)",
+          "Ability Score Improvement",
+          "Blessed Healer",
+          "Divine Strike"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Thorn",
+        "level": 8,
+        "character_class": "Ranger",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 53,
+        "ac": 17,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Extra Attack",
+          "Ability Score Improvement",
+          "Defensive Tactics",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Hunter's Mark",
+          "Goodberry",
+          "Lesser Restoration",
+          "Pass Without Trace"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Milo",
+        "level": 8,
+        "character_class": "Druid",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 20,
+          "cha": 10
+        },
+        "hp": 51,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Land's Stride",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Entangle",
+          "Healing Word",
+          "Lesser Restoration",
+          "Moonbeam",
+          "Call Lightning",
+          "Produce Flame",
+          "Ice Storm",
+          "Blight"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Shade",
+        "level": 8,
+        "character_class": "Rogue",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 20,
+          "con": 14,
+          "int": 12,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 59,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Shortsword",
+          "Dagger",
+          "Shortbow"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (4d6)",
+          "Thieves' Cant",
+          "Expertise (2)",
+          "Cunning Action",
+          "Roguish Archetype: Assassin",
+          "Ability Score Improvement",
+          "Uncanny Dodge",
+          "Evasion"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Vex",
+        "level": 8,
+        "character_class": "Ranger",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 60,
+        "ac": 17,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Defensive Tactics",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Nyssa",
+        "level": 8,
+        "character_class": "Monk",
+        "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 59,
+        "ac": 17,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Dart"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (8 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Kara",
+        "level": 8,
+        "character_class": "Bard",
+        "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 12,
+          "int": 14,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 43,
+        "ac": 13,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Bardic Inspiration (d8)",
+          "Spellcasting",
+          "Jack of All Trades",
+          "Song of Rest (d8)",
+          "Bard College: Lore",
+          "Expertise",
+          "Ability Score Improvement",
+          "Font of Inspiration",
+          "Countercharm"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Vicious Mockery",
+          "Mage Hand",
+          "Minor Illusion",
+          "Greater Invisibility"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Grom",
+        "level": 8,
+        "character_class": "Barbarian",
+        "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 16,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 63,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Berserker",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Mindless Rage"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Durgan",
+        "level": 8,
+        "character_class": "Fighter",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 12,
+          "con": 16,
+          "int": 10,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 69,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Warhammer",
+          "Handaxe"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Fighting Style: Defense",
+          "Action Surge (1)",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement (2)",
+          "Extra Attack",
+          "Remarkable Athlete"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Handaxe",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Rhea",
+        "level": 8,
+        "character_class": "Paladin",
+        "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 61,
+        "ac": 18,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Divine Sense",
+          "Lay on Hands (40)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Aura of Protection",
+          "Aura of Devotion"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Divine Favor",
+          "Protection from Evil and Good",
+          "Lesser Restoration",
+          "Magic Weapon"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Jax",
+        "level": 8,
+        "character_class": "Monk",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 59,
+        "ac": 17,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Quarterstaff",
+          "Dart",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (8 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Willow",
+        "level": 8,
+        "character_class": "Druid",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 14,
+          "int": 12,
+          "wis": 20,
+          "cha": 10
+        },
+        "hp": 59,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Ability Score Improvement",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Goodberry",
+          "Healing Word",
+          "Entangle",
+          "Produce Flame",
+          "Moonbeam",
+          "Pass Without Trace",
+          "Call Lightning",
+          "Blight",
+          "Ice Storm"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Finn",
+        "level": 8,
+        "character_class": "Ranger",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 61,
+        "ac": 17,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Beast Master",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Exceptional Training",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Bran",
+        "level": 8,
+        "character_class": "Barbarian",
+        "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 18,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 79,
+        "ac": 14,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Totem Warrior",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Aspect of the Beast"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Lira",
+        "level": 8,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 20,
+          "cha": 14
+        },
+        "hp": 52,
+        "ac": 16,
+        "proficiency_bonus": 3,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 2
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Nature",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1)",
+          "Dampen Elements",
+          "Divine Strike"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": 9,
+    "party": [
+      {
+        "name": "Aldric",
+        "level": 9,
+        "character_class": "Fighter",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 10,
+          "cha": 10
+        },
+        "hp": 75,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Light Crossbow",
+          "20 bolts"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Action Surge (1)",
+          "Extra Attack",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement",
+          "Remarkable Athlete",
+          "Indomitable (1)"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Light Crossbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Branwen",
+        "level": 9,
+        "character_class": "Cleric",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 10,
+          "con": 18,
+          "int": 10,
+          "wis": 20,
+          "cha": 8
+        },
+        "hp": 73,
+        "ac": 19,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Warhammer",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Domain Spell: Revivify",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1)",
+          "Blessed Healer",
+          "Divine Strike"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Prayer of Healing",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Healing Word",
+          "Mass Cure Wounds",
+          "Flame Strike"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Calyra",
+        "level": 9,
+        "character_class": "Wizard",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 16,
+          "con": 14,
+          "int": 20,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 56,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Evocation",
+          "Ability Score Improvement",
+          "Potent Cantrip"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Mage Armor",
+          "Sleep",
+          "Scorching Ray",
+          "Fireball",
+          "Mirror Image",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Ice Storm",
+          "Blight",
+          "Cone of Cold",
+          "Hold Monster"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "1d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Dax",
+        "level": 9,
+        "character_class": "Rogue",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 20,
+          "con": 14,
+          "int": 12,
+          "wis": 10,
+          "cha": 14
+        },
+        "hp": 58,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather Armor",
+          "Shortsword",
+          "Shortbow",
+          "20 arrows",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (5d6)",
+          "Cunning Action",
+          "Uncanny Dodge",
+          "Evasion",
+          "Roguish Archetype: Thief",
+          "Ability Score Improvement",
+          "Thieves' Cant",
+          "Supreme Sneak"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Mira",
+        "level": 9,
+        "character_class": "Sorcerer",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 56,
+        "ac": 12,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Component Pouch"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Sorcerous Origin: Wild Magic",
+          "Font of Magic (9)",
+          "Metamagic",
+          "Ability Score Improvement",
+          "Bend Luck"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight",
+          "Ice Storm",
+          "Cone of Cold"
+        ],
+        "saving_throw_proficiencies": [
+          "con",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Davos",
+        "level": 9,
+        "character_class": "Warlock",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 57,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Dagger",
+          "Arcane Focus"
+        ],
+        "spell_slots": {
+          "5": 2
+        },
+        "class_features": [
+          "Otherworldly Patron: The Fiend",
+          "Pact Magic",
+          "Pact Boon: Pact of the Blade",
+          "Eldritch Invocations",
+          "Ability Score Improvement",
+          "Dark One's Own Luck"
+        ],
+        "spell_list": [
+          "Eldritch Blast",
+          "Burning Hands",
+          "Scorching Ray",
+          "Mirror Image",
+          "Fireball",
+          "Counterspell",
+          "Blight",
+          "Hypnotic Pattern",
+          "Flame Strike",
+          "Hold Monster"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Dagger",
+            "type": "attack",
+            "damage_dice": "1d4",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          },
+          {
+            "name": "Eldritch Blast",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "force"
+          }
+        ]
+      },
+      {
+        "name": "Seraphine",
+        "level": 9,
+        "character_class": "Bard",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 12,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 56,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Bardic Inspiration (d8)",
+          "Jack of All Trades",
+          "Song of Rest (d10)",
+          "Bard College: Lore",
+          "Expertise",
+          "Font of Inspiration",
+          "Countercharm",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Fireball",
+          "Counterspell",
+          "Vicious Mockery",
+          "Greater Invisibility",
+          "Mass Cure Wounds"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Galen",
+        "level": 9,
+        "character_class": "Wizard",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 14,
+          "int": 20,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 56,
+        "ac": 12,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Transmutation",
+          "Transmuter's Stone",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight",
+          "Ice Storm",
+          "Cone of Cold",
+          "Hold Monster"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Sir Cedric",
+        "level": 9,
+        "character_class": "Paladin",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 75,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Divine Sense (4)",
+          "Lay on Hands (45)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Extra Attack",
+          "Aura of Protection",
+          "Ability Score Improvement",
+          "Aura of Devotion"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Shield of Faith",
+          "Lesser Restoration",
+          "Magic Weapon",
+          "Dispel Magic",
+          "Revivify"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Elowen",
+        "level": 9,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 20,
+          "cha": 12
+        },
+        "hp": 65,
+        "ac": 16,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Destroy Undead (CR 1)",
+          "Ability Score Improvement",
+          "Blessed Healer",
+          "Divine Strike"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith",
+          "Mass Cure Wounds",
+          "Flame Strike"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Thorn",
+        "level": 9,
+        "character_class": "Ranger",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 59,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Extra Attack",
+          "Ability Score Improvement",
+          "Defensive Tactics",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Hunter's Mark",
+          "Goodberry",
+          "Lesser Restoration",
+          "Pass Without Trace"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Milo",
+        "level": 9,
+        "character_class": "Druid",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 20,
+          "cha": 10
+        },
+        "hp": 57,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Land's Stride",
+          "Ability Score Improvement"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Entangle",
+          "Healing Word",
+          "Lesser Restoration",
+          "Moonbeam",
+          "Call Lightning",
+          "Produce Flame",
+          "Ice Storm",
+          "Blight",
+          "Mass Cure Wounds"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Shade",
+        "level": 9,
+        "character_class": "Rogue",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 20,
+          "con": 14,
+          "int": 12,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 66,
+        "ac": 16,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Shortsword",
+          "Dagger",
+          "Shortbow"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (5d6)",
+          "Thieves' Cant",
+          "Expertise (2)",
+          "Cunning Action",
+          "Roguish Archetype: Assassin",
+          "Ability Score Improvement",
+          "Uncanny Dodge",
+          "Evasion",
+          "Infiltration Expertise"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Vex",
+        "level": 9,
+        "character_class": "Ranger",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 67,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Defensive Tactics",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Nyssa",
+        "level": 9,
+        "character_class": "Monk",
+        "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 66,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Dart"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (9 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Kara",
+        "level": 9,
+        "character_class": "Bard",
+        "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 12,
+          "int": 14,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 48,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Bardic Inspiration (d8)",
+          "Spellcasting",
+          "Jack of All Trades",
+          "Song of Rest (d10)",
+          "Bard College: Lore",
+          "Expertise",
+          "Ability Score Improvement",
+          "Font of Inspiration",
+          "Countercharm"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Vicious Mockery",
+          "Mage Hand",
+          "Minor Illusion",
+          "Greater Invisibility",
+          "Mass Cure Wounds"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Grom",
+        "level": 9,
+        "character_class": "Barbarian",
+        "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 16,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 70,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Berserker",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Mindless Rage",
+          "Brutal Critical (1 die)"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Durgan",
+        "level": 9,
+        "character_class": "Fighter",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 12,
+          "con": 16,
+          "int": 10,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 77,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Warhammer",
+          "Handaxe"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Fighting Style: Defense",
+          "Action Surge (1)",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement (2)",
+          "Extra Attack",
+          "Remarkable Athlete",
+          "Indomitable (1)"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Handaxe",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Rhea",
+        "level": 9,
+        "character_class": "Paladin",
+        "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 68,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Divine Sense",
+          "Lay on Hands (45)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Aura of Protection",
+          "Aura of Devotion"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Divine Favor",
+          "Protection from Evil and Good",
+          "Lesser Restoration",
+          "Magic Weapon",
+          "Dispel Magic"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Jax",
+        "level": 9,
+        "character_class": "Monk",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 45
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 66,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Dart",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (9 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Willow",
+        "level": 9,
+        "character_class": "Druid",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 14,
+          "int": 12,
+          "wis": 20,
+          "cha": 10
+        },
+        "hp": 66,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Ability Score Improvement",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Goodberry",
+          "Healing Word",
+          "Entangle",
+          "Produce Flame",
+          "Moonbeam",
+          "Pass Without Trace",
+          "Call Lightning",
+          "Blight",
+          "Ice Storm",
+          "Mass Cure Wounds"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Finn",
+        "level": 9,
+        "character_class": "Ranger",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 68,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Beast Master",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Exceptional Training",
+          "Land's Stride"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Bran",
+        "level": 9,
+        "character_class": "Barbarian",
+        "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 18,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 87,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Totem Warrior",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Aspect of the Beast",
+          "Brutal Critical (1 die)"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Lira",
+        "level": 9,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 20,
+          "cha": 14
+        },
+        "hp": 58,
+        "ac": 16,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 1
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Nature",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1)",
+          "Dampen Elements",
+          "Divine Strike"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith",
+          "Mass Cure Wounds",
+          "Flame Strike"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "level": 10,
+    "party": [
+      {
+        "name": "Aldric",
+        "level": 10,
+        "character_class": "Fighter",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 10,
+          "cha": 10
+        },
+        "hp": 83,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Light Crossbow",
+          "20 bolts"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Action Surge (1)",
+          "Extra Attack",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement",
+          "Remarkable Athlete",
+          "Indomitable (1)",
+          "Fighting Style: Dueling"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Light Crossbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Branwen",
+        "level": 10,
+        "character_class": "Cleric",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 10,
+          "con": 18,
+          "int": 10,
+          "wis": 20,
+          "cha": 8
+        },
+        "hp": 81,
+        "ac": 19,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Warhammer",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Domain Spell: Revivify",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1)",
+          "Blessed Healer",
+          "Divine Strike",
+          "Divine Intervention"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Prayer of Healing",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Healing Word",
+          "Mass Cure Wounds",
+          "Flame Strike"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Calyra",
+        "level": 10,
+        "character_class": "Wizard",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 16,
+          "con": 14,
+          "int": 20,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 62,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Evocation",
+          "Ability Score Improvement",
+          "Potent Cantrip",
+          "Empowered Evocation"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Mage Armor",
+          "Sleep",
+          "Scorching Ray",
+          "Fireball",
+          "Mirror Image",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Ice Storm",
+          "Blight",
+          "Cone of Cold",
+          "Hold Monster"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "1d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Dax",
+        "level": 10,
+        "character_class": "Rogue",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 20,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 14
+        },
+        "hp": 74,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather Armor",
+          "Shortsword",
+          "Shortbow",
+          "20 arrows",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (5d6)",
+          "Cunning Action",
+          "Uncanny Dodge",
+          "Evasion",
+          "Roguish Archetype: Thief",
+          "Ability Score Improvement",
+          "Thieves' Cant",
+          "Supreme Sneak"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Mira",
+        "level": 10,
+        "character_class": "Sorcerer",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 62,
+        "ac": 12,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Component Pouch"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Sorcerous Origin: Wild Magic",
+          "Font of Magic (10)",
+          "Metamagic",
+          "Ability Score Improvement",
+          "Bend Luck"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight",
+          "Ice Storm",
+          "Cone of Cold",
+          "Hold Monster",
+          "Mage Hand"
+        ],
+        "saving_throw_proficiencies": [
+          "con",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Davos",
+        "level": 10,
+        "character_class": "Warlock",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 63,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Dagger",
+          "Arcane Focus"
+        ],
+        "spell_slots": {
+          "5": 2
+        },
+        "class_features": [
+          "Otherworldly Patron: The Fiend",
+          "Pact Magic",
+          "Pact Boon: Pact of the Blade",
+          "Eldritch Invocations",
+          "Ability Score Improvement",
+          "Dark One's Own Luck",
+          "Fiendish Resilience"
+        ],
+        "spell_list": [
+          "Eldritch Blast",
+          "Burning Hands",
+          "Scorching Ray",
+          "Mirror Image",
+          "Fireball",
+          "Counterspell",
+          "Blight",
+          "Hypnotic Pattern",
+          "Flame Strike",
+          "Hold Monster"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Dagger",
+            "type": "attack",
+            "damage_dice": "1d4",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          },
+          {
+            "name": "Eldritch Blast",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "force"
+          }
+        ]
+      },
+      {
+        "name": "Seraphine",
+        "level": 10,
+        "character_class": "Bard",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 12,
+          "int": 12,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 62,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Bardic Inspiration (d10)",
+          "Jack of All Trades",
+          "Song of Rest (d10)",
+          "Bard College: Lore",
+          "Expertise",
+          "Font of Inspiration",
+          "Countercharm",
+          "Ability Score Improvement",
+          "Magical Secrets"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Fireball",
+          "Counterspell",
+          "Vicious Mockery",
+          "Greater Invisibility",
+          "Mass Cure Wounds",
+          "Hold Monster",
+          "Spiritual Weapon",
+          "Moonbeam"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Galen",
+        "level": 10,
+        "character_class": "Wizard",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 14,
+          "int": 20,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 62,
+        "ac": 12,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Spellbook",
+          "Dagger"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Arcane Recovery",
+          "Arcane Tradition: Transmutation",
+          "Transmuter's Stone",
+          "Ability Score Improvement",
+          "Shapechanger"
+        ],
+        "spell_list": [
+          "Magic Missile",
+          "Shield",
+          "Scorching Ray",
+          "Web",
+          "Fireball",
+          "Counterspell",
+          "Dispel Magic",
+          "Fire Bolt",
+          "Prestidigitation",
+          "Blight",
+          "Ice Storm",
+          "Cone of Cold",
+          "Hold Monster"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Fire Bolt",
+            "type": "attack",
+            "damage_dice": "2d10",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Sir Cedric",
+        "level": 10,
+        "character_class": "Paladin",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 83,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Plate Armor",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Divine Sense (4)",
+          "Lay on Hands (50)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Extra Attack",
+          "Aura of Protection",
+          "Ability Score Improvement",
+          "Aura of Devotion",
+          "Aura of Courage"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Shield of Faith",
+          "Lesser Restoration",
+          "Magic Weapon",
+          "Dispel Magic",
+          "Revivify"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Elowen",
+        "level": 10,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 14,
+          "con": 16,
+          "int": 10,
+          "wis": 20,
+          "cha": 12
+        },
+        "hp": 72,
+        "ac": 16,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Life",
+          "Destroy Undead (CR 1)",
+          "Ability Score Improvement",
+          "Blessed Healer",
+          "Divine Strike",
+          "Divine Intervention"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Revivify",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith",
+          "Mass Cure Wounds",
+          "Flame Strike"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      },
+      {
+        "name": "Thorn",
+        "level": 10,
+        "character_class": "Ranger",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 65,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Extra Attack",
+          "Ability Score Improvement",
+          "Defensive Tactics",
+          "Land's Stride",
+          "Hide in Plain Sight"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Hunter's Mark",
+          "Goodberry",
+          "Lesser Restoration",
+          "Pass Without Trace"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Milo",
+        "level": 10,
+        "character_class": "Druid",
+        "race": "Halfling",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 16,
+          "int": 12,
+          "wis": 20,
+          "cha": 10
+        },
+        "hp": 63,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Land's Stride",
+          "Ability Score Improvement",
+          "Nature's Ward"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Entangle",
+          "Healing Word",
+          "Lesser Restoration",
+          "Moonbeam",
+          "Call Lightning",
+          "Produce Flame",
+          "Ice Storm",
+          "Blight",
+          "Mass Cure Wounds"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Shade",
+        "level": 10,
+        "character_class": "Rogue",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 20,
+          "con": 16,
+          "int": 12,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 83,
+        "ac": 16,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Shortsword",
+          "Dagger",
+          "Shortbow"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Sneak Attack (5d6)",
+          "Thieves' Cant",
+          "Expertise (2)",
+          "Cunning Action",
+          "Roguish Archetype: Assassin",
+          "Ability Score Improvement",
+          "Uncanny Dodge",
+          "Evasion",
+          "Infiltration Expertise"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "dex",
+          "int"
+        ],
+        "actions": [
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          },
+          {
+            "name": "Shortbow",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "range": [
+              80,
+              320
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Vex",
+        "level": 10,
+        "character_class": "Ranger",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 12,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 74,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Hunter",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Defensive Tactics",
+          "Land's Stride",
+          "Hide in Plain Sight"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Nyssa",
+        "level": 10,
+        "character_class": "Monk",
+        "race": "Tiefling",
+        "size": "medium",
+        "speed": {
+          "walk": 50
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 73,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Dagger",
+          "Dart"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (10 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body",
+          "Purity of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Kara",
+        "level": 10,
+        "character_class": "Bard",
+        "race": "Gnome",
+        "size": "small",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 8,
+          "dex": 14,
+          "con": 12,
+          "int": 14,
+          "wis": 10,
+          "cha": 20
+        },
+        "hp": 53,
+        "ac": 13,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Rapier",
+          "Lute"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Bardic Inspiration (d10)",
+          "Spellcasting",
+          "Jack of All Trades",
+          "Song of Rest (d10)",
+          "Bard College: Lore",
+          "Expertise",
+          "Ability Score Improvement",
+          "Font of Inspiration",
+          "Countercharm",
+          "Magical Secrets"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Sleep",
+          "Healing Word",
+          "Lesser Restoration",
+          "Hypnotic Pattern",
+          "Vicious Mockery",
+          "Mage Hand",
+          "Minor Illusion",
+          "Greater Invisibility",
+          "Mass Cure Wounds",
+          "Hold Monster",
+          "Spiritual Weapon",
+          "Shield of Faith"
+        ],
+        "saving_throw_proficiencies": [
+          "dex",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Rapier",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Grom",
+        "level": 10,
+        "character_class": "Barbarian",
+        "race": "Half-Orc",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 16,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 77,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Berserker",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Mindless Rage",
+          "Brutal Critical (1 die)",
+          "Intimidating Presence"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Durgan",
+        "level": 10,
+        "character_class": "Fighter",
+        "race": "Dwarf",
+        "size": "medium",
+        "speed": {
+          "walk": 25
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 12,
+          "con": 16,
+          "int": 10,
+          "wis": 12,
+          "cha": 10
+        },
+        "hp": 85,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Warhammer",
+          "Handaxe"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Second Wind",
+          "Fighting Style: Defense",
+          "Action Surge (1)",
+          "Martial Archetype: Champion",
+          "Ability Score Improvement (2)",
+          "Extra Attack",
+          "Remarkable Athlete",
+          "Indomitable (1)",
+          "Fighting Style: Dueling"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Warhammer",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Handaxe",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "slashing",
+            "reach": 5,
+            "range": [
+              20,
+              60
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Rhea",
+        "level": 10,
+        "character_class": "Paladin",
+        "race": "Dragonborn",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 12,
+          "cha": 14
+        },
+        "hp": 75,
+        "ac": 18,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Chain Mail",
+          "Shield",
+          "Longsword",
+          "Javelin",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Divine Sense",
+          "Lay on Hands (50)",
+          "Fighting Style: Defense",
+          "Spellcasting",
+          "Divine Smite",
+          "Divine Health",
+          "Sacred Oath: Devotion",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Aura of Protection",
+          "Aura of Devotion",
+          "Aura of Courage"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Bless",
+          "Divine Favor",
+          "Protection from Evil and Good",
+          "Lesser Restoration",
+          "Magic Weapon",
+          "Dispel Magic"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Longsword",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Jax",
+        "level": 10,
+        "character_class": "Monk",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 50
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 73,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Quarterstaff",
+          "Dart",
+          "Dagger"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Unarmored Defense",
+          "Martial Arts (1d6)",
+          "Ki (10 points)",
+          "Unarmored Movement",
+          "Monastic Tradition: Way of the Open Hand",
+          "Deflect Missiles",
+          "Ability Score Improvement",
+          "Slow Fall",
+          "Extra Attack",
+          "Stunning Strike",
+          "Ki-Empowered Strikes",
+          "Evasion",
+          "Stillness of Mind",
+          "Wholeness of Body",
+          "Purity of Body"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Unarmed Strike",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Willow",
+        "level": 10,
+        "character_class": "Druid",
+        "race": "Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 10,
+          "dex": 14,
+          "con": 14,
+          "int": 12,
+          "wis": 20,
+          "cha": 10
+        },
+        "hp": 73,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Leather Armor",
+          "Quarterstaff",
+          "Druidic Focus"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Druidic",
+          "Spellcasting",
+          "Wild Shape",
+          "Druid Circle: Land",
+          "Ability Score Improvement",
+          "Land's Stride",
+          "Nature's Ward"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Goodberry",
+          "Healing Word",
+          "Entangle",
+          "Produce Flame",
+          "Moonbeam",
+          "Pass Without Trace",
+          "Call Lightning",
+          "Blight",
+          "Ice Storm",
+          "Mass Cure Wounds"
+        ],
+        "saving_throw_proficiencies": [
+          "int",
+          "wis"
+        ],
+        "actions": [
+          {
+            "name": "Quarterstaff",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Produce Flame",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "fire"
+          }
+        ]
+      },
+      {
+        "name": "Finn",
+        "level": 10,
+        "character_class": "Ranger",
+        "race": "Human",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 14,
+          "dex": 20,
+          "con": 14,
+          "int": 10,
+          "wis": 14,
+          "cha": 10
+        },
+        "hp": 75,
+        "ac": 17,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Studded Leather",
+          "Longbow",
+          "Shortsword",
+          "20 arrows"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 2
+        },
+        "class_features": [
+          "Favored Enemy (2)",
+          "Natural Explorer",
+          "Fighting Style: Archery",
+          "Spellcasting",
+          "Ranger Archetype: Beast Master",
+          "Primeval Awareness",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Exceptional Training",
+          "Land's Stride",
+          "Hide in Plain Sight"
+        ],
+        "spell_list": [
+          "Hunter's Mark",
+          "Cure Wounds",
+          "Goodberry",
+          "Pass Without Trace",
+          "Lesser Restoration"
+        ],
+        "saving_throw_proficiencies": [
+          "str",
+          "dex"
+        ],
+        "actions": [
+          {
+            "name": "Longbow",
+            "type": "attack",
+            "damage_dice": "1d8",
+            "damage_type": "piercing",
+            "range": [
+              150,
+              600
+            ]
+          },
+          {
+            "name": "Shortsword",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5
+          }
+        ]
+      },
+      {
+        "name": "Bran",
+        "level": 10,
+        "character_class": "Barbarian",
+        "race": "Goliath",
+        "size": "medium",
+        "speed": {
+          "walk": 40
+        },
+        "ability_scores": {
+          "str": 20,
+          "dex": 14,
+          "con": 18,
+          "int": 8,
+          "wis": 12,
+          "cha": 8
+        },
+        "hp": 95,
+        "ac": 14,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Hide Armor",
+          "Greataxe",
+          "Handaxe",
+          "Javelin"
+        ],
+        "spell_slots": {},
+        "class_features": [
+          "Rage (4)",
+          "Unarmored Defense",
+          "Reckless Attack",
+          "Danger Sense",
+          "Primal Path: Totem Warrior",
+          "Ability Score Improvement",
+          "Extra Attack",
+          "Fast Movement",
+          "Feral Instinct",
+          "Aspect of the Beast",
+          "Brutal Critical (1 die)",
+          "Spirit Walker"
+        ],
+        "spell_list": [],
+        "saving_throw_proficiencies": [
+          "str",
+          "con"
+        ],
+        "actions": [
+          {
+            "name": "Greataxe",
+            "type": "attack",
+            "damage_dice": "1d12",
+            "damage_type": "slashing",
+            "reach": 5
+          },
+          {
+            "name": "Javelin",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "piercing",
+            "reach": 5,
+            "range": [
+              30,
+              120
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Lira",
+        "level": 10,
+        "character_class": "Cleric",
+        "race": "Half-Elf",
+        "size": "medium",
+        "speed": {
+          "walk": 30
+        },
+        "ability_scores": {
+          "str": 12,
+          "dex": 10,
+          "con": 14,
+          "int": 10,
+          "wis": 20,
+          "cha": 14
+        },
+        "hp": 64,
+        "ac": 16,
+        "proficiency_bonus": 4,
+        "equipment": [
+          "Scale Mail",
+          "Shield",
+          "Mace",
+          "Holy Symbol"
+        ],
+        "spell_slots": {
+          "1": 4,
+          "2": 3,
+          "3": 3,
+          "4": 3,
+          "5": 2
+        },
+        "class_features": [
+          "Channel Divinity (2)",
+          "Divine Domain: Nature",
+          "Ability Score Improvement",
+          "Destroy Undead (CR 1)",
+          "Dampen Elements",
+          "Divine Strike",
+          "Divine Intervention"
+        ],
+        "spell_list": [
+          "Cure Wounds",
+          "Guiding Bolt",
+          "Bless",
+          "Healing Word",
+          "Lesser Restoration",
+          "Spiritual Weapon",
+          "Sacred Flame",
+          "Spare the Dying",
+          "Shield of Faith",
+          "Mass Cure Wounds",
+          "Flame Strike"
+        ],
+        "saving_throw_proficiencies": [
+          "wis",
+          "cha"
+        ],
+        "actions": [
+          {
+            "name": "Mace",
+            "type": "attack",
+            "damage_dice": "1d6",
+            "damage_type": "bludgeoning",
+            "reach": 5
+          },
+          {
+            "name": "Sacred Flame",
+            "type": "attack",
+            "damage_dice": "2d8",
+            "damage_type": "radiant"
+          }
+        ]
+      }
+    ]
   }
 ]
