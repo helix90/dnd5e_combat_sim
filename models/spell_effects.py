@@ -152,7 +152,7 @@ def _saving_condition(action: Any, caster: Any, targets: List[Any], bonuses: Dic
         if immune_to(target, immunity):
             results.append({'target': _name(target), 'immune': True})
             continue
-        save = roll_saving_throw(target, spell.save_type, dc, cover_bonus=bonuses.get(target, 0))
+        save = roll_saving_throw(target, spell.save_type, dc, cover_bonus=bonuses.get(target, 0), magical=True)
         if not save['save_success']:
             target.buffs.add_buff(make())
             affected.append(target)
@@ -192,6 +192,7 @@ def _hold(action: Any, caster: Any, targets: List[Any], bonuses: Dict[Any, int])
     def paralyze() -> Buff:
         buff = create_paralyzed_condition(_name(caster), action.spell.save_type, dc, _duration(action))
         buff.concentration = True
+        buff.metadata['magical'] = True  # the repeat saves are against a spell too
         return buff
     return _saving_condition(action, caster, [target], bonuses, 'paralyzed', paralyze, 'paralyzed')
 
@@ -244,7 +245,7 @@ def moonbeam_turn_start(creature: Any) -> Optional[Tuple[str, Dict[str, Any]]]:
     if beam is None or not creature.is_alive():
         return None
     data = beam.metadata['moonbeam']
-    save = roll_saving_throw(creature, 'con', data['save_dc'])
+    save = roll_saving_throw(creature, 'con', data['save_dc'], magical=True)
     damage = damage_after_save(creature, _roll(data['dice']), 'con', save['save_success'], True)
     damage = apply_damage(creature, damage, data['damage_type'], magical=True)
     return beam.source, {'action': 'Cast Moonbeam', 'spell': 'Moonbeam', 'type': 'spell', 'target': _name(creature),
@@ -318,7 +319,7 @@ def spiritual_weapon_attack(caster: Any, target: Any, advantage: bool = False, d
         if _has_buffs(caster) else None
     dice = (weapon.metadata.get('spiritual_weapon_dice') if weapon else None) or SPIRITUAL_WEAPON_DICE
     bonus = caster.spell_attack_bonus() if hasattr(caster, 'spell_attack_bonus') else 0
-    d20 = attack_roll(caster, target, advantage, disadvantage)
+    d20 = attack_roll(caster, target, advantage, disadvantage, True)  # the weapon attacks from beside it
     total = d20.result + bonus
     hit = attack_hits(d20.result, total, getattr(target, 'ac', 10))
     critical = hit and is_critical(d20.result, caster)

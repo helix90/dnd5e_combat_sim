@@ -96,7 +96,7 @@
       "condition_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "weapon_type": "finesse", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.", "reach": 5}
+        {"name": "Bite", "type": "attack", "damage_dice": "2d4+2", "damage_type": "piercing", "weapon_type": "finesse", "special": "If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone.", "on_hit": {"condition": "prone", "save_type": "str", "save_dc": 11}, "reach": 5}
       ]
     },
     {
@@ -448,7 +448,7 @@
       "condition_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Bite", "type": "attack", "damage_dice": "2d6+4", "damage_type": "piercing", "weapon_type": "melee", "reach": 5, "special": "If the target is a creature, it must succeed on a DC 14 Strength saving throw or be knocked prone."},
+        {"name": "Bite", "type": "attack", "damage_dice": "2d6+4", "damage_type": "piercing", "weapon_type": "melee", "reach": 5, "special": "If the target is a creature, it must succeed on a DC 14 Strength saving throw or be knocked prone.", "on_hit": {"condition": "prone", "save_type": "str", "save_dc": 14}},
         {"name": "Cold Breath", "type": "special", "description": "(Recharge 5-6) The wolf exhales a blast of freezing wind in a 15-foot cone. Each creature in that area must make a DC 12 Dexterity saving throw, taking 18 (4d8) cold damage on a failed save, or half as much on a successful one.", "damage_dice": "4d8", "save_dc": 12, "save_type": "dex", "damage_type": "cold", "area": {"shape": "cone", "size": 15}, "recharge": 5}
       ]
     },
@@ -693,7 +693,7 @@
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The devil makes three melee attacks: two with its fork and one with its tail, or three with its hurl flame (it can use Hurl Flame in place of any melee attack)."},
         {"name": "Fork", "type": "attack", "damage_dice": "2d8+6", "damage_type": "piercing", "weapon_type": "melee", "reach": 10},
-        {"name": "Tail", "type": "attack", "damage_dice": "1d8+6", "damage_type": "piercing", "weapon_type": "melee", "reach": 10, "special": "If the target is a creature other than an undead or a construct, it must succeed on a DC 17 Constitution saving throw or lose 10 (3d6) hit points at the start of each of its turns due to an infernal wound."},
+        {"name": "Tail", "type": "attack", "damage_dice": "1d8+6", "damage_type": "piercing", "weapon_type": "melee", "reach": 10, "special": "If the target is a creature other than an undead or a construct, it must succeed on a DC 17 Constitution saving throw or lose 10 (3d6) hit points at the start of each of its turns due to an infernal wound.", "on_hit": {"condition": "infernal_wound", "save_type": "con", "save_dc": 17, "wound_dice": "3d6", "immune_types": ["undead", "construct"]}},
         {"name": "Hurl Flame", "type": "attack", "damage_dice": "4d6", "damage_type": "fire", "weapon_type": "ranged", "hit_bonus": 7, "range": [150, 150]}
       ]
     },

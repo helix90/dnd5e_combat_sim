@@ -5,6 +5,7 @@ import random
 from models import class_features as feature_rules
 from models import concentration, spell_effects
 from models.buffs import is_spellbound
+from models.rolls import has_magic_resistance
 from models.spells import SpellAction
 from models.actions import AttackAction
 
@@ -73,8 +74,10 @@ def lowest_slot(combatant: Any, level: int) -> Optional[int]:
 
 
 def _save_fails(target: Any, save_type: str, dc: int) -> float:
+    """Chance the target fails a save against a spell: with Magic Resistance it rolls twice."""
     bonus = target.saving_throw_bonus(save_type) if hasattr(target, 'saving_throw_bonus') else 0
-    return 1 - min(0.95, max(0.05, (21 + bonus - dc) / 20))
+    fail = 1 - min(0.95, max(0.05, (21 + bonus - dc) / 20))
+    return fail * fail if has_magic_resistance(target) else fail
 
 
 def _restrained(target: Any) -> bool:

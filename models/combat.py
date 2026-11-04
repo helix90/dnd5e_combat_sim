@@ -12,7 +12,8 @@ from ai.tactical import TacticalAnalyzer
 from ai.aiming import aim_area
 from ai.positioning import fit_plan
 from models.rolls import roll_saving_throw
-from models.buffs import is_incapacitated, is_paralyzed, is_spellbound, is_stunned, is_turned
+from models.buffs import (BuffManager, cannot_move, create_stood_up_effect, is_incapacitated, is_paralyzed, is_prone,
+                          is_spellbound, is_stunned, is_turned)
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, describe_area
 from models.battlefield import (MONSTERS, PARTY, Battlefield, area_of, area_range, bonus_dash, bonus_disengage,
@@ -40,6 +41,10 @@ def _average_damage(action: Any) -> float:
     except (TypeError, ValueError):
         return 0.0
 
+
+# How the log describes a condition an attack applied: "Aldric is knocked prone!"
+CONDITION_TEXT = {'Paralyzed': 'is paralyzed', 'Prone': 'is knocked prone',
+                  'Infernal Wound': 'has an infernal wound'}
 
 class CombatLogger:
     """
@@ -329,6 +334,8 @@ class Combat:
                         return participant
                 if self._moonbeam(participant):
                     return participant
+                if self._infernal_wound(participant):
+                    return participant
                 if is_paralyzed(participant):
                     # Incapacitated: no action this turn, then repeat the save at the end of it
                     result = self._paralyzed_turn(participant)
@@ -349,6 +356,7 @@ class Combat:
                     self._end_of_turn_effects(participant)
                     return participant
                 recharged = self._roll_recharges(participant)
+                stood_up = self._stand_up(participant)
                 ai = self.ai_strategy_map.get(participant)
                 if ai:
                     combat_state = self._build_combat_state(participant)
@@ -359,6 +367,8 @@ class Combat:
                     result = self._take_turn(participant, action_plan)
                     if recharged:
                         result['recharged'] = recharged
+                    if stood_up:
+                        result['stood_up'] = True
                     self._note_regeneration_damage(hp_before, result)
                     self.logger.log_action(participant, result, self.current_round)
                     self._log_pending_entries()
@@ -412,6 +422,38 @@ class Combat:
         self._log_pending_entries()
         self._alive_participants_cache = None
         return not participant.is_alive()
+
+    def _infernal_wound(self, participant: Any) -> bool:
+        """
+        A creature with an infernal wound loses hit points at the start of its turn (3d6 for each
+        hit from the horned devil's tail). It's hit point loss, not damage: no resistance and no
+        concentration save. Returns True if that drops it, which ends its turn.
+        """
+        buffs = getattr(participant, 'buffs', None)
+        wound = buffs.get_condition('infernal_wound') if isinstance(buffs, BuffManager) else None
+        if wound is None or not participant.is_alive():
+            return False
+        lost = 0
+        for dice in wound.metadata.get('wound_dice', []):
+            num, die, mod = AttackAction.parse_dice(dice)
+            lost += sum(random.randint(1, die) for _ in range(num)) + mod
+        participant.hp -= lost
+        self.logger.log_action(participant, {
+            'action': 'Infernal Wound', 'type': 'condition', 'condition': 'infernal_wound', 'hp_lost': lost,
+            'description': f"loses {lost} HP to an infernal wound" + ('' if participant.is_alive() else ' and goes down'),
+        }, self.current_round)
+        self._alive_participants_cache = None
+        return not participant.is_alive()
+
+    @staticmethod
+    def _stand_up(participant: Any) -> bool:
+        """A prone creature that can move stands up at the start of its turn, using half its speed."""
+        buffs = getattr(participant, 'buffs', None)
+        if not is_prone(participant) or cannot_move(participant):
+            return False
+        buffs.remove_buff('Prone')
+        buffs.add_buff(create_stood_up_effect())
+        return True
 
     def _wants_to_escape(self, participant: Any) -> bool:
         """
@@ -557,7 +599,8 @@ class Combat:
         """Skip a paralyzed creature's turn and roll its end-of-turn save to end the condition."""
         condition = participant.buffs.get_condition('paralyzed')
         save_type = condition.metadata.get('save_type', 'con')
-        save = roll_saving_throw(participant, save_type, condition.metadata.get('save_dc', 10))
+        save = roll_saving_throw(participant, save_type, condition.metadata.get('save_dc', 10),
+                                 magical=bool(condition.metadata.get('magical')))
         if save['save_success']:
             participant.buffs.remove_buff(condition.name)
             outcome = f"succeeds on a {save_type.upper()} save ({save['total_save']}) and is no longer paralyzed"
@@ -1012,6 +1055,7 @@ class Combat:
                     if not situation.in_range:
                         return self._out_of_range(spell.name, target, situation.distance, situation.cover)
                     self._note_situation(notes, situation)
+                    options['within_5ft'] = situation.distance <= SQUARE_FEET
                     if situation.disadvantage:
                         options['disadvantage'] = True
                     if situation.ac_bonus and not ignores_cover(spell.spell):
@@ -1221,7 +1265,7 @@ class Combat:
             situation = self.battlefield.spell_situation(participant, enemy, spell)
             if not situation.in_range:
                 continue
-            options = {'disadvantage': situation.disadvantage}
+            options = {'disadvantage': situation.disadvantage, 'within_5ft': situation.distance <= SQUARE_FEET}
             if spell.is_attack_spell and not ignores_cover(spell):
                 options['ac_bonus'] = situation.ac_bonus
             found.append((situation.disadvantage, situation.distance, enemy, options))
@@ -1475,7 +1519,7 @@ class Combat:
                         crit = " (critical hit)" if result.get('critical') else ""
                         line = f"{actor} uses {action} on {self._target_text(result)}: {result['damage']} damage{crit}."
                         if result.get('condition_applied'):
-                            line += f" {self._target_text(result)} is {result['condition_applied'].lower()}!"
+                            line += f" {self._target_text(result)} {CONDITION_TEXT.get(result['condition_applied'], 'is ' + result['condition_applied'].lower())}!"
                         lines.append(line)
                     elif result.get('action') == 'Turn Undead':
                         lines.append(f"{actor} {result['description']}.")
@@ -1513,6 +1557,8 @@ class Combat:
             line = f"{actor} uses {bonus['feature']} to {bonus['action']}. " + line
         if result.get('recharged'):
             line = f"{actor}'s {', '.join(result['recharged'])} recharges. " + line
+        if result.get('stood_up'):
+            line = f"{actor} stands up. " + line
         if result.get('area'):
             area = describe_area(result['area'])
             line = line[:-1] + f" ({area})." if line.endswith('.') else line + f" ({area})"

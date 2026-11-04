@@ -21,9 +21,9 @@ disadvantage cancel out to a single straight roll.
 """
 import random
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-from models.buffs import BuffManager, fails_str_dex_saves
+from models.buffs import BuffManager, fails_str_dex_saves, is_prone
 
 ATTACK_ROLLS = 'attack_rolls'
 ATTACKS_AGAINST = 'attacks_against'
@@ -54,6 +54,12 @@ def _buffs(creature: Any):
     buffs = getattr(creature, 'buffs', None)
     # isinstance guards against test doubles whose auto-created attributes are truthy
     return buffs if isinstance(buffs, BuffManager) else None
+
+
+def has_magic_resistance(creature: Any) -> bool:
+    """Magic Resistance (horned devil, erinyes): advantage on saves against spells and magical effects."""
+    abilities = getattr(creature, 'special_abilities', None)
+    return isinstance(abilities, list) and 'Magic Resistance' in abilities
 
 
 def has_advantage(creature: Any, *roll_keys: str) -> bool:
@@ -89,15 +95,21 @@ def protected_from(attacker: Any, target: Any) -> bool:
         kind in b.metadata.get('protection_from', ()) for b in buffs.active_buffs)
 
 
-def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> D20Roll:
+def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
+                within_5ft: Optional[bool] = None) -> D20Roll:
     """
     Roll an attack's d20, combining effects on the attacker and the target with any explicit
     sources. Effects that only apply to the attacker's next attack roll (Vicious Mockery) end.
+    Against a prone target the attack has advantage from within 5 ft and disadvantage from
+    farther away (within_5ft None: not known, and prone doesn't count).
     """
+    prone = within_5ft is not None and is_prone(target)
     roll = roll_d20(
-        advantage=advantage or has_advantage(attacker, ATTACK_ROLLS) or has_advantage(target, ATTACKS_AGAINST),
+        advantage=(advantage or has_advantage(attacker, ATTACK_ROLLS) or has_advantage(target, ATTACKS_AGAINST)
+                   or (prone and within_5ft)),
         disadvantage=(disadvantage or has_disadvantage(attacker, ATTACK_ROLLS)
-                      or has_disadvantage(target, ATTACKS_AGAINST) or protected_from(attacker, target)),
+                      or has_disadvantage(target, ATTACKS_AGAINST) or protected_from(attacker, target)
+                      or (prone and not within_5ft)),
     )
     buffs = _buffs(attacker)
     if buffs and any(b.metadata.get('next_attack_only') for b in buffs.active_buffs):
@@ -107,15 +119,17 @@ def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantag
 
 def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
                       advantage: bool = False, disadvantage: bool = False,
-                      cover_bonus: int = 0) -> Dict[str, Any]:
+                      cover_bonus: int = 0, magical: bool = False) -> Dict[str, Any]:
     """
     Roll a saving throw for a creature, including buff bonuses (e.g. Bless), advantage/
     disadvantage and, for DEX saves, a cover bonus. A paralyzed, stunned or unconscious creature
-    automatically fails STR and DEX saves.
+    automatically fails STR and DEX saves. Against a spell or other magical effect (magical=True),
+    a creature with Magic Resistance has advantage.
     """
     keys = (SAVING_THROWS, f'{SAVING_THROWS}:{save_type}')
+    magic_resistance = magical and has_magic_resistance(creature)
     d20 = roll_d20(
-        advantage=advantage or has_advantage(creature, *keys),
+        advantage=advantage or magic_resistance or has_advantage(creature, *keys),
         disadvantage=disadvantage or has_disadvantage(creature, *keys),
     )
     save_bonus = creature.saving_throw_bonus(save_type) if hasattr(creature, 'saving_throw_bonus') else 0
@@ -135,4 +149,6 @@ def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
     }
     if cover_bonus:
         result['cover_bonus'] = cover_bonus
+    if magic_resistance:
+        result['magic_resistance'] = True
     return result
