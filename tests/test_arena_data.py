@@ -14,7 +14,7 @@ from utils.paths import data_path
 
 MONSTERS = json.load(open(data_path('monsters.json')))['monsters']
 CHARACTERS = [c for level in json.load(open(data_path('characters.json'))) for c in level['party']]
-SPELL_ACTIONS = {'Fire Bolt', 'Sacred Flame', 'Eldritch Blast'}
+SPELL_ACTIONS = {'Fire Bolt', 'Sacred Flame', 'Eldritch Blast', 'Produce Flame'}
 SCORES = {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}
 
 

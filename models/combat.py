@@ -376,7 +376,13 @@ class Combat:
             buffs.active_buffs = [b for b in buffs.active_buffs if not b.metadata.get('until_turn_start')]
 
     def _end_of_turn_effects(self, participant: Any) -> None:
-        """Stunning Strike's stun lasts until the end of the monk's next turn."""
+        """
+        Stunning Strike's stun lasts until the end of the monk's next turn, and effects that last
+        until the end of the creature's own next turn (Vicious Mockery) end.
+        """
+        buffs = getattr(participant, 'buffs', None)
+        if buffs is not None and hasattr(buffs, 'active_buffs'):
+            buffs.active_buffs = [b for b in buffs.active_buffs if not b.metadata.get('until_own_turn_end')]
         for creature in self.participants:
             buffs = getattr(creature, 'buffs', None)
             stun = buffs.get_condition('stunned') if buffs is not None and hasattr(buffs, 'get_condition') else None

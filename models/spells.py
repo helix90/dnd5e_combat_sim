@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 # Save spells that still deal half damage on a successful save; the rest deal none
-HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt', 'Moonbeam', 'Call Lightning'}
+HALF_ON_SAVE_SPELLS = {'Fireball', 'Lightning Bolt', 'Moonbeam', 'Call Lightning', 'Burning Hands'}
 
 FEET_PER_MILE = 5280
 TOUCH_RANGE_FEET = 5
@@ -92,7 +92,8 @@ class Spell:
         cantrip_projectiles: bool = False,  # A cantrip that gains beams with level, not dice (Eldritch Blast)
         effect: Optional[str] = None,  # What it does besides damage and healing, see models/spell_effects.py
         combat: bool = True,  # False for spells with no use in a fight (Prestidigitation, Revivify)
-        hit_point_dice: Optional[str] = None  # Sleep's pool of hit points
+        hit_point_dice: Optional[str] = None,  # Sleep's pool of hit points
+        on_failed_save: Optional[Dict[str, Any]] = None  # A buff the target gets if it fails its save (Vicious Mockery)
     ) -> None:
         self.name = name
         self.level = level
@@ -121,6 +122,7 @@ class Spell:
         self.effect = effect
         self.combat = combat
         self.hit_point_dice = hit_point_dice
+        self.on_failed_save = on_failed_save
 
     @property
     def bonus_action(self) -> bool:
@@ -498,6 +500,8 @@ class SpellAction(Action):
             self._resolve(caster, target, targets_list, result, advantage, disadvantage, ac_bonus, save_bonus,
                           save_bonuses, other_targets)
             affected = targets_list if self.spell.is_buff_spell else []
+            if self.spell.on_failed_save and result.get('save_success') is False:
+                spell_effects.debuff(caster, targets_list[0], self.spell.on_failed_save)
             if self.spell.effect == 'call_lightning' and not self.free:
                 spell_effects.call_lightning_storm(caster, self)
                 affected = [caster]
