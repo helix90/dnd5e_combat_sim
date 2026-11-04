@@ -18,8 +18,8 @@ def _parse_routine(description: str, attack_actions: List[Any]) -> List[Any]:
         return next((a for a in attack_actions if word in a.name.lower() or singular in a.name.lower()), None)
 
     attacks = []
-    # "one with its bite and two with its claws"
-    for count, word in re.findall(rf'\b({_COUNT_WORDS})\s+(?:attacks?\s+)?with\s+(?:its\s+)?(\w+)', description):
+    # "one with its bite and two with its claws", "one with its bite and one to constrict"
+    for count, word in re.findall(rf'\b({_COUNT_WORDS})\s+(?:attacks?\s+)?(?:with\s+(?:its\s+)?|to\s+)(\w+)', description):
         action = find_action(word)
         if action:
             attacks.extend([action] * _COUNTS[count])

@@ -58,7 +58,8 @@ class AttackAction(Action):
         range: Optional[Sequence[int]] = None,  # (normal, long) range in feet for ranged/thrown attacks
         area: Optional[Dict[str, Any]] = None,  # Area effect shape, e.g. {'shape': 'cone', 'size': 30}
         recharge: Optional[int] = None,  # "Recharge 5-6" -> 5: usable again on a d6 roll of 5 or more
-        magical: bool = False  # Gets past resistance to nonmagical weapon damage (Ki-Empowered Strikes)
+        magical: bool = False,  # Gets past resistance to nonmagical weapon damage (Ki-Empowered Strikes)
+        extra_damage: Optional[Dict[str, Any]] = None  # Damage of another type on a hit, see roll_extra_damage
     ) -> None:
         super().__init__(action_type="attack", name=name, description=description)
         self.weapon_name = weapon_name
@@ -78,6 +79,9 @@ class AttackAction(Action):
         self.recharge = recharge
         self.ready = True  # False after a recharge action is used, until it recharges
         self.magical = magical
+        # e.g. {'dice': '2d6', 'type': 'poison'} (a green dragon's bite), optionally with
+        # 'save_type' and 'save_dc' for half on a successful save (a wyvern's sting)
+        self.extra_damage = extra_damage
         self.range = self._validate_range(range)
         # Melee attacks reach 5 ft unless they say otherwise. A ranged-only attack has no reach;
         # a thrown weapon like a javelin has both. Area effects (breath weapons) have a shape instead.
@@ -149,7 +153,8 @@ class AttackAction(Action):
         rolls = [random.randint(1, die) for _ in range(num)]
         # Only add ability modifier if dice_mod is zero (i.e., not already included in dice string)
         mod = 0
-        if hasattr(attacker, 'ability_modifier') and dice_mod == 0:
+        # A save-based area effect (a breath weapon) is just its dice
+        if hasattr(attacker, 'ability_modifier') and dice_mod == 0 and not (self.area_effect and self.save_type):
             # Use weapon_type to determine which ability modifier to use
             if self.weapon_type == 'ranged':
                 mod = attacker.ability_modifier('dex')
@@ -171,6 +176,25 @@ class AttackAction(Action):
         if within_5ft is None:
             within_5ft = self.weapon_type != 'ranged'
         return within_5ft and melee_hits_crit(target)
+
+    def roll_extra_damage(self, target: Any, critical: bool = False) -> Dict[str, Any]:
+        """
+        The extra damage of another type a hit deals (extra_damage), applied to the target with
+        that type: dice doubled on a critical hit, halved on a successful save if it has one.
+        """
+        extra = self.extra_damage or {}
+        if not extra.get('dice'):
+            return {}
+        num, die, mod = self.parse_dice(extra['dice'])
+        amount = sum(random.randint(1, die) for _ in range(num * 2 if critical else num)) + mod
+        result = {'extra_damage_type': extra.get('type')}
+        if extra.get('save_type') and extra.get('save_dc'):
+            save = roll_saving_throw(target, extra['save_type'], extra['save_dc'])
+            result['extra_damage_save'] = save
+            if save['save_success']:
+                amount //= 2
+        result['extra_damage'] = apply_damage(target, max(0, amount), extra.get('type'))
+        return result
 
     def _apply_on_hit_effect(self, attacker: Any, target: Any) -> Dict[str, Any]:
         """Apply this attack's on-hit condition (currently paralysis) to a target that was hit."""
@@ -336,6 +360,9 @@ class AttackAction(Action):
             if hit:
                 damage = apply_damage(targets_list[0], damage, self.damage_type, critical,
                                       self.magical or has_flag(attacker, 'magical_weapon'))
+                extra = self.roll_extra_damage(attack_target, critical) if self.extra_damage else {}
+                result.update(extra)
+                damage += extra.get('extra_damage', 0)
 
             if hit and self.on_hit:
                 result.update(self._apply_on_hit_effect(attacker, attack_target))
