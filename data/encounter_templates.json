@@ -270,6 +270,212 @@
         {"name": "Vampire Spawn", "count": 1},
         {"name": "Skeleton", "count": 8}
       ]
+    },
+    {
+      "name": "Ogre Warband",
+      "level": 7,
+      "type": "mob",
+      "arena": "Ogre Camp",
+      "monsters": [
+        {"name": "Ogre", "count": 5}
+      ]
+    },
+    {
+      "name": "Hell Hound Pack",
+      "level": 7,
+      "type": "mob",
+      "arena": "Scorched Ruins",
+      "monsters": [
+        {"name": "Hell Hound", "count": 4}
+      ]
+    },
+    {
+      "name": "Stone Giant's Pass",
+      "level": 7,
+      "type": "elite",
+      "arena": "Giant's Stair",
+      "monsters": [
+        {"name": "Stone Giant", "count": 1},
+        {"name": "Ogre", "count": 1}
+      ]
+    },
+    {
+      "name": "Ghast Warren",
+      "level": 7,
+      "type": "mixed",
+      "arena": "Warren Tunnels",
+      "monsters": [
+        {"name": "Ghast", "count": 3},
+        {"name": "Ghoul", "count": 4}
+      ]
+    },
+    {
+      "name": "Wyvern Roost",
+      "level": 8,
+      "type": "elite",
+      "arena": "Wyvern Aerie",
+      "monsters": [
+        {"name": "Wyvern", "count": 2}
+      ]
+    },
+    {
+      "name": "Winter Wolf Hunt",
+      "level": 8,
+      "type": "mob",
+      "arena": "Frozen Lake",
+      "monsters": [
+        {"name": "Winter Wolf", "count": 4}
+      ]
+    },
+    {
+      "name": "Ettin Gatehouse",
+      "level": 8,
+      "type": "mixed",
+      "arena": "Fortress Gate",
+      "monsters": [
+        {"name": "Ettin", "count": 2},
+        {"name": "Ogre", "count": 3}
+      ]
+    },
+    {
+      "name": "Green Dragon's Wood",
+      "level": 8,
+      "type": "boss",
+      "arena": "Poisoned Grove",
+      "monsters": [
+        {"name": "Young Green Dragon", "count": 1},
+        {"name": "Ogre", "count": 2}
+      ]
+    },
+    {
+      "name": "Frost Giant Raid",
+      "level": 9,
+      "type": "elite",
+      "arena": "Glacier Hall",
+      "monsters": [
+        {"name": "Frost Giant", "count": 1},
+        {"name": "Winter Wolf", "count": 2}
+      ]
+    },
+    {
+      "name": "Angry Grove",
+      "level": 9,
+      "type": "elite",
+      "arena": "Elder Grove",
+      "monsters": [
+        {"name": "Treant", "count": 1},
+        {"name": "Owlbear", "count": 1}
+      ]
+    },
+    {
+      "name": "Hellfire Pack",
+      "level": 9,
+      "type": "mob",
+      "arena": "Hellfire Rift",
+      "monsters": [
+        {"name": "Hell Hound", "count": 6}
+      ]
+    },
+    {
+      "name": "Blue Dragon's Mesa",
+      "level": 9,
+      "type": "boss",
+      "arena": "Storm Mesa",
+      "monsters": [
+        {"name": "Young Blue Dragon", "count": 1},
+        {"name": "Hobgoblin", "count": 4}
+      ]
+    },
+    {
+      "name": "Fire Giant's Forge",
+      "level": 10,
+      "type": "elite",
+      "arena": "Giant's Forge",
+      "monsters": [
+        {"name": "Fire Giant", "count": 1},
+        {"name": "Hell Hound", "count": 2}
+      ]
+    },
+    {
+      "name": "Giant Quarry",
+      "level": 10,
+      "type": "mixed",
+      "arena": "Quarry Pit",
+      "monsters": [
+        {"name": "Stone Giant", "count": 1},
+        {"name": "Ettin", "count": 1},
+        {"name": "Ogre", "count": 2}
+      ]
+    },
+    {
+      "name": "Wraiths' Ossuary",
+      "level": 10,
+      "type": "mixed",
+      "arena": "Bone Cathedral",
+      "monsters": [
+        {"name": "Wraith", "count": 2},
+        {"name": "Ghast", "count": 4}
+      ]
+    },
+    {
+      "name": "Red Dragon's Caldera",
+      "level": 10,
+      "type": "boss",
+      "arena": "Volcanic Caldera",
+      "monsters": [
+        {"name": "Young Red Dragon", "count": 1},
+        {"name": "Hell Hound", "count": 2}
+      ]
+    },
+    {
+      "name": "Behir's Gorge",
+      "level": 11,
+      "type": "elite",
+      "arena": "Lightning Gorge",
+      "monsters": [
+        {"name": "Behir", "count": 1},
+        {"name": "Ettin", "count": 1}
+      ]
+    },
+    {
+      "name": "Remorhaz Tunnels",
+      "level": 11,
+      "type": "elite",
+      "arena": "Ice Tunnels",
+      "monsters": [
+        {"name": "Remorhaz", "count": 1},
+        {"name": "Winter Wolf", "count": 1}
+      ]
+    },
+    {
+      "name": "Stone Giant Clan",
+      "level": 11,
+      "type": "mixed",
+      "arena": "Giant Steading",
+      "monsters": [
+        {"name": "Stone Giant", "count": 2},
+        {"name": "Ogre", "count": 2}
+      ]
+    },
+    {
+      "name": "Devil's Gate",
+      "level": 11,
+      "type": "boss",
+      "arena": "Infernal Gate",
+      "monsters": [
+        {"name": "Horned Devil", "count": 1},
+        {"name": "Hell Hound", "count": 3}
+      ]
+    },
+    {
+      "name": "Fury of the Erinyes",
+      "level": 11,
+      "type": "boss",
+      "arena": "Ruined Temple",
+      "monsters": [
+        {"name": "Erinyes", "count": 1},
+        {"name": "Hobgoblin", "count": 4}
+      ]
     }
   ]
-} 
+}

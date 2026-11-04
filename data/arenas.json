@@ -393,6 +393,290 @@
         {"kind": "low_wall", "difficult": true, "cover": "half", "rects": [[25, 4, 25, 8]]}
       ],
       "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[24, 3, 30, 18]]}}
+    },
+    {
+      "name": "Ogre Camp",
+      "description": "A hill camp of hide tents around a fire pit, with bones and a crude palisade.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tent", "difficult": true, "cover": "half", "rects": [[16, 3, 18, 5], [16, 14, 18, 16], [26, 9, 27, 11]]},
+        {"kind": "fire_pit", "impassable": true, "cover": "half", "rects": [[20, 9, 21, 10]]},
+        {"kind": "palisade", "impassable": true, "cover": "total", "rects": [[11, 0, 11, 5], [11, 14, 11, 19]]},
+        {"kind": "bones", "difficult": true, "rects": [[13, 8, 14, 11]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[21, 2, 27, 17]]}}
+    },
+    {
+      "name": "Scorched Ruins",
+      "description": "A burned-out village: charred walls, smoking rubble and a collapsed chimney.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[10, 3, 13, 3], [10, 3, 10, 6], [16, 14, 20, 14], [20, 14, 20, 17]]},
+        {"kind": "chimney", "impassable": true, "cover": "three_quarters", "squares": [[15, 8], [15, 9]]},
+        {"kind": "rubble", "difficult": true, "rects": [[11, 10, 13, 12], [18, 4, 20, 6]]},
+        {"kind": "embers", "difficult": true, "rects": [[7, 15, 9, 17]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[22, 4, 27, 15]]}}
+    },
+    {
+      "name": "Giant's Stair",
+      "description": "A mountain pass climbing in broad stone steps between cliffs, strewn with boulders.",
+      "width": 34,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "cliff", "impassable": true, "cover": "total", "rects": [[0, 0, 33, 1], [0, 20, 33, 21], [12, 2, 15, 4], [12, 17, 15, 19]]},
+        {"kind": "boulder", "impassable": true, "cover": "three_quarters", "squares": [[9, 9], [9, 12], [18, 6], [18, 15], [21, 10], [21, 11]]},
+        {"kind": "scree", "difficult": true, "rects": [[16, 8, 19, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[24, 4, 31, 17]]}}
+    },
+    {
+      "name": "Warren Tunnels",
+      "description": "A ghast warren: narrow tunnels of packed earth opening into a feeding chamber.",
+      "width": 32,
+      "height": 18,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "earth", "impassable": true, "cover": "total", "rects": [[8, 0, 13, 5], [8, 12, 13, 17], [17, 0, 20, 3], [17, 14, 20, 17]]},
+        {"kind": "bones", "difficult": true, "rects": [[22, 6, 25, 11]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[15, 8], [15, 9]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 5, 11]]}, "monsters": {"rects": [[23, 2, 30, 15]]}}
+    },
+    {
+      "name": "Wyvern Aerie",
+      "description": "A windswept clifftop strewn with nests of branches and the bones of past meals.",
+      "width": 30,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "nest", "difficult": true, "cover": "half", "rects": [[22, 3, 24, 5], [22, 14, 24, 16]]},
+        {"kind": "crag", "impassable": true, "cover": "three_quarters", "squares": [[12, 5], [13, 5], [12, 14], [13, 14], [17, 9], [17, 10]]},
+        {"kind": "bones", "difficult": true, "rects": [[18, 7, 20, 12]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[20, 4, 27, 15]]}}
+    },
+    {
+      "name": "Frozen Lake",
+      "description": "A frozen lake under a snowfall, with drifts along the shore and pines beyond.",
+      "width": 32,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "ice", "difficult": true, "rects": [[10, 4, 21, 15]]},
+        {"kind": "tree", "impassable": true, "cover": "total", "squares": [[4, 2], [8, 1], [5, 17], [9, 18], [25, 1], [28, 3], [26, 17]]},
+        {"kind": "drift", "difficult": true, "cover": "half", "rects": [[7, 7, 7, 12], [24, 6, 24, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 5, 13]]}, "monsters": {"rects": [[25, 4, 30, 15]]}}
+    },
+    {
+      "name": "Fortress Gate",
+      "description": "The broken gatehouse of a ruined hill fort, held by its new tenants.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[14, 0, 15, 7], [14, 14, 15, 21]]},
+        {"kind": "gate", "difficult": true, "cover": "half", "rects": [[14, 9, 15, 12]]},
+        {"kind": "rubble", "difficult": true, "rects": [[9, 4, 11, 6], [9, 15, 11, 17]]},
+        {"kind": "crate", "impassable": true, "cover": "three_quarters", "squares": [[21, 5], [21, 16], [25, 10]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[18, 3, 29, 18]]}}
+    },
+    {
+      "name": "Poisoned Grove",
+      "description": "An old forest gone sickly green, its hollows filled with poison mist and its pools stagnant.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tree", "impassable": true, "cover": "total", "squares": [[9, 3], [11, 8], [9, 14], [12, 18], [16, 4], [17, 12], [20, 7], [20, 17], [14, 10]]},
+        {"kind": "water", "impassable": true, "rects": [[13, 14, 15, 16]]},
+        {"kind": "brush", "difficult": true, "cover": "half", "rects": [[7, 9, 8, 12], [18, 1, 20, 3]]},
+        {"kind": "mire", "difficult": true, "rects": [[16, 8, 18, 10]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[22, 4, 29, 17]]}}
+    },
+    {
+      "name": "Glacier Hall",
+      "description": "A frost giant's hall carved into a glacier: ice pillars, a long table and a roaring hearth.",
+      "width": 34,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "ice_pillar", "impassable": true, "cover": "total", "rects": [[11, 4, 12, 5], [11, 16, 12, 17], [19, 4, 20, 5], [19, 16, 20, 17]]},
+        {"kind": "table", "difficult": true, "cover": "half", "rects": [[14, 9, 17, 12]]},
+        {"kind": "ice", "difficult": true, "rects": [[7, 1, 10, 3], [7, 18, 10, 20]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[23, 4, 31, 17]]}}
+    },
+    {
+      "name": "Elder Grove",
+      "description": "A ring of ancient oaks around a mossy glade, guarded by its oldest tree.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "tree", "impassable": true, "cover": "total", "squares": [[10, 3], [14, 1], [19, 2], [10, 18], [14, 20], [19, 19], [13, 10], [13, 11]]},
+        {"kind": "roots", "difficult": true, "rects": [[15, 6, 17, 8], [15, 13, 17, 15]]},
+        {"kind": "brush", "difficult": true, "cover": "half", "rects": [[8, 8, 8, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[21, 4, 29, 17]]}}
+    },
+    {
+      "name": "Hellfire Rift",
+      "description": "A cracked plain where a rift to the Nine Hells has opened, oozing fire.",
+      "width": 32,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "lava", "impassable": true, "rects": [[15, 0, 16, 5], [15, 14, 16, 19]]},
+        {"kind": "basalt", "impassable": true, "cover": "three_quarters", "squares": [[11, 7], [11, 12], [20, 6], [20, 13]]},
+        {"kind": "ash", "difficult": true, "rects": [[12, 8, 14, 11], [17, 8, 19, 11]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 6, 6, 13]]}, "monsters": {"rects": [[23, 3, 29, 16]]}}
+    },
+    {
+      "name": "Storm Mesa",
+      "description": "A flat-topped mesa of red rock under a thundering sky, with standing stones and a scorched altar.",
+      "width": 34,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "standing_stone", "impassable": true, "cover": "three_quarters", "squares": [[11, 4], [11, 17], [16, 2], [16, 19], [21, 4], [21, 17]]},
+        {"kind": "altar", "difficult": true, "cover": "half", "rects": [[18, 10, 19, 11]]},
+        {"kind": "scree", "difficult": true, "rects": [[8, 9, 10, 12], [24, 1, 27, 3]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[23, 4, 31, 17]]}}
+    },
+    {
+      "name": "Giant's Forge",
+      "description": "A fire giant forge: an anvil the size of a cart, channels of molten metal and racks of blades.",
+      "width": 34,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "lava", "impassable": true, "rects": [[12, 0, 13, 6], [12, 15, 13, 21], [20, 9, 21, 12]]},
+        {"kind": "anvil", "impassable": true, "cover": "three_quarters", "rects": [[17, 4, 18, 5], [17, 16, 18, 17]]},
+        {"kind": "rack", "difficult": true, "cover": "half", "rects": [[9, 9, 9, 12]]},
+        {"kind": "slag", "difficult": true, "rects": [[14, 8, 16, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[23, 3, 31, 18]]}}
+    },
+    {
+      "name": "Quarry Pit",
+      "description": "A stepped quarry of cut stone: half-dressed blocks, a crane and loose gravel.",
+      "width": 34,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "block", "impassable": true, "cover": "three_quarters", "rects": [[10, 3, 11, 4], [10, 17, 11, 18], [16, 7, 17, 8], [16, 13, 17, 14]]},
+        {"kind": "crane", "impassable": true, "cover": "total", "squares": [[21, 10], [21, 11]]},
+        {"kind": "gravel", "difficult": true, "rects": [[12, 9, 15, 12], [22, 1, 25, 3]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[23, 3, 31, 18]]}}
+    },
+    {
+      "name": "Bone Cathedral",
+      "description": "A cathedral built of bones, with ossuary niches, a collapsed nave and a black altar.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "pillar", "impassable": true, "cover": "total", "squares": [[10, 5], [10, 16], [15, 5], [15, 16], [20, 5], [20, 16]]},
+        {"kind": "pew", "difficult": true, "cover": "half", "rects": [[11, 8, 13, 8], [11, 13, 13, 13], [17, 8, 19, 8], [17, 13, 19, 13]]},
+        {"kind": "bones", "difficult": true, "rects": [[14, 10, 16, 11]]},
+        {"kind": "ossuary", "impassable": true, "cover": "total", "rects": [[0, 0, 31, 0], [0, 21, 31, 21]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[23, 3, 30, 18]]}}
+    },
+    {
+      "name": "Volcanic Caldera",
+      "description": "A dragon's lair in a volcano's caldera: lava channels, obsidian spires and a hoard on a ledge.",
+      "width": 34,
+      "height": 24,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "lava", "impassable": true, "rects": [[11, 0, 13, 5], [11, 18, 13, 23], [19, 10, 20, 13]]},
+        {"kind": "spire", "impassable": true, "cover": "total", "squares": [[9, 9], [9, 14], [16, 6], [16, 17], [24, 3], [24, 20]]},
+        {"kind": "treasure", "difficult": true, "cover": "half", "rects": [[29, 10, 31, 13]]},
+        {"kind": "ash", "difficult": true, "rects": [[14, 10, 17, 13]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 8, 6, 15]]}, "monsters": {"rects": [[22, 4, 29, 19]]}}
+    },
+    {
+      "name": "Lightning Gorge",
+      "description": "A narrow gorge scarred by lightning, with fallen rock and a stream running through.",
+      "width": 36,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "cliff", "impassable": true, "cover": "total", "rects": [[0, 0, 35, 1], [0, 18, 35, 19], [13, 2, 16, 5], [20, 14, 23, 17]]},
+        {"kind": "shallows", "difficult": true, "rects": [[9, 9, 30, 10]]},
+        {"kind": "boulder", "impassable": true, "cover": "three_quarters", "squares": [[11, 13], [18, 5], [25, 12]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 5, 6, 14]]}, "monsters": {"rects": [[25, 2, 33, 15]]}}
+    },
+    {
+      "name": "Ice Tunnels",
+      "description": "Tunnels melted through a glacier by a remorhaz's heat, with icy walls and slush.",
+      "width": 34,
+      "height": 20,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "ice", "impassable": true, "cover": "total", "rects": [[9, 0, 14, 5], [9, 14, 14, 19], [19, 0, 21, 3], [19, 16, 21, 19]]},
+        {"kind": "slush", "difficult": true, "rects": [[15, 6, 20, 13]]},
+        {"kind": "ice_pillar", "impassable": true, "cover": "total", "squares": [[25, 9], [25, 10]]}
+      ],
+      "start_zones": {"party": {"rects": [[1, 6, 5, 13]]}, "monsters": {"rects": [[23, 3, 31, 16]]}}
+    },
+    {
+      "name": "Giant Steading",
+      "description": "A stone giants' steading: a great hall of standing slabs around a carved pillar.",
+      "width": 34,
+      "height": 24,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "slab", "impassable": true, "cover": "total", "rects": [[12, 2, 12, 7], [12, 16, 12, 21], [20, 2, 20, 7], [20, 16, 20, 21]]},
+        {"kind": "pillar", "impassable": true, "cover": "total", "rects": [[16, 11, 16, 12]]},
+        {"kind": "rubble", "difficult": true, "rects": [[8, 10, 10, 13]]},
+        {"kind": "block", "impassable": true, "cover": "three_quarters", "squares": [[14, 4], [18, 19]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 8, 6, 15]]}, "monsters": {"rects": [[22, 3, 31, 20]]}}
+    },
+    {
+      "name": "Infernal Gate",
+      "description": "A gate to the Nine Hells in a ruined fortress yard: a burning archway, chains and pits of fire.",
+      "width": 34,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "lava", "impassable": true, "rects": [[14, 3, 15, 5], [14, 16, 15, 18]]},
+        {"kind": "archway", "impassable": true, "cover": "total", "squares": [[27, 6], [27, 15]]},
+        {"kind": "chains", "difficult": true, "rects": [[18, 8, 20, 13]]},
+        {"kind": "wall", "impassable": true, "cover": "total", "rects": [[10, 0, 10, 4], [10, 17, 10, 21]]},
+        {"kind": "statue", "impassable": true, "cover": "three_quarters", "squares": [[22, 4], [22, 17]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[22, 6, 30, 15]]}}
+    },
+    {
+      "name": "Ruined Temple",
+      "description": "A ruined temple open to the sky, its columns fallen across the floor.",
+      "width": 32,
+      "height": 22,
+      "diagonals": "5",
+      "terrain": [
+        {"kind": "column", "impassable": true, "cover": "total", "squares": [[10, 4], [10, 17], [15, 4], [15, 17], [20, 4], [20, 17]]},
+        {"kind": "fallen_column", "difficult": true, "cover": "half", "rects": [[12, 9, 14, 9], [17, 12, 19, 12]]},
+        {"kind": "rubble", "difficult": true, "rects": [[22, 9, 23, 12]]},
+        {"kind": "altar", "impassable": true, "cover": "three_quarters", "rects": [[28, 10, 29, 11]]}
+      ],
+      "start_zones": {"party": {"rects": [[2, 7, 6, 14]]}, "monsters": {"rects": [[21, 3, 27, 18]]}}
     }
   ]
 }
