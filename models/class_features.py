@@ -17,7 +17,7 @@ from models.buffs import Buff, BuffManager, create_stunned_condition, create_tur
 from models.damage import apply_damage
 from models.rolls import roll_saving_throw
 from models.spells import Spell, SpellAction
-from models.weapons import MONK_WEAPONS
+from models.weapons import MONK_WEAPONS, THROWN_WEAPONS, TWO_HANDED_WEAPONS
 
 WEAPON_DAMAGE = ['bludgeoning', 'piercing', 'slashing']
 SMITE_UNDEAD_TYPES = {'undead', 'fiend'}
@@ -138,8 +138,30 @@ def start_rage(creature: Any) -> Dict[str, Any]:
 
 
 def weapon_damage_bonus(creature: Any, action: Any) -> int:
-    """Rage adds its bonus to the damage of melee weapon attacks made with Strength."""
-    return rage_damage(getattr(creature, 'level', 1)) if is_raging(creature) and uses_strength(action) else 0
+    """
+    Rage adds its bonus to the damage of melee weapon attacks made with Strength, and the Dueling
+    fighting style +2 to attacks with a one-handed melee weapon. A weapon the character also throws
+    (javelin, handaxe) doesn't get Dueling, since the attack can't tell a throw from a swing.
+    """
+    bonus = rage_damage(getattr(creature, 'level', 1)) if is_raging(creature) and uses_strength(action) else 0
+    name = getattr(action, 'weapon_name', None) or getattr(action, 'name', '')
+    if has_feature(creature, 'Fighting Style: Dueling') and is_melee_weapon(action) \
+            and name not in TWO_HANDED_WEAPONS and name not in THROWN_WEAPONS:
+        bonus += 2
+    return bonus
+
+
+def brutal_critical_dice(creature: Any, action: Any) -> int:
+    """Brutal Critical (barbarian 9th level): extra weapon dice on a melee critical hit, 2 at 13th, 3 at 17th."""
+    if not has_feature(creature, 'Brutal Critical') or not is_melee_weapon(action):
+        return 0
+    level = getattr(creature, 'level', 1)
+    return 1 + (level >= 13) + (level >= 17)
+
+
+def initiative_advantage(creature: Any) -> bool:
+    """Feral Instinct (barbarian 7th level): advantage on initiative."""
+    return has_feature(creature, 'Feral Instinct')
 
 
 def reckless(creature: Any, action: Any, distance: Optional[int] = None) -> bool:

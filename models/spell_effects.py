@@ -14,8 +14,8 @@ import random
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from models import concentration
-from models.buffs import (Buff, BuffManager, create_hypnotized_condition, create_restrained_condition,
-                          create_unconscious_condition, has_flag)
+from models.buffs import (Buff, BuffManager, create_hypnotized_condition, create_paralyzed_condition,
+                          create_restrained_condition, create_unconscious_condition, has_flag)
 from models.damage import apply_damage, damage_after_save
 from models.rolls import attack_hits, attack_roll, is_critical, roll_d20, roll_saving_throw
 
@@ -57,6 +57,24 @@ def _spell_modifier(caster: Any) -> int:
 
 def _duration(action: Any) -> int:
     return action.spell.duration_rounds
+
+
+def _dice(action: Any) -> str:
+    """The spell's dice with what its slot adds: Moonbeam in a 4th-level slot is '2d10' + '2d10'."""
+    extra = action.spell.upcast_dice(action.spell_slot_level)
+    if not extra:
+        return action.spell.damage_dice
+    (n1, d1), (n2, d2) = (x.lower().split('d') for x in (action.spell.damage_dice, extra))
+    return f"{int(n1) + int(n2)}d{d1}" if d1 == d2 else action.spell.damage_dice
+
+
+def held_slot(caster: Any, spell_name: str) -> Optional[int]:
+    """The slot a lasting spell the caster keeps going was cast with (Call Lightning's later bolts)."""
+    buffs = getattr(caster, 'buffs', None)
+    if not isinstance(buffs, BuffManager):
+        return None
+    return next((b.metadata.get('slot_level') for b in buffs.active_buffs
+                 if b.metadata.get('storm') == spell_name or b.metadata.get('concentrating_on') == spell_name), None)
 
 
 # Buff spells
@@ -159,6 +177,25 @@ def _hypnotic_pattern(action: Any, caster: Any, targets: List[Any], bonuses: Dic
                              'hypnotized')
 
 
+def _hold(action: Any, caster: Any, targets: List[Any], bonuses: Dict[Any, int]) -> Tuple[Dict[str, Any], List[Any]]:
+    """
+    Hold Monster (WIS save): paralyzed while the caster concentrates, repeating the save at the end
+    of each of its turns. No effect on undead.
+    """
+    dc = action.spell.get_save_dc(caster)
+    target = targets[0]
+    if not action.spell.affects(target):
+        return {'save_type': action.spell.save_type, 'save_dc': dc, 'no_effect': True,
+                'target_results': [{'target': _name(target), 'immune': True}],
+                'conditions_applied': [], 'effect_text': f"no effect on {_name(target)}"}, []
+
+    def paralyze() -> Buff:
+        buff = create_paralyzed_condition(_name(caster), action.spell.save_type, dc, _duration(action))
+        buff.concentration = True
+        return buff
+    return _saving_condition(action, caster, [target], bonuses, 'paralyzed', paralyze, 'paralyzed')
+
+
 def try_escape(creature: Any) -> Dict[str, Any]:
     """A restrained creature uses its action on a STR check against the spell's DC to get free."""
     condition = creature.buffs.get_condition('restrained')
@@ -188,7 +225,7 @@ def _moonbeam(action: Any, caster: Any, targets: List[Any], _bonuses: Dict[Any, 
             creature.buffs.active_buffs = [b for b in creature.buffs.active_buffs
                                            if not (b.name == 'Moonbeam' and b.source == name)]
     target.buffs.add_buff(Buff(name='Moonbeam', source=name, duration_rounds=_duration(action), concentration=True,
-                               metadata={'moonbeam': {'dice': action.spell.damage_dice, 'save_dc': action.spell.get_save_dc(caster),
+                               metadata={'moonbeam': {'dice': _dice(action), 'save_dc': action.spell.get_save_dc(caster),
                                                       'damage_type': action.spell.damage_type}}))
     if action.free:
         concentration.add_creature(caster, target)
@@ -265,7 +302,9 @@ def _spiritual_weapon(action: Any, caster: Any, targets: List[Any], _bonuses: Di
     """Spiritual Weapon appears for 1 minute and attacks at once (see spiritual_weapon_attack)."""
     caster.buffs.remove_buff('Spiritual Weapon')
     caster.buffs.add_buff(Buff(name='Spiritual Weapon', source=_name(caster), duration_rounds=_duration(action),
-                               metadata={'spiritual_weapon': True}))
+                               metadata={'spiritual_weapon': True,
+                                         'spiritual_weapon_dice': _dice(action) if action.spell.damage_dice
+                                         else SPIRITUAL_WEAPON_DICE}))
     return spiritual_weapon_attack(caster, targets[0]), []
 
 
@@ -274,13 +313,16 @@ def has_spiritual_weapon(caster: Any) -> bool:
 
 
 def spiritual_weapon_attack(caster: Any, target: Any, advantage: bool = False, disadvantage: bool = False) -> Dict[str, Any]:
-    """The weapon's melee spell attack: 1d8 + the caster's spellcasting modifier force damage."""
+    """The weapon's melee spell attack: 1d8 (1d8 more per two slot levels above 2nd) + the caster's spellcasting modifier force damage."""
+    weapon = next((b for b in caster.buffs.active_buffs if b.metadata.get('spiritual_weapon')), None) \
+        if _has_buffs(caster) else None
+    dice = (weapon.metadata.get('spiritual_weapon_dice') if weapon else None) or SPIRITUAL_WEAPON_DICE
     bonus = caster.spell_attack_bonus() if hasattr(caster, 'spell_attack_bonus') else 0
     d20 = attack_roll(caster, target, advantage, disadvantage)
     total = d20.result + bonus
     hit = attack_hits(d20.result, total, getattr(target, 'ac', 10))
     critical = hit and is_critical(d20.result, caster)
-    damage = apply_damage(target, _roll(SPIRITUAL_WEAPON_DICE, critical) + _spell_modifier(caster), 'force',
+    damage = apply_damage(target, _roll(dice, critical) + _spell_modifier(caster), 'force',
                           critical, magical=True) if hit else 0
     return {'target': _name(target), 'attack_roll': d20.result, 'attack_rolls': d20.rolls, 'total_attack': total,
             'target_ac': getattr(target, 'ac', 10), 'advantage': d20.advantage, 'disadvantage': d20.disadvantage,
@@ -338,6 +380,7 @@ HANDLERS: Dict[str, Handler] = {
     'moonbeam': _moonbeam,
     'hunters_mark': _hunters_mark,
     'spiritual_weapon': _spiritual_weapon,
+    'hold': _hold,
 }
 
 
@@ -353,7 +396,8 @@ def debuff(caster: Any, target: Any, data: Dict[str, Any]) -> None:
 def call_lightning_storm(caster: Any, action: Any) -> None:
     """After the first bolt, the storm stays while the caster concentrates: later bolts take an action but no slot."""
     caster.buffs.add_buff(Buff(name='Call Lightning', source=_name(caster), duration_rounds=_duration(action),
-                               concentration=True, metadata={'storm': action.spell.name}))
+                               concentration=True, metadata={'storm': action.spell.name,
+                                                             'slot_level': action.spell_slot_level}))
 
 
 def prepare(character: Any) -> Optional[Dict[str, Any]]:

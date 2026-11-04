@@ -3,7 +3,7 @@ from typing import Any, List, Dict, Protocol, Callable, Optional
 import logging
 import random
 from models import class_features as feature_rules
-from models import concentration
+from models import concentration, spell_effects
 from models.buffs import is_spellbound
 from models.spells import SpellAction
 from models.actions import AttackAction
@@ -44,6 +44,10 @@ SLEEP_MIN_ENEMIES = 2
 SLEEP_AVERAGE_POOL = 22.5
 # Entangle, Web and Hypnotic Pattern are worth a slot if this many enemies are expected to fail the save
 CONTROL_MIN_AFFECTED = 1.5
+# Mass Cure Wounds (or another spell healing several creatures) once this many allies need healing
+MASS_HEAL_MIN_ALLIES = 3
+# Hold Monster is worth a 5th-level slot when the target is at least this likely to fail its WIS save
+HOLD_MIN_FAIL_CHANCE = 0.5
 # Moonbeam and Call Lightning are worth their slot against enemies with at least this many hit points left
 LASTING_SPELL_MIN_HP = 25
 # Mirror Image once the caster is below this share of its hit points
@@ -379,10 +383,21 @@ class PartyAIStrategy(AIStrategy):
         healing_spells = [
             s for s in combat_spells(combatant)
             if hasattr(s, 'healing') and s.healing
+            and (getattr(s, 'level', 0) == 0 or lowest_slot(combatant, getattr(s, 'level', 1)) is not None)
         ]
 
         if not healing_spells:
             return None
+
+        # Several allies hurt: heal them all at once (Mass Cure Wounds)
+        group = [s for s in healing_spells if getattr(s, 'max_targets', 1) > 1]
+        if group and len(injured_allies) >= MASS_HEAL_MIN_ALLIES:
+            spell = max(group, key=lambda s: s.level)
+            targets = sorted(injured_allies, key=lambda a: a.hp / a.max_hp if a.max_hp > 0 else a.hp)[:spell.max_targets]
+            logger.info(f"[PartyAI] {combatant.name} heals {', '.join(t.name for t in targets)} with {spell.name}")
+            return {'type': 'cast_spell', 'spell': SpellAction(spell, spell_slot_level=lowest_slot(combatant, spell.level)),
+                    'target': targets}
+        healing_spells = [s for s in healing_spells if getattr(s, 'max_targets', 1) == 1] or healing_spells
 
         # Pick the most injured ally
         target = min(
@@ -394,7 +409,7 @@ class PartyAIStrategy(AIStrategy):
         missing_hp = target.max_hp - target.hp if hasattr(target, 'max_hp') else 0
         spell = self._select_best_healing_spell(healing_spells, missing_hp)
 
-        spell_action = SpellAction(spell)
+        spell_action = SpellAction(spell, spell_slot_level=lowest_slot(combatant, spell.level) if spell.level else None)
 
         priority = "CRITICAL" if is_critical else "LOW HP"
         logger.info(f"[PartyAI] {combatant.name} heals {target.name} ({priority}) with {spell.name}")
@@ -476,17 +491,8 @@ class PartyAIStrategy(AIStrategy):
         if not buff_spells:
             return None
 
-        # Filter to spells we have slots for
-        castable_buffs = []
-        for spell in buff_spells:
-            spell_level = getattr(spell, 'level', 1)
-            # Check if we have spell slots
-            if hasattr(combatant, 'spell_slots_remaining'):
-                slots = combatant.spell_slots_remaining
-                # Try both int and str keys
-                available = slots.get(spell_level, 0) or slots.get(str(spell_level), 0)
-                if available > 0:
-                    castable_buffs.append(spell)
+        # Filter to spells we have a slot for, of the spell's level or higher
+        castable_buffs = [s for s in buff_spells if lowest_slot(combatant, getattr(s, 'level', 1)) is not None]
 
         if not castable_buffs:
             return None
@@ -543,7 +549,7 @@ class PartyAIStrategy(AIStrategy):
                 # Use list of targets if multi-target, single target otherwise
                 target = targets_to_buff if len(targets_to_buff) > 1 else targets_to_buff[0]
 
-                spell_action = SpellAction(spell, spell_slot_level=spell.level)
+                spell_action = SpellAction(spell, spell_slot_level=lowest_slot(combatant, spell.level))
 
                 # Log differently for multi-target spells
                 if len(targets_to_buff) > 1:
@@ -670,6 +676,11 @@ class PartyAIStrategy(AIStrategy):
                 if affected >= CONTROL_MIN_AFFECTED:
                     return self._effect_plan(combatant, spell, ranked)
         biggest = max(active, key=lambda e: e.hp, default=None)
+        hold = spells.get('Hold Monster')
+        if castable('Hold Monster') and biggest is not None and biggest.hp >= LASTING_SPELL_MIN_HP and \
+                hold.affects(biggest) and not _immune(biggest, 'paralyzed') and \
+                _save_fails(biggest, 'wis', dc) >= HOLD_MIN_FAIL_CHANCE:
+            return self._effect_plan(combatant, hold, biggest)
         if castable('Moonbeam') and biggest is not None and biggest.hp >= LASTING_SPELL_MIN_HP:
             return self._effect_plan(combatant, spells['Moonbeam'], biggest)
         if castable('Call Lightning') and sum(e.hp for e in active) >= 2 * LASTING_SPELL_MIN_HP:
@@ -694,7 +705,8 @@ class PartyAIStrategy(AIStrategy):
             target = target[0] if isinstance(target, list) else target
         elif spell.max_targets > 1:
             target = target[:spell.max_targets]
-        action = SpellAction(spell, spell_slot_level=None if free else lowest_slot(combatant, spell.level), free=free)
+        slot = spell_effects.held_slot(combatant, spell.name) if free else lowest_slot(combatant, spell.level)
+        action = SpellAction(spell, spell_slot_level=slot, free=free)
         names = target.name if not isinstance(target, list) else ', '.join(t.name for t in target)
         logger.info(f"[PartyAI] {combatant.name} {'uses' if free else 'casts'} {spell.name} on {names}")
         return {'type': 'cast_spell', 'spell': action, 'target': target}
@@ -773,17 +785,12 @@ class PartyAIStrategy(AIStrategy):
                 if hasattr(s, 'damage_dice') and s.damage_dice and getattr(s, 'level', 0) > 0
             ]
 
-            # Filter to spells we have slots for
-            castable_spells = []
-            for spell in damaging_spells:
-                spell_level = getattr(spell, 'level', 1)
-                # Check if we have spell slots
-                if hasattr(combatant, 'spell_slots_remaining'):
-                    slots = combatant.spell_slots_remaining
-                    # Try both int and str keys
-                    available = slots.get(spell_level, 0) or slots.get(str(spell_level), 0)
-                    if available > 0:
-                        castable_spells.append(spell)
+            # Filter to spells we have a slot for (the spell's level or higher), leaving out single-target
+            # spells that would do nothing to the target (Blight on undead)
+            castable_spells = [s for s in damaging_spells
+                               if lowest_slot(combatant, getattr(s, 'level', 1)) is not None
+                               and (getattr(s, 'area_effect', False) or not callable(getattr(s, 'affects', None))
+                                    or s.affects(dangerous))]
 
             if castable_spells:
                 # Prioritize higher level spells for maximum damage
@@ -793,7 +800,7 @@ class PartyAIStrategy(AIStrategy):
                     self._estimate_spell_damage(s)
                 ))
 
-                spell_action = SpellAction(best_spell, spell_slot_level=best_spell.level)
+                spell_action = SpellAction(best_spell, spell_slot_level=lowest_slot(combatant, best_spell.level))
 
                 # Check if this is an area effect spell
                 if getattr(best_spell, 'area_effect', False):
@@ -854,7 +861,7 @@ class PartyAIStrategy(AIStrategy):
             cantrips = [s for s in damaging_spells if getattr(s, 'level', 1) == 0]
             spell = cantrips[0] if cantrips else damaging_spells[0]
 
-            spell_action = SpellAction(spell)
+            spell_action = SpellAction(spell, spell_slot_level=lowest_slot(combatant, spell.level) if spell.level else None)
 
             # Check if this is an area effect spell
             if getattr(spell, 'area_effect', False):

@@ -253,6 +253,7 @@
       },
       "damage_dice": "1d8",
       "damage_type": null,
+      "higher_level_dice": "1d8",
       "save_type": null,
       "save_dc_bonus": 0,
       "description": "A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier.",
@@ -275,6 +276,7 @@
       },
       "damage_dice": "4d6",
       "damage_type": "radiant",
+      "higher_level_dice": "1d6",
       "save_type": null,
       "save_dc_bonus": 0,
       "description": "A flash of light streaks toward a creature of your choice within range.",
@@ -578,6 +580,7 @@
       },
       "damage_dice": "1d4",
       "damage_type": null,
+      "higher_level_dice": "1d4",
       "save_type": null,
       "save_dc_bonus": 0,
       "description": "A creature of your choice that you can see within range regains hit points equal to 1d4 + your spellcasting ability modifier.",
@@ -600,6 +603,7 @@
       },
       "damage_dice": "3d6",
       "damage_type": "fire",
+      "higher_level_dice": "1d6",
       "save_type": "dex",
       "description": "A thin sheet of flames shoots from your outstretched fingertips. Each creature in a 15-foot cone must make a Dexterity saving throw, taking 3d6 fire damage on a failed save, or half as much on a successful one.",
       "save_dc_bonus": 0,
@@ -653,6 +657,8 @@
       },
       "damage_dice": "1d8",
       "damage_type": "force",
+      "higher_level_dice": "1d8",
+      "higher_level_step": 2,
       "save_type": null,
       "save_dc_bonus": 0,
       "description": "You create a floating, spectral weapon within range that lasts for the duration.",
@@ -785,6 +791,7 @@
       },
       "damage_dice": "2d10",
       "damage_type": "radiant",
+      "higher_level_dice": "1d10",
       "save_type": "con",
       "save_dc_bonus": 0,
       "description": "A silvery beam of pale light shines down in a 5-foot-radius cylinder. A creature that starts its turn there makes a Constitution saving throw, taking 2d10 radiant damage on a failure or half as much on a success. You can move the beam 60 feet as an action.",
@@ -856,6 +863,7 @@
       },
       "damage_dice": "8d6",
       "damage_type": "fire",
+      "higher_level_dice": "1d6",
       "save_type": "dex",
       "save_dc_bonus": 0,
       "description": "A bright streak flashes from your pointing finger to a point you choose within range.",
@@ -901,6 +909,7 @@
       },
       "damage_dice": "3d10",
       "damage_type": "lightning",
+      "higher_level_dice": "1d10",
       "save_type": "dex",
       "save_dc_bonus": 0,
       "description": "A storm cloud appears. When you cast the spell, and as your action on later turns, you call a bolt: each creature within 5 feet of a point makes a Dexterity saving throw, taking 3d10 lightning damage on a failure or half as much on a success.",
@@ -987,6 +996,215 @@
       "area_effect": false,
       "concentration": false,
       "combat": false
+    }
+  ],
+  "level_4": [
+    {
+      "name": "Ice Storm",
+      "level": 4,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true
+      },
+      "damage_dice": "2d8",
+      "damage_type": "bludgeoning",
+      "save_type": "dex",
+      "save_dc_bonus": 0,
+      "description": "A hail of rock-hard ice pounds a 20-foot-radius, 40-foot-high cylinder: each creature in it makes a Dexterity saving throw, taking 2d8 bludgeoning and 4d6 cold damage on a failure, or half as much on a success.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": false,
+      "range": "300 feet",
+      "higher_level_dice": "1d8",
+      "extra_damage": {
+        "dice": "4d6",
+        "type": "cold"
+      },
+      "area": {
+        "shape": "sphere",
+        "size": 20
+      }
+    },
+    {
+      "name": "Blight",
+      "level": 4,
+      "school": "Necromancy",
+      "casting_time": "1 action",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "8d8",
+      "damage_type": "necrotic",
+      "save_type": "con",
+      "save_dc_bonus": 0,
+      "description": "Necromantic energy washes over a creature of your choice: it makes a Constitution saving throw, taking 8d8 necrotic damage on a failure, or half as much on a success. This spell has no effect on undead or constructs.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": false,
+      "range": "30 feet",
+      "higher_level_dice": "1d8",
+      "no_effect_on": [
+        "undead",
+        "construct"
+      ]
+    },
+    {
+      "name": "Greater Invisibility",
+      "level": 4,
+      "school": "Illusion",
+      "casting_time": "1 action",
+      "duration": "Concentration, up to 1 minute",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "You or a creature you touch becomes invisible until the spell ends: attack rolls against it have disadvantage, and its attack rolls have advantage.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "range": "Touch",
+      "is_buff_spell": true,
+      "max_targets": 1,
+      "buff_data": {
+        "name": "Greater Invisibility",
+        "duration_rounds": 10,
+        "affects": [],
+        "concentration": true,
+        "metadata": {
+          "spell_level": 4,
+          "advantage": [
+            "attack_rolls"
+          ],
+          "disadvantage": [
+            "attacks_against"
+          ]
+        }
+      }
+    }
+  ],
+  "level_5": [
+    {
+      "name": "Cone of Cold",
+      "level": 5,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true
+      },
+      "damage_dice": "8d8",
+      "damage_type": "cold",
+      "save_type": "con",
+      "save_dc_bonus": 0,
+      "description": "A blast of cold air erupts from your hands: each creature in a 60-foot cone makes a Constitution saving throw, taking 8d8 cold damage on a failure, or half as much on a success.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": false,
+      "range": "Self (60-foot cone)",
+      "higher_level_dice": "1d8",
+      "area": {
+        "shape": "cone",
+        "size": 60
+      }
+    },
+    {
+      "name": "Flame Strike",
+      "level": 5,
+      "school": "Evocation",
+      "casting_time": "1 action",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true
+      },
+      "damage_dice": "4d6",
+      "damage_type": "fire",
+      "save_type": "dex",
+      "save_dc_bonus": 0,
+      "description": "A vertical column of divine fire roars down in a 10-foot-radius, 40-foot-high cylinder: each creature in it makes a Dexterity saving throw, taking 4d6 fire and 4d6 radiant damage on a failure, or half as much on a success.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": true,
+      "concentration": false,
+      "range": "60 feet",
+      "higher_level_dice": "1d6",
+      "extra_damage": {
+        "dice": "4d6",
+        "type": "radiant"
+      },
+      "area": {
+        "shape": "sphere",
+        "size": 10
+      }
+    },
+    {
+      "name": "Mass Cure Wounds",
+      "level": 5,
+      "school": "Conjuration",
+      "casting_time": "1 action",
+      "duration": "Instantaneous",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": false
+      },
+      "damage_dice": "3d8",
+      "damage_type": null,
+      "save_type": null,
+      "save_dc_bonus": 0,
+      "description": "A wave of healing energy washes out: up to six creatures of your choice regain hit points equal to 3d8 + your spellcasting ability modifier.",
+      "is_attack_spell": false,
+      "healing": true,
+      "area_effect": false,
+      "concentration": false,
+      "range": "60 feet",
+      "higher_level_dice": "1d8",
+      "max_targets": 6
+    },
+    {
+      "name": "Hold Monster",
+      "level": 5,
+      "school": "Enchantment",
+      "casting_time": "1 action",
+      "duration": "Concentration, up to 1 minute",
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": true
+      },
+      "damage_dice": null,
+      "damage_type": null,
+      "save_type": "wis",
+      "save_dc_bonus": 0,
+      "description": "A creature you can see must succeed on a Wisdom saving throw or be paralyzed for the duration. At the end of each of its turns it can make another Wisdom saving throw, ending the spell on a success. This spell has no effect on undead.",
+      "is_attack_spell": false,
+      "healing": false,
+      "area_effect": false,
+      "concentration": true,
+      "range": "90 feet",
+      "effect": "hold",
+      "no_effect_on": [
+        "undead"
+      ]
     }
   ],
   "level_6": [

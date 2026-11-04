@@ -40,14 +40,16 @@ def held_by(caster: Any) -> List[Any]:
     return list(marker.metadata['creatures']) if marker else []
 
 
-def start(caster: Any, spell_name: str, creatures: Iterable[Any], duration_rounds: int = -1) -> None:
+def start(caster: Any, spell_name: str, creatures: Iterable[Any], duration_rounds: int = -1,
+          slot_level: Optional[int] = None) -> None:
     """Begin concentrating on a spell whose effects are on these creatures (ending any other)."""
     end(caster)
     buffs = _buffs(caster)
     if buffs is None:
         return
     buffs.add_buff(Buff(name=MARKER, source=getattr(caster, 'name', str(caster)), duration_rounds=duration_rounds,
-                        metadata={'concentrating_on': spell_name, 'creatures': list(dict.fromkeys(creatures))}))
+                        metadata={'concentrating_on': spell_name, 'creatures': list(dict.fromkeys(creatures)),
+                                  'slot_level': slot_level}))
 
 
 def add_creature(caster: Any, creature: Any) -> None:

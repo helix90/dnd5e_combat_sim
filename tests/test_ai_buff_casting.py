@@ -134,12 +134,15 @@ class TestAIBuffCasting:
         combat = Combat(participants)
         combat.roll_initiative()
 
-        # Simulate several rounds
+        # Simulate several rounds. The cleric always keeps concentration: losing it to a hit ends
+        # Bless, which isn't what this test is about.
         max_rounds = 5
         round_count = 0
-        while not combat.is_combat_over() and round_count < max_rounds:
-            combat.next_turn()
-            round_count = combat.current_round
+        keep = lambda caster, ability, dc: {'save_success': True, 'total_save': dc}
+        with patch('models.concentration.roll_saving_throw', side_effect=keep):
+            while not combat.is_combat_over() and round_count < max_rounds:
+                combat.next_turn()
+                round_count = combat.current_round
 
         # Verify fighter or cleric has the buff
         assert fighter.buffs.has_buff("Bless") or cleric.buffs.has_buff("Bless"), \

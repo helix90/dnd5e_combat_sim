@@ -417,28 +417,33 @@ def test_a_caster_with_fireball_doesnt_web_the_crowd_and_no_one_webs_the_webbed(
 # Class spell lists and spell levels (SRD)
 
 # The SRD class lists, limited to the spells in data/spells.json; a Fiend warlock adds its expanded
-# spells, and a Lore bard's Additional Magical Secrets (6th level) can come from any class
+# spells, and a Lore bard's Additional Magical Secrets (6th level) and Magical Secrets (10th) can come
+# from any class
 CLASS_SPELLS = {
     'Bard': {'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Vicious Mockery', 'Cure Wounds', 'Healing Word',
-             'Sleep', 'Lesser Restoration', 'Dispel Magic', 'Hypnotic Pattern'},
+             'Sleep', 'Lesser Restoration', 'Dispel Magic', 'Hypnotic Pattern', 'Greater Invisibility',
+             'Mass Cure Wounds', 'Hold Monster'},
     'Cleric': {'Sacred Flame', 'Spare the Dying', 'Bless', 'Cure Wounds', 'Guiding Bolt', 'Healing Word',
                'Protection from Evil and Good', 'Shield of Faith', 'Lesser Restoration', 'Prayer of Healing',
-               'Spiritual Weapon', 'Dispel Magic', 'Revivify', 'Heal'},
+               'Spiritual Weapon', 'Dispel Magic', 'Revivify', 'Flame Strike', 'Mass Cure Wounds', 'Heal'},
     'Druid': {'Produce Flame', 'Cure Wounds', 'Entangle', 'Goodberry', 'Healing Word', 'Lesser Restoration',
-              'Moonbeam', 'Pass Without Trace', 'Call Lightning', 'Dispel Magic', 'Heal'},
+              'Moonbeam', 'Pass Without Trace', 'Call Lightning', 'Dispel Magic', 'Blight', 'Ice Storm',
+              'Mass Cure Wounds', 'Heal'},
     'Paladin': {'Bless', 'Cure Wounds', 'Divine Favor', 'Protection from Evil and Good', 'Shield of Faith',
-                'Lesser Restoration', 'Magic Weapon'},
+                'Lesser Restoration', 'Magic Weapon', 'Dispel Magic', 'Revivify'},
     'Ranger': {'Cure Wounds', 'Goodberry', "Hunter's Mark", 'Lesser Restoration', 'Pass Without Trace'},
     'Sorcerer': {'Fire Bolt', 'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Burning Hands', 'Mage Armor',
                  'Magic Missile', 'Shield', 'Sleep', 'Mirror Image', 'Scorching Ray', 'Web', 'Counterspell',
-                 'Dispel Magic', 'Fireball', 'Hypnotic Pattern'},
+                 'Dispel Magic', 'Fireball', 'Hypnotic Pattern', 'Blight', 'Greater Invisibility', 'Ice Storm',
+                 'Cone of Cold', 'Hold Monster'},
     'Warlock': {'Eldritch Blast', 'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Protection from Evil and Good',
-                'Mirror Image', 'Counterspell', 'Dispel Magic', 'Hypnotic Pattern'},
+                'Mirror Image', 'Counterspell', 'Dispel Magic', 'Hypnotic Pattern', 'Blight', 'Hold Monster'},
     'Wizard': {'Fire Bolt', 'Mage Hand', 'Minor Illusion', 'Prestidigitation', 'Burning Hands', 'Mage Armor',
                'Magic Missile', 'Protection from Evil and Good', 'Shield', 'Sleep', 'Magic Weapon', 'Mirror Image',
-               'Scorching Ray', 'Web', 'Counterspell', 'Dispel Magic', 'Fireball', 'Hypnotic Pattern'},
+               'Scorching Ray', 'Web', 'Counterspell', 'Dispel Magic', 'Fireball', 'Hypnotic Pattern', 'Blight',
+               'Greater Invisibility', 'Ice Storm', 'Cone of Cold', 'Hold Monster'},
 }
-FIEND_SPELLS = {'Burning Hands', 'Scorching Ray', 'Fireball'}
+FIEND_SPELLS = {'Burning Hands', 'Scorching Ray', 'Fireball', 'Flame Strike'}
 
 
 def test_prebuilt_characters_only_know_spells_from_their_class_list():
@@ -448,7 +453,8 @@ def test_prebuilt_characters_only_know_spells_from_their_class_list():
             allowed = set(CLASS_SPELLS.get(c['character_class'], ()))
             if any('The Fiend' in f for f in c['class_features']):
                 allowed |= FIEND_SPELLS
-            secrets = 2 if any('Lore' in f for f in c['class_features']) and level['level'] >= 6 else 0
+            lore = any('Lore' in f for f in c['class_features'])
+            secrets = (2 * (level['level'] >= 6) + 2 * (level['level'] >= 10)) if lore else 0
             off = [s for s in c.get('spell_list', []) if s not in allowed]
             if len(off) > secrets:
                 wrong.append((level['level'], c['name'], off))
