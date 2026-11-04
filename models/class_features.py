@@ -13,9 +13,9 @@ import random
 import re
 from typing import Any, Dict, List, Optional
 
-from models.buffs import (Buff, BuffManager, close_wounds, create_stunned_condition, create_turned_condition, is_stunned,
+from models.buffs import (Buff, BuffManager, cannot_regain_hp, create_stunned_condition, create_turned_condition, is_stunned,
                           is_turned)
-from models.damage import apply_damage
+from models.damage import apply_damage, regain_hp
 from models.rolls import roll_saving_throw
 from models.spells import Spell, SpellAction
 from models.weapons import MONK_WEAPONS, THROWN_WEAPONS, TWO_HANDED_WEAPONS
@@ -183,13 +183,13 @@ def be_reckless(creature: Any) -> None:
 
 def wants_second_wind(creature: Any) -> bool:
     """Second Wind as a bonus action once the fighter is below half its hit points."""
-    return resource(creature, 'second_wind') > 0 and 0 < creature.hp < creature.max_hp / 2
+    return (resource(creature, 'second_wind') > 0 and 0 < creature.hp < creature.max_hp / 2
+            and not cannot_regain_hp(creature))
 
 
 def second_wind(creature: Any) -> Dict[str, Any]:
     spend(creature, 'second_wind')
-    healed = min(random.randint(1, 10) + creature.level, creature.max_hp - creature.hp)
-    creature.hp += healed
+    healed = regain_hp(creature, random.randint(1, 10) + creature.level, magical=False)
     return {'action': 'Second Wind', 'feature': 'Second Wind', 'healing': healed}
 
 
@@ -373,11 +373,10 @@ class LayOnHandsAction(SpellAction):
 
     def execute(self, caster: Any, target: Any, **_: Any) -> Dict[str, Any]:
         """Heal what the target is missing, as far as the pool allows."""
-        healed = min(resource(caster, 'lay_on_hands'), target.max_hp - target.hp)
+        healed = 0 if cannot_regain_hp(target) else min(resource(caster, 'lay_on_hands'), target.max_hp - target.hp)
         if healed > 0:
             spend(caster, 'lay_on_hands', healed)
-            target.hp += healed
-            close_wounds(target)
+            regain_hp(target, healed)
         return {'action': 'Lay on Hands', 'type': 'spell', 'feature': 'Lay on Hands', 'target': target.name,
                 'healing': healed, 'target_hp_after': target.hp}
 

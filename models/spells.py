@@ -12,8 +12,8 @@ import re
 from models import concentration, spell_effects
 from models.actions import Action
 from models.arena import Area
-from models.buffs import close_wounds
-from models.damage import apply_damage, damage_after_save
+from models.buffs import cannot_regain_hp
+from models.damage import apply_damage, damage_after_save, regain_hp
 from models.rolls import attack_hits, attack_roll as roll_attack, is_critical, roll_saving_throw
 from utils.api_client import APIClient
 from utils.exceptions import APIError
@@ -77,6 +77,17 @@ def average_dice(dice: Optional[str]) -> float:
     num, die = (int(x) for x in dice.lower().split('d'))
     return num * (die + 1) / 2
 
+
+
+def heal(target: Any, amount: int) -> int:
+    """
+    Heal a target with a spell and return the healing to report: the amount rolled, or 0 if the
+    target can't regain hit points (mummy rot).
+    """
+    if cannot_regain_hp(target):
+        return 0
+    regain_hp(target, amount)
+    return amount
 
 class Spell:
     """
@@ -678,15 +689,13 @@ class SpellAction(Action):
 
                     if hit:
                         if self.spell.healing:
-                            t.hp = min(t.hp + base_healing, getattr(t, 'max_hp', t.hp))
-                            close_wounds(t)
                             target_results.append({
                                 'target': getattr(t, 'name', str(t)),
                                 'attack_roll': attack_roll,
                                 'total_attack': total_attack,
                                 'target_ac': target_ac,
                                 'hit': True,
-                                'healing': base_healing,
+                                'healing': heal(t, base_healing),
                                 'hp_after': t.hp
                             })
                         else:
@@ -756,8 +765,7 @@ class SpellAction(Action):
                 if hit:
                     if self.spell.healing:
                         healing = self._get_healing_amount(caster)
-                        targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
-                        close_wounds(targets_list[0])
+                        healing = heal(targets_list[0], healing)
                         result.update({
                             'healing': healing,
                             'target_hp_after': targets_list[0].hp
@@ -828,8 +836,7 @@ class SpellAction(Action):
                 # Apply effects based on save result
                 if self.spell.healing:
                     healing = self._get_healing_amount(caster)
-                    targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
-                    close_wounds(targets_list[0])
+                    healing = heal(targets_list[0], healing)
                     result.update({
                         'healing': healing,
                         'target_hp_after': targets_list[0].hp
@@ -856,8 +863,7 @@ class SpellAction(Action):
                 for t in targets_list:
                     if self.spell.healing:
                         healing = self._get_healing_amount(caster)
-                        t.hp = min(t.hp + healing, getattr(t, 'max_hp', t.hp))
-                        close_wounds(t)
+                        healing = heal(t, healing)
                         target_results.append({
                             'target': getattr(t, 'name', str(t)),
                             'healing': healing,
@@ -889,8 +895,7 @@ class SpellAction(Action):
                 # Single target spell
                 if self.spell.healing:
                     healing = self._get_healing_amount(caster)
-                    targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
-                    close_wounds(targets_list[0])
+                    healing = heal(targets_list[0], healing)
                     result.update({
                         'healing': healing,
                         'target_hp_after': targets_list[0].hp

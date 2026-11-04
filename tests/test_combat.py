@@ -374,7 +374,7 @@ def test_rounds_advance_after_last_in_initiative_dies():
     ('The troll makes three attacks: one with its bite and two with its claws.', ['Bite', 'Claw', 'Claw']),
     ('The giant makes two greatclub attacks.', ['Greatclub', 'Greatclub']),
     ('The wight makes two longsword attacks or two longbow attacks.', ['Longsword', 'Longsword']),
-    ('The vampire spawn makes two attacks, only one of which can be a bite attack.', ['Claws', 'Claws']),
+    ('The vampire spawn makes two attacks, only one of which can be a bite attack.', ['Claws', 'Bite']),
 ])
 def test_multiattack_descriptions(description, expected):
     names = ['Claws', 'Bite', 'Claw', 'Greatclub', 'Rock', 'Longsword', 'Longbow']

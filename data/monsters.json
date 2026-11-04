@@ -197,7 +197,7 @@
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The wight makes two longsword attacks or two longbow attacks."},
-        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+2", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5},
+        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+2", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5, "on_hit": {"condition": "hp_drain", "save_type": "con", "save_dc": 13}},
         {"name": "Longbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing", "weapon_type": "ranged", "range": [150, 600]}
       ]
     },
@@ -258,7 +258,7 @@
       "condition_immunities": ["charmed", "exhaustion", "grappled", "paralyzed", "petrified", "poisoned", "prone", "restrained"],
       "multiattack": false,
       "actions": [
-        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5}
+        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5, "on_hit": {"condition": "hp_drain", "save_type": "con", "save_dc": 14}}
       ]
     },
     {
@@ -348,7 +348,7 @@
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The vampire spawn makes two attacks, only one of which can be a bite attack."},
         {"name": "Claws", "type": "attack", "damage_dice": "2d4+3", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
-        {"name": "Bite", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "melee", "special": "The target's hit point maximum is reduced by an amount equal to the damage taken, and the vampire spawn regains hit points equal to that amount.", "reach": 5}
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "melee", "special": "The target's hit point maximum is reduced by an amount equal to the damage taken, and the vampire spawn regains hit points equal to that amount. Only against a target that is grappled, incapacitated or restrained.", "reach": 5, "target_condition": ["incapacitated", "restrained"], "on_hit": {"condition": "hp_drain", "heals_attacker": true}}
       ]
     },
     {
@@ -369,7 +369,7 @@
       "saving_throws": {"wis": 2},
       "multiattack": false,
       "actions": [
-        {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot.", "reach": 5}
+        {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot.", "reach": 5, "on_hit": {"condition": "mummy_rot", "save_type": "con", "save_dc": 12}}
       ]
     },
     {

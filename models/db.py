@@ -317,6 +317,8 @@ class DatabaseManager:
                                 result_text += " (critical)"
                             if result.get('condition_applied'):
                                 result_text += f"; target is {result['condition_applied'].lower()}"
+                            if result.get('hp_drained'):
+                                result_text += f"; hit point maximum reduced by {result['hp_drained']}"
                         else:
                             result_text = "Miss"
                     elif action_type == 'spell':

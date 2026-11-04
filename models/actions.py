@@ -9,13 +9,14 @@ import random
 import re
 
 from models.arena import Area
-from models.buffs import (BuffManager, create_infernal_wound, create_paralyzed_condition, create_prone_condition,
-                          has_flag, is_paralyzed, is_prone, melee_hits_crit)
-from models.damage import apply_damage, damage_after_save
+from models.buffs import (BuffManager, create_infernal_wound, create_mummy_rot, create_paralyzed_condition,
+                          create_prone_condition, has_condition, has_flag, is_incapacitated, is_paralyzed, is_prone,
+                          melee_hits_crit)
+from models.damage import apply_damage, damage_after_save, reduce_max_hp, regain_hp
 from models.rolls import attack_hits, attack_roll, is_critical, roll_saving_throw
 
 # The conditions an attack's on_hit can apply
-ON_HIT_CONDITIONS = ('paralyzed', 'prone', 'infernal_wound')
+ON_HIT_CONDITIONS = ('paralyzed', 'prone', 'infernal_wound', 'mummy_rot', 'hp_drain')
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -63,7 +64,8 @@ class AttackAction(Action):
         area: Optional[Dict[str, Any]] = None,  # Area effect shape, e.g. {'shape': 'cone', 'size': 30}
         recharge: Optional[int] = None,  # "Recharge 5-6" -> 5: usable again on a d6 roll of 5 or more
         magical: bool = False,  # Gets past resistance to nonmagical weapon damage (Ki-Empowered Strikes)
-        extra_damage: Optional[Dict[str, Any]] = None  # Damage of another type on a hit, see roll_extra_damage
+        extra_damage: Optional[Dict[str, Any]] = None,  # Damage of another type on a hit, see roll_extra_damage
+        target_condition: Optional[Sequence[str]] = None  # Only usable on a target in one of these conditions
     ) -> None:
         super().__init__(action_type="attack", name=name, description=description)
         self.weapon_name = weapon_name
@@ -86,6 +88,8 @@ class AttackAction(Action):
         # e.g. {'dice': '2d6', 'type': 'poison'} (a green dragon's bite), optionally with
         # 'save_type' and 'save_dc' for half on a successful save (a wyvern's sting)
         self.extra_damage = extra_damage
+        # e.g. ['incapacitated', 'restrained'] (a vampire spawn's bite; grappling isn't modelled)
+        self.target_condition = list(target_condition) if target_condition else None
         self.range = self._validate_range(range)
         # Melee attacks reach 5 ft unless they say otherwise. A ranged-only attack has no reach;
         # a thrown weapon like a javelin has both. Area effects (breath weapons) have a shape instead.
@@ -108,6 +112,13 @@ class AttackAction(Action):
         if not 0 < normal <= long:
             raise ValueError(f"Range must satisfy 0 < normal <= long, got {value!r}")
         return normal, long
+
+    def usable_on(self, target: Any) -> bool:
+        """True unless the attack needs its target in a condition (target_condition) it isn't in."""
+        if not self.target_condition:
+            return True
+        return any(is_incapacitated(target) if condition == 'incapacitated' else has_condition(target, condition)
+                   for condition in self.target_condition)
 
     def hit_bonus(self, attacker: Any) -> int:
         """
@@ -200,16 +211,19 @@ class AttackAction(Action):
         result['extra_damage'] = apply_damage(target, max(0, amount), extra.get('type'))
         return result
 
-    def _apply_on_hit_effect(self, attacker: Any, target: Any) -> Dict[str, Any]:
+    def _apply_on_hit_effect(self, attacker: Any, target: Any, damage: int = 0) -> Dict[str, Any]:
         """
         Apply this attack's on-hit condition to a target that was hit, unless it saves:
-        'paralyzed' (a ghoul's claws), 'prone' (a wolf's bite) or 'infernal_wound' (a horned
-        devil's tail; a further hit on a wounded target deepens the wound without a save).
+        'paralyzed' (a ghoul's claws), 'prone' (a wolf's bite), 'infernal_wound' (a horned
+        devil's tail; a further hit on a wounded target deepens the wound without a save),
+        'mummy_rot' (a mummy's fist) or 'hp_drain' (see _drain).
         """
         effect = self.on_hit or {}
         condition = effect.get('condition')
         if condition not in ON_HIT_CONDITIONS or not isinstance(getattr(target, 'buffs', None), BuffManager):
             return {}
+        if condition == 'hp_drain':
+            return self._drain(attacker, target, damage, effect)
         if not target.is_alive():
             return {}
         if condition in (getattr(target, 'condition_immunities', None) or []):
@@ -239,10 +253,35 @@ class AttackAction(Action):
                                                   effect.get('duration_rounds', 10))
             elif condition == 'prone':
                 buff = create_prone_condition(source)
+            elif condition == 'mummy_rot':
+                if target.buffs.has_condition('mummy_rot'):
+                    return result
+                buff = create_mummy_rot(source)
             else:
                 buff = create_infernal_wound(source, effect.get('wound_dice', '3d6'))
             target.buffs.add_buff(buff)
             result['condition_applied'] = buff.name
+        return result
+
+    @staticmethod
+    def _drain(attacker: Any, target: Any, damage: int, effect: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Life Drain (wight, wraith): unless the target succeeds on its save, its hit point maximum
+        drops by the damage it took, even if the hit dropped it. A vampire spawn's bite has no save
+        and heals the spawn by the same amount (heals_attacker).
+        """
+        if damage <= 0:
+            return {}
+        result = {}
+        if effect.get('save_dc'):
+            save = roll_saving_throw(target, effect.get('save_type', 'con'), effect['save_dc'])
+            result['effect_save'] = save
+            if save['save_success']:
+                return result
+        result['hp_drained'] = reduce_max_hp(target, damage)
+        result['target_max_hp_after'] = target.max_hp
+        if effect.get('heals_attacker') and getattr(attacker, 'hp', 0) > 0:
+            result['attacker_healed'] = regain_hp(attacker, damage, magical=False)
         return result
 
     def execute(self, attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
@@ -392,7 +431,7 @@ class AttackAction(Action):
                 damage += extra.get('extra_damage', 0)
 
             if hit and self.on_hit:
-                result.update(self._apply_on_hit_effect(attacker, attack_target))
+                result.update(self._apply_on_hit_effect(attacker, attack_target, damage))
 
             result.update({
                 'attack_roll': d20.result,

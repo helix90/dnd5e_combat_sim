@@ -32,6 +32,28 @@ def _parse_routine(description: str, attack_actions: List[Any]) -> List[Any]:
     return attacks
 
 
+def _one_restricted(description: str, attack_actions: List[Any]) -> List[Any]:
+    """"two attacks, only one of which can be a bite attack" -> the first other attack, then the bite."""
+    match = re.search(r'only one of which can be an? (\w+) attack', description)
+    restricted = _parse_routine(f"one with {match.group(1)}", attack_actions) if match else []
+    others = [a for a in attack_actions if a not in restricted]
+    if not restricted or not others:
+        return []
+    return [others[0]] * (_attack_count(description) - 1) + restricted
+
+
+def for_target(attacks: List[Any], target: Any) -> List[Any]:
+    """
+    The routine against one target: an attack it can't be used on (a vampire spawn's bite on a
+    creature that isn't grappled, incapacitated or restrained) is replaced by the routine's first
+    attack that can.
+    """
+    def usable(a: Any) -> bool:
+        return not callable(getattr(a, 'usable_on', None)) or a.usable_on(target)
+    fallback = next((a for a in attacks if usable(a)), None)
+    return [a if usable(a) else fallback for a in attacks if usable(a) or fallback is not None]
+
+
 def _attack_count(description: str) -> int:
     match = re.search(rf'\b({_COUNT_WORDS})\s+attacks\b', description)
     return _COUNTS[match.group(1)] if match else 2
@@ -44,7 +66,7 @@ def parse_multiattack(description: str, attack_actions: List[Any],
       "three attacks: one with its bite and two with its claws" -> Bite, Claw, Claw
       "two greatclub attacks"                                    -> Greatclub, Greatclub
       "two longsword attacks or two longbow attacks"             -> Longsword, Longsword
-      "two attacks, only one of which can be a bite attack"      -> 2 x the first attack
+      "two attacks, only one of which can be a bite attack"      -> Claws, Bite (see for_target)
 
     Without `usable`, the first routine is used. With it (in an arena), the first routine whose
     attacks can all be used is chosen, so a wight out of sword reach uses its longbows; if no
@@ -52,7 +74,8 @@ def parse_multiattack(description: str, attack_actions: List[Any],
     """
     description = description.lower()
     routines = description.split(' or ')
-    parsed = [_parse_routine(routine, attack_actions) for routine in routines]
+    parsed = [_parse_routine(routine, attack_actions) or _one_restricted(routine, attack_actions)
+              for routine in routines]
 
     if usable is None:
         attacks = parsed[0]

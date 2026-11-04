@@ -4,7 +4,7 @@ import logging
 import random
 from models import class_features as feature_rules
 from models import concentration, spell_effects
-from models.buffs import is_spellbound
+from models.buffs import cannot_regain_hp, is_spellbound
 from models.rolls import has_magic_resistance
 from models.spells import SpellAction
 from models.actions import AttackAction
@@ -377,6 +377,9 @@ class PartyAIStrategy(AIStrategy):
         Returns:
             Healing action dictionary, or None if no healing available
         """
+        injured_allies = [a for a in injured_allies if not cannot_regain_hp(a)]  # mummy rot
+        if not injured_allies:
+            return None
         if feature_rules.resource(combatant, 'lay_on_hands') > 0:
             # A paladin heals with Lay on Hands first, keeping its slots for spells and smites
             target = min(injured_allies, key=lambda a: a.hp / a.max_hp if a.max_hp > 0 else a.hp)
