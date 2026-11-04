@@ -9,9 +9,13 @@ import random
 import re
 
 from models.arena import Area
-from models.buffs import BuffManager, create_paralyzed_condition, has_flag, is_paralyzed, melee_hits_crit
+from models.buffs import (BuffManager, create_infernal_wound, create_paralyzed_condition, create_prone_condition,
+                          has_flag, is_paralyzed, is_prone, melee_hits_crit)
 from models.damage import apply_damage, damage_after_save
 from models.rolls import attack_hits, attack_roll, is_critical, roll_saving_throw
+
+# The conditions an attack's on_hit can apply
+ON_HIT_CONDITIONS = ('paralyzed', 'prone', 'infernal_wound')
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -197,26 +201,48 @@ class AttackAction(Action):
         return result
 
     def _apply_on_hit_effect(self, attacker: Any, target: Any) -> Dict[str, Any]:
-        """Apply this attack's on-hit condition (currently paralysis) to a target that was hit."""
+        """
+        Apply this attack's on-hit condition to a target that was hit, unless it saves:
+        'paralyzed' (a ghoul's claws), 'prone' (a wolf's bite) or 'infernal_wound' (a horned
+        devil's tail; a further hit on a wounded target deepens the wound without a save).
+        """
         effect = self.on_hit or {}
-        if effect.get('condition') != 'paralyzed' or not isinstance(getattr(target, 'buffs', None), BuffManager):
+        condition = effect.get('condition')
+        if condition not in ON_HIT_CONDITIONS or not isinstance(getattr(target, 'buffs', None), BuffManager):
             return {}
-        if not target.is_alive() or is_paralyzed(target):
+        if not target.is_alive():
             return {}
+        if condition in (getattr(target, 'condition_immunities', None) or []):
+            return {'effect_immune': True}
         immune_races = {r.lower() for r in effect.get('immune_races', [])}
         if str(getattr(target, 'race', '')).lower() in immune_races:
             return {'effect_immune': True}
+        immune_types = {t.lower() for t in effect.get('immune_types', [])}
+        if str(getattr(target, 'creature_type', '') or '').lower() in immune_types:
+            return {'effect_immune': True}
+        source = getattr(attacker, 'name', 'Unknown')
+        if condition == 'paralyzed' and is_paralyzed(target):
+            return {}
+        if condition == 'prone' and is_prone(target):
+            return {}
+        if condition == 'infernal_wound':
+            wound = target.buffs.get_condition('infernal_wound')
+            if wound is not None:
+                wound.metadata['wound_dice'].append(effect.get('wound_dice', '3d6'))
+                return {'condition_applied': 'Infernal Wound', 'wound_deepened': True}
 
         save = roll_saving_throw(target, effect.get('save_type', 'con'), effect.get('save_dc', 10))
         result = {'effect_save': save}
         if not save['save_success']:
-            target.buffs.add_buff(create_paralyzed_condition(
-                getattr(attacker, 'name', 'Unknown'),
-                effect.get('save_type', 'con'),
-                effect.get('save_dc', 10),
-                effect.get('duration_rounds', 10),
-            ))
-            result['condition_applied'] = 'Paralyzed'
+            if condition == 'paralyzed':
+                buff = create_paralyzed_condition(source, effect.get('save_type', 'con'), effect.get('save_dc', 10),
+                                                  effect.get('duration_rounds', 10))
+            elif condition == 'prone':
+                buff = create_prone_condition(source)
+            else:
+                buff = create_infernal_wound(source, effect.get('wound_dice', '3d6'))
+            target.buffs.add_buff(buff)
+            result['condition_applied'] = buff.name
         return result
 
     def execute(self, attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
@@ -305,7 +331,7 @@ class AttackAction(Action):
                 base_damage = self.damage_roll(attacker)
 
                 for t in targets_list:
-                    d20 = attack_roll(attacker, t, advantage, disadvantage)
+                    d20 = attack_roll(attacker, t, advantage, disadvantage, self.weapon_type != 'ranged')
                     total_attack = d20.result + bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
                     hit = attack_hits(d20.result, total_attack, target_ac)
@@ -342,7 +368,8 @@ class AttackAction(Action):
         else:
             # Single target action (standard behavior)
             attack_target = targets_list[0]
-            d20 = attack_roll(attacker, attack_target, advantage, disadvantage)
+            d20 = attack_roll(attacker, attack_target, advantage, disadvantage,
+                              within_5ft if within_5ft is not None else self.weapon_type != 'ranged')
             bonus = self.hit_bonus(attacker)
 
             # Add buff bonuses to attack rolls

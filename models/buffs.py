@@ -380,6 +380,47 @@ def create_hypnotized_condition(source: str, duration: int = 10) -> Buff:
     )
 
 
+def create_prone_condition(source: str) -> Buff:
+    """
+    Prone (knocked down by a wolf's bite): attacks against it have advantage from within 5 ft and
+    disadvantage from farther away (see rolls.attack_roll), and its own attacks have disadvantage.
+    It lasts until the creature stands up at the start of its turn, which costs half its speed.
+    """
+    return Buff(name="Prone", source=source, duration_rounds=-1,
+                metadata={"condition": "prone", "disadvantage": ["attack_rolls"]})
+
+
+def create_stood_up_effect() -> Buff:
+    """Standing up from prone used half the creature's movement this turn."""
+    return Buff(name="Stood Up", source="", duration_rounds=1,
+                metadata={"half_speed": True, "until_own_turn_end": True})
+
+
+def create_infernal_wound(source: str, dice: str) -> Buff:
+    """
+    A horned devil's infernal wound: the creature loses hit points (dice) at the start of each of
+    its turns. Each further hit from the tail adds to it, and magical healing closes it.
+    """
+    return Buff(name="Infernal Wound", source=source, duration_rounds=-1,
+                metadata={"condition": "infernal_wound", "wound_dice": [dice]})
+
+
+def is_prone(creature: Any) -> bool:
+    """True if the creature is prone."""
+    return _has(creature, 'prone')
+
+
+def close_wounds(creature: Any) -> List[str]:
+    """Magical healing closes infernal wounds. Returns the names of the effects ended."""
+    buffs = getattr(creature, 'buffs', None)
+    if not isinstance(buffs, BuffManager):
+        return []
+    closed = [b.name for b in buffs.active_buffs if b.metadata.get('condition') == 'infernal_wound']
+    if closed:
+        buffs.active_buffs = [b for b in buffs.active_buffs if b.metadata.get('condition') != 'infernal_wound']
+    return closed
+
+
 def _has(creature: Any, condition: str) -> bool:
     buffs = getattr(creature, 'buffs', None)
     return isinstance(buffs, BuffManager) and buffs.has_condition(condition)

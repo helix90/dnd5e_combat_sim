@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from models.actions import AttackAction
 from models.arena import (COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, Area, Arena, Placement, Point,
                           Square, size_in_squares)
-from models.buffs import cannot_move, is_incapacitated, is_turned
+from models.buffs import cannot_move, has_flag, is_incapacitated, is_turned
 from models.damage import has_ability
 
 PARTY = 'party'
@@ -73,7 +73,9 @@ def movement_speed(creature: Any) -> int:
     if cannot_move(creature):
         return 0  # restrained or hypnotized
     speed = getattr(creature, 'speed', None) or {'walk': 30}
-    return max(speed.get('walk', 0), speed.get('fly', 0))
+    feet = max(speed.get('walk', 0), speed.get('fly', 0))
+    # Standing up from prone this turn cost half of it
+    return feet // 2 if has_flag(creature, 'half_speed') else feet
 
 
 def attack_distances(action: Any) -> Tuple[Optional[int], Optional[Tuple[int, int]]]:

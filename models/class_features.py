@@ -13,7 +13,8 @@ import random
 import re
 from typing import Any, Dict, List, Optional
 
-from models.buffs import Buff, BuffManager, create_stunned_condition, create_turned_condition, is_stunned, is_turned
+from models.buffs import (Buff, BuffManager, close_wounds, create_stunned_condition, create_turned_condition, is_stunned,
+                          is_turned)
 from models.damage import apply_damage
 from models.rolls import roll_saving_throw
 from models.spells import Spell, SpellAction
@@ -318,7 +319,7 @@ def turn_undead(cleric: Any, undead: List[Any]) -> Dict[str, Any]:
     results = []
     dc = cleric.spell_save_dc()
     for creature in undead:
-        save = roll_saving_throw(creature, 'wis', dc)
+        save = roll_saving_throw(creature, 'wis', dc, magical=True)  # Channel Divinity is magical
         entry = {'target': creature.name, **save}
         if not save['save_success']:
             if destroy_cr is not None and challenge_rating(creature) <= destroy_cr:
@@ -376,6 +377,7 @@ class LayOnHandsAction(SpellAction):
         if healed > 0:
             spend(caster, 'lay_on_hands', healed)
             target.hp += healed
+            close_wounds(target)
         return {'action': 'Lay on Hands', 'type': 'spell', 'feature': 'Lay on Hands', 'target': target.name,
                 'healing': healed, 'target_hp_after': target.hp}
 

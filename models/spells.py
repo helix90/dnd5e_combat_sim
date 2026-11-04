@@ -12,6 +12,7 @@ import re
 from models import concentration, spell_effects
 from models.actions import Action
 from models.arena import Area
+from models.buffs import close_wounds
 from models.damage import apply_damage, damage_after_save
 from models.rolls import attack_hits, attack_roll as roll_attack, is_critical, roll_saving_throw
 from utils.api_client import APIClient
@@ -384,6 +385,12 @@ class SpellAction(Action):
                 return True
         return False
 
+    def _touch(self) -> bool:
+        """A touch or self-range spell attack is made from within 5 ft (a prone target gives
+        advantage); others are assumed to be made from farther away unless an arena says otherwise."""
+        range_feet = getattr(self.spell, 'range_feet', None)
+        return range_feet is not None and range_feet <= 5 or str(getattr(self.spell, 'range', '')).lower() in ('touch', 'self')
+
     def roll_damage(self, caster: Any, critical: bool = False) -> int:
         """
         The spell's damage (or healing) dice, with a higher slot's extra dice. A wizard with
@@ -467,7 +474,8 @@ class SpellAction(Action):
             entry: Dict[str, Any] = {'target': getattr(creature, 'name', str(creature))}
             hit, critical = True, False
             if self.spell.is_attack_spell:
-                d20 = roll_attack(caster, creature, advantage, options.get('disadvantage', False))
+                d20 = roll_attack(caster, creature, advantage, options.get('disadvantage', False),
+                                  options.get('within_5ft', self._touch()))
                 total_attack = d20.result + attack_bonus + buff_bonus
                 target_ac = getattr(creature, 'ac', 10) + options.get('ac_bonus', 0)
                 hit = attack_hits(d20.result, total_attack, target_ac)
@@ -503,7 +511,7 @@ class SpellAction(Action):
     def execute(self, caster: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
                 ac_bonus: int = 0, save_bonus: int = 0,
                 save_bonuses: Optional[Dict[Any, int]] = None,
-                other_targets: Optional[List[Any]] = None) -> Dict[str, Any]:
+                other_targets: Optional[List[Any]] = None, within_5ft: Optional[bool] = None) -> Dict[str, Any]:
         """
         Execute the spell: handle attack rolls, saving throws, and damage/healing.
 
@@ -575,7 +583,7 @@ class SpellAction(Action):
             result.update(fields)
         else:
             self._resolve(caster, target, targets_list, result, advantage, disadvantage, ac_bonus, save_bonus,
-                          save_bonuses, other_targets)
+                          save_bonuses, other_targets, within_5ft)
             affected = targets_list if self.spell.is_buff_spell else []
             if self.spell.on_failed_save and result.get('save_success') is False:
                 spell_effects.debuff(caster, targets_list[0], self.spell.on_failed_save)
@@ -589,7 +597,8 @@ class SpellAction(Action):
 
     def _resolve(self, caster: Any, target: Any, targets_list: List[Any], result: Dict[str, Any],
                  advantage: bool, disadvantage: bool, ac_bonus: int, save_bonus: int,
-                 save_bonuses: Optional[Dict[Any, int]], other_targets: Optional[List[Any]]) -> Dict[str, Any]:
+                 save_bonuses: Optional[Dict[Any, int]], other_targets: Optional[List[Any]],
+                 within_5ft: Optional[bool] = None) -> Dict[str, Any]:
         """Attack rolls, saving throws, damage, healing and Bless-style buffs, filling in result."""
         # Handle buff spells
         if self.spell.is_buff_spell:
@@ -632,7 +641,8 @@ class SpellAction(Action):
 
         projectiles = self.spell.projectile_count(getattr(caster, 'level', 1), self.spell_slot_level)
         if projectiles > 1 and not self.spell.area_effect and not self.spell.healing and not self.spell.save_type:
-            first = (targets_list[0], {'ac_bonus': ac_bonus, 'disadvantage': disadvantage})
+            first = (targets_list[0], {'ac_bonus': ac_bonus, 'disadvantage': disadvantage,
+                                       'within_5ft': self._touch() if within_5ft is None else within_5ft})
             result.update(self._execute_projectiles(caster, projectiles, [first] + list(other_targets or []),
                                                     advantage))
             return result
@@ -661,7 +671,7 @@ class SpellAction(Action):
                 base_healing = self._get_healing_amount(caster) if self.spell.healing else 0
 
                 for t in targets_list:
-                    attack_roll = roll_attack(caster, t, advantage, disadvantage).result
+                    attack_roll = roll_attack(caster, t, advantage, disadvantage, self._touch()).result
                     total_attack = attack_roll + attack_bonus + buff_bonus
                     target_ac = getattr(t, 'ac', 10)
                     hit = attack_hits(attack_roll, total_attack, target_ac)
@@ -669,6 +679,7 @@ class SpellAction(Action):
                     if hit:
                         if self.spell.healing:
                             t.hp = min(t.hp + base_healing, getattr(t, 'max_hp', t.hp))
+                            close_wounds(t)
                             target_results.append({
                                 'target': getattr(t, 'name', str(t)),
                                 'attack_roll': attack_roll,
@@ -711,7 +722,8 @@ class SpellAction(Action):
 
             else:
                 # Single target attack spell
-                d20 = roll_attack(caster, targets_list[0], advantage, disadvantage)
+                d20 = roll_attack(caster, targets_list[0], advantage, disadvantage,
+                                  self._touch() if within_5ft is None else within_5ft)
                 attack_roll = d20.result
                 if hasattr(caster, 'spell_attack_bonus'):
                     attack_bonus = caster.spell_attack_bonus()
@@ -745,6 +757,7 @@ class SpellAction(Action):
                     if self.spell.healing:
                         healing = self._get_healing_amount(caster)
                         targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
+                        close_wounds(targets_list[0])
                         result.update({
                             'healing': healing,
                             'target_hp_after': targets_list[0].hp
@@ -779,7 +792,7 @@ class SpellAction(Action):
 
                 for t in targets_list:
                     save = roll_saving_throw(t, self.spell.save_type, save_dc,
-                                             cover_bonus=(save_bonuses or {}).get(t, 0))
+                                             cover_bonus=(save_bonuses or {}).get(t, 0), magical=True)
                     save_success = save['save_success']
                     damage = self._apply_damage(t, base_damage, extra_damage, save_success)
                     total_damage_dealt += damage
@@ -802,7 +815,8 @@ class SpellAction(Action):
 
             else:
                 # Single target saving throw spell
-                save = roll_saving_throw(targets_list[0], self.spell.save_type, save_dc, cover_bonus=save_bonus)
+                save = roll_saving_throw(targets_list[0], self.spell.save_type, save_dc, cover_bonus=save_bonus,
+                                         magical=True)
                 save_success = save['save_success']
 
                 result.update({
@@ -815,6 +829,7 @@ class SpellAction(Action):
                 if self.spell.healing:
                     healing = self._get_healing_amount(caster)
                     targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
+                    close_wounds(targets_list[0])
                     result.update({
                         'healing': healing,
                         'target_hp_after': targets_list[0].hp
@@ -842,6 +857,7 @@ class SpellAction(Action):
                     if self.spell.healing:
                         healing = self._get_healing_amount(caster)
                         t.hp = min(t.hp + healing, getattr(t, 'max_hp', t.hp))
+                        close_wounds(t)
                         target_results.append({
                             'target': getattr(t, 'name', str(t)),
                             'healing': healing,
@@ -874,6 +890,7 @@ class SpellAction(Action):
                 if self.spell.healing:
                     healing = self._get_healing_amount(caster)
                     targets_list[0].hp = min(targets_list[0].hp + healing, getattr(targets_list[0], 'max_hp', targets_list[0].hp))
+                    close_wounds(targets_list[0])
                     result.update({
                         'healing': healing,
                         'target_hp_after': targets_list[0].hp
