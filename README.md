@@ -27,14 +27,11 @@ A comprehensive web-based combat simulator for Dungeons & Dragons 5th Edition, f
 
 ### API & Integration
 - **RESTful API** for programmatic access
-- **Open5e API integration** for spell and monster data
-- **Local data fallback** when external APIs are unavailable
 - **Rate limiting** and security protection
 - **Comprehensive API documentation**
 
 ### Performance & Monitoring
 - **Database query optimization** with indexing and caching
-- **Performance monitoring** and metrics collection
 - **Error tracking** and alerting system
 - **Health check endpoints** for monitoring
 - **Load testing** capabilities
@@ -158,10 +155,9 @@ dnd5e_combat_sim/
 │   ├── simulation_controller.py
 │   └── results_controller.py
 ├── utils/                 # Utility modules
-│   ├── api_client.py      # External API integration
 │   ├── exceptions.py      # Custom exception classes
 │   ├── logging.py         # Logging configuration
-│   └── monitoring.py      # Performance monitoring
+│   └── paths.py           # Data file locations
 ├── data/                  # Static data files
 │   ├── parties.json       # Party templates
 │   ├── monsters.json      # Monster data

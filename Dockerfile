@@ -44,4 +44,6 @@ ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
 # Entrypoint for prod (can override for dev)
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "3"] 
+# One worker: running simulations and batches report progress from that process's memory,
+# so every status poll has to reach it. Threads serve requests concurrently.
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "8"] 

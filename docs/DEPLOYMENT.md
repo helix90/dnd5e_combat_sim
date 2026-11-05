@@ -151,7 +151,9 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost:5000/healthz || exit 1
 USER appuser
 ENV FLASK_ENV=production
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "3"]
+# One worker: running simulations and batches report progress from that process's memory,
+# so every status poll has to reach it. Threads serve requests concurrently.
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "8"]
 ```
 
 ### Docker Compose

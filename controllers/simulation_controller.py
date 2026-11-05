@@ -31,7 +31,6 @@ class SimulationController:
         """Initialize the simulation controller with caching and thread safety."""
         self.db = DatabaseManager()
         self.spell_manager = SpellManager()
-        self.simulation_threads: Dict[str, threading.Thread] = {}  # session_id -> thread
         self.simulation_states: Dict[str, Dict[str, Any]] = {}   # session_id -> state dict
         self.state_lock = threading.Lock()  # Thread safety for shared state
 
@@ -103,26 +102,25 @@ class SimulationController:
             character_objects = build_party(party, self.spell_manager)
             monster_objects = build_monsters(monsters)
 
-            logger.info(f"Simulation setup: {len(character_objects)} characters vs {len(monster_objects)} monsters")
+            logger.debug(f"Simulation setup: {len(character_objects)} characters vs {len(monster_objects)} monsters")
 
             # Create combat with proper objects
             combat = Combat(character_objects + monster_objects, arena=arena)
 
             def progress_callback(state: Dict[str, Any]) -> None:
+                # Combat says it's done before the result is saved; the page only gets 'done' once
+                # it's saved and has a simulation_id to go to (set below)
                 with self.state_lock:
                     if session_id in self.simulation_states:
-                        self.simulation_states[session_id].update(state)
+                        self.simulation_states[session_id].update({k: v for k, v in state.items() if k != 'done'})
 
             # Run combat simulation
             result = combat.run(progress_callback=progress_callback)
 
-            # Update final state with complete log (convert to JSON-safe format)
+            # The full log is saved to the DB; the status only needs the progress
             with self.state_lock:
                 if session_id in self.simulation_states:
-                    # Convert log to JSON-safe format by removing any non-serializable objects
-                    log = result.get('log', [])
-                    # Log is already in JSON-safe dict format from combat.run(), just ensure no references
-                    self.simulation_states[session_id]['log'] = []  # Don't include log in status, it's saved to DB
+                    self.simulation_states[session_id]['log'] = []
 
             # Save results to database
             sim_id = self.save_simulation_results(result, session_id)
@@ -132,7 +130,7 @@ class SimulationController:
             with self.state_lock:
                 if session_id in self.simulation_states:
                     self.simulation_states[session_id]['done'] = True
-                    logger.info(f"Marked simulation as done for session {session_id}. Final state: {self.simulation_states[session_id]}")
+                    logger.debug(f"Marked simulation as done for session {session_id}. Final state: {self.simulation_states[session_id]}")
                 else:
                     logger.warning(f"Cannot mark as done - session {session_id} not in simulation_states")
 
@@ -180,13 +178,7 @@ class SimulationController:
 
         # Initialize state before starting thread (prevents race condition)
         with self.state_lock:
-            # Clear any existing simulation state and thread for this session
-            if session_id in self.simulation_states:
-                del self.simulation_states[session_id]
-            if session_id in self.simulation_threads:
-                del self.simulation_threads[session_id]
-
-            # Set initial state
+            # Replace any earlier simulation's state for this session
             self.simulation_states[session_id] = {
                 'progress': 0,
                 'log': [],
@@ -199,10 +191,6 @@ class SimulationController:
             args=(party, monsters, session_id, party_level, arena)
         )
         t.daemon = True  # Allow program to exit even if thread is running
-
-        with self.state_lock:
-            self.simulation_threads[session_id] = t
-
         t.start()
 
     def get_simulation_id(self, session_id: str) -> Optional[int]:
@@ -232,13 +220,13 @@ class SimulationController:
         """
         session_id = session['session_id']
         with self.state_lock:
-            logger.info(f"handle_simulation_progress: session_id={session_id}, available_sessions={list(self.simulation_states.keys())}")
+            logger.debug(f"handle_simulation_progress: session_id={session_id}, available_sessions={list(self.simulation_states.keys())}")
             state = self.simulation_states.get(session_id, {
                 'progress': 0,
                 'log': [],
                 'done': False
             })
-            logger.info(f"handle_simulation_progress: returning state={state}")
+            logger.debug(f"handle_simulation_progress: returning state={state}")
             return state.copy()  # Return copy to prevent external modifications
 
     def save_simulation_results(self, result: Dict[str, Any], session_id: str) -> int:
@@ -267,76 +255,7 @@ class SimulationController:
                 if session_id in self.simulation_states:
                     self.simulation_states[session_id]['simulation_id'] = sim_id
 
-            # Store the simulation ID in the Flask session (only if in request context)
-            try:
-                session['last_simulation_id'] = sim_id
-                session['simulation_id'] = sim_id
-            except RuntimeError:
-                # Working outside of request context, skip session storage
-                logger.debug("Not in request context, skipping Flask session storage")
-                pass
-
             return sim_id
         except Exception as e:
             log_exception(e)
             raise SimulationError(f"Failed to save simulation results: {e}")
-
-    def cleanup_simulation(self, session_id: str) -> None:
-        """
-        Clean up resources for a completed simulation.
-        Should be called after retrieving final results.
-
-        Args:
-            session_id: Session identifier to clean up
-        """
-        with self.state_lock:
-            # Only cleanup if simulation is done
-            if session_id in self.simulation_states:
-                if self.simulation_states[session_id].get('done', False):
-                    del self.simulation_states[session_id]
-                    logger.debug(f"Cleaned up simulation state for session {session_id}")
-
-            if session_id in self.simulation_threads:
-                del self.simulation_threads[session_id]
-                logger.debug(f"Cleaned up simulation thread for session {session_id}")
-
-    def cleanup_completed_simulations(self) -> None:
-        """
-        Clean up all completed simulations to free memory.
-        Should be called periodically or when memory is a concern.
-        """
-        with self.state_lock:
-            completed_sessions = [
-                sid for sid, state in self.simulation_states.items()
-                if state.get('done', False)
-            ]
-
-        # Cleanup outside the lock to avoid holding it too long
-        for session_id in completed_sessions:
-            self.cleanup_simulation(session_id)
-
-        if completed_sessions:
-            logger.info(f"Cleaned up {len(completed_sessions)} completed simulations")
-
-    def shutdown(self) -> None:
-        """
-        Gracefully shutdown by waiting for all simulation threads to complete.
-        Call this before application exit.
-        """
-        with self.state_lock:
-            session_ids = list(self.simulation_threads.keys())
-
-        logger.info(f"Shutting down simulation controller, waiting for {len(session_ids)} threads")
-
-        for session_id in session_ids:
-            with self.state_lock:
-                thread = self.simulation_threads.get(session_id)
-
-            if thread and thread.is_alive():
-                logger.debug(f"Waiting for simulation thread {session_id} to complete")
-                thread.join(timeout=30)  # Wait max 30 seconds per thread
-
-                if thread.is_alive():
-                    logger.warning(f"Simulation thread {session_id} did not complete within timeout")
-
-        logger.info("Simulation controller shutdown complete")

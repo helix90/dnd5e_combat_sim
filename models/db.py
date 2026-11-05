@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import time
 from models.arena import describe_area
 from models.class_features import feature_notes
+from models.log_text import rider_text
 from utils.exceptions import DatabaseError
 from utils.logging import log_exception
 from utils.paths import PROJECT_ROOT
@@ -315,10 +316,6 @@ class DatabaseManager:
                                 result_text = "Hit for 0 damage"
                             if result.get('critical'):
                                 result_text += " (critical)"
-                            if result.get('condition_applied'):
-                                result_text += f"; target is {result['condition_applied'].lower()}"
-                            if result.get('hp_drained'):
-                                result_text += f"; hit point maximum reduced by {result['hp_drained']}"
                         else:
                             result_text = "Miss"
                     elif action_type == 'spell':
@@ -365,6 +362,10 @@ class DatabaseManager:
                     notes = feature_notes(result)
                     if notes:
                         result_text += '; ' + '; '.join(notes)
+                    # Conditions and drains from the hit, or from each attack of a Multiattack
+                    riders = rider_text(actor, result) if action_type in ('attack', 'special') else ''
+                    if riders:
+                        result_text += '.' + riders
 
                 converted_logs.append({
                     'round_number': current_round,

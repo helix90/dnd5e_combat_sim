@@ -10,8 +10,6 @@ from typing import Any, Dict, List, Optional
 from models.actions import AttackAction
 from models.arena import normalize_speed, size_in_squares
 from models.buffs import BuffManager
-from utils.api_client import APIClient
-from utils.exceptions import APIError
 
 
 class Monster:
@@ -248,33 +246,4 @@ class Monster:
                 f"damage_immunities={self.damage_immunities}, "
                 f"special_abilities={self.special_abilities}, "
                 f"legendary_actions={self.legendary_actions}, "
-                f"multiattack={self.multiattack})") 
-
-    @classmethod
-    def from_api(cls, name, api_client=None):
-        api = api_client or APIClient()
-        api_data = api.fetch_monster_data(name)
-        if not api_data:
-            raise APIError(f"Monster '{name}' not found in API or local data.")
-        # Validate and map API fields to Monster fields
-        kwargs = {
-            'name': api_data.get('name', name),
-            'challenge_rating': api_data.get('challenge_rating', '1'),
-            'hp': api_data.get('hit_points', 1),
-            'ac': api_data.get('armor_class', 10),
-            'ability_scores': {
-                'str': api_data.get('strength', 10),
-                'dex': api_data.get('dexterity', 10),
-                'con': api_data.get('constitution', 10),
-                'int': api_data.get('intelligence', 10),
-                'wis': api_data.get('wisdom', 10),
-                'cha': api_data.get('charisma', 10),
-            },
-            'damage_resistances': api_data.get('damage_resistances', []),
-            'damage_immunities': api_data.get('damage_immunities', []),
-            'special_abilities': api_data.get('special_abilities', []),
-            'legendary_actions': api_data.get('legendary_actions', []),
-            'multiattack': 'multiattack' in (api_data.get('actions', [{}])[0].get('name', '').lower()),
-            'actions': None  # Could be mapped in detail if needed
-        }
-        return cls(**kwargs) 
+                f"multiattack={self.multiattack})")

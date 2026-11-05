@@ -126,20 +126,3 @@ class ResultsController:
             return match.group(1)
         
         return name
-
-    def handle_detailed_log_display(self, sim_id, filters=None):
-        try:
-            logs = self.db.get_combat_logs(sim_id)
-            # TODO: Apply filters if provided
-            return logs
-        except Exception as e:
-            log_exception(e)
-            raise DatabaseError(f"Failed to get detailed log: {e}")
-
-    def manage_result_navigation(self, action):
-        try:
-            # TODO: Implement navigation logic
-            return {}
-        except Exception as e:
-            log_exception(e)
-            raise ValidationError(f"Failed to manage result navigation: {e}") 

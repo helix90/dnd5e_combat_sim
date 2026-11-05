@@ -383,7 +383,7 @@ class PartyAIStrategy(AIStrategy):
         if feature_rules.resource(combatant, 'lay_on_hands') > 0:
             # A paladin heals with Lay on Hands first, keeping its slots for spells and smites
             target = min(injured_allies, key=lambda a: a.hp / a.max_hp if a.max_hp > 0 else a.hp)
-            logger.info(f"[PartyAI] {combatant.name} uses Lay on Hands on {target.name}")
+            logger.debug(f"[PartyAI] {combatant.name} uses Lay on Hands on {target.name}")
             return {'type': 'cast_spell', 'spell': feature_rules.LayOnHandsAction(), 'target': target}
 
         healing_spells = [
@@ -400,7 +400,7 @@ class PartyAIStrategy(AIStrategy):
         if group and len(injured_allies) >= MASS_HEAL_MIN_ALLIES:
             spell = max(group, key=lambda s: s.level)
             targets = sorted(injured_allies, key=lambda a: a.hp / a.max_hp if a.max_hp > 0 else a.hp)[:spell.max_targets]
-            logger.info(f"[PartyAI] {combatant.name} heals {', '.join(t.name for t in targets)} with {spell.name}")
+            logger.debug(f"[PartyAI] {combatant.name} heals {', '.join(t.name for t in targets)} with {spell.name}")
             return {'type': 'cast_spell', 'spell': SpellAction(spell, spell_slot_level=lowest_slot(combatant, spell.level)),
                     'target': targets}
         healing_spells = [s for s in healing_spells if getattr(s, 'max_targets', 1) == 1] or healing_spells
@@ -418,7 +418,7 @@ class PartyAIStrategy(AIStrategy):
         spell_action = SpellAction(spell, spell_slot_level=lowest_slot(combatant, spell.level) if spell.level else None)
 
         priority = "CRITICAL" if is_critical else "LOW HP"
-        logger.info(f"[PartyAI] {combatant.name} heals {target.name} ({priority}) with {spell.name}")
+        logger.debug(f"[PartyAI] {combatant.name} heals {target.name} ({priority}) with {spell.name}")
 
         return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
 
@@ -560,9 +560,9 @@ class PartyAIStrategy(AIStrategy):
                 # Log differently for multi-target spells
                 if len(targets_to_buff) > 1:
                     target_names = ", ".join([t.name for t in targets_to_buff])
-                    logger.info(f"[PartyAI] {combatant.name} casts buff {spell.name} on {target_names}")
+                    logger.debug(f"[PartyAI] {combatant.name} casts buff {spell.name} on {target_names}")
                 else:
-                    logger.info(f"[PartyAI] {combatant.name} casts buff {spell.name} on {targets_to_buff[0].name}")
+                    logger.debug(f"[PartyAI] {combatant.name} casts buff {spell.name} on {targets_to_buff[0].name}")
 
                 return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
 
@@ -616,7 +616,7 @@ class PartyAIStrategy(AIStrategy):
         destroy_cr = feature_rules.destroy_undead_cr(combatant)
         destroyable = destroy_cr is not None and any(feature_rules.challenge_rating(u) <= destroy_cr for u in undead)
         if len(undead) >= 2 or others or destroyable:
-            logger.info(f"[PartyAI] {combatant.name} uses Turn Undead on {', '.join(u.name for u in undead)}")
+            logger.debug(f"[PartyAI] {combatant.name} uses Turn Undead on {', '.join(u.name for u in undead)}")
             return {'type': 'turn_undead', 'target': undead}
         return None
 
@@ -714,7 +714,7 @@ class PartyAIStrategy(AIStrategy):
         slot = spell_effects.held_slot(combatant, spell.name) if free else lowest_slot(combatant, spell.level)
         action = SpellAction(spell, spell_slot_level=slot, free=free)
         names = target.name if not isinstance(target, list) else ', '.join(t.name for t in target)
-        logger.info(f"[PartyAI] {combatant.name} {'uses' if free else 'casts'} {spell.name} on {names}")
+        logger.debug(f"[PartyAI] {combatant.name} {'uses' if free else 'casts'} {spell.name} on {names}")
         return {'type': 'cast_spell', 'spell': action, 'target': target}
 
     def _try_finish_regenerator(self, combatant: Any, downed: List[Any]) -> Optional[Dict[str, Any]]:
@@ -732,7 +732,7 @@ class PartyAIStrategy(AIStrategy):
             ]
             if cantrips:
                 cantrip = max(cantrips, key=self._estimate_spell_damage)
-                logger.info(f"[PartyAI] {combatant.name} casts {cantrip.name} to finish the downed {creature.name}")
+                logger.debug(f"[PartyAI] {combatant.name} casts {cantrip.name} to finish the downed {creature.name}")
                 return {'type': 'cast_spell', 'spell': SpellAction(cantrip), 'target': creature}
             weapons = [
                 a for a in getattr(combatant, 'actions', [])
@@ -741,7 +741,7 @@ class PartyAIStrategy(AIStrategy):
             ]
             if weapons:
                 weapon = max(weapons, key=lambda a: (a.hit_bonus(combatant), self._average_damage(a)))
-                logger.info(f"[PartyAI] {combatant.name} attacks the downed {creature.name} with {weapon.name}")
+                logger.debug(f"[PartyAI] {combatant.name} attacks the downed {creature.name} with {weapon.name}")
                 return {'type': 'attack', 'action': weapon, 'target': creature}
         return None
 
@@ -813,11 +813,11 @@ class PartyAIStrategy(AIStrategy):
                     # Target all enemies with area effect spells
                     target = enemies
                     target_names = ", ".join([e.name for e in enemies])
-                    logger.info(f"[PartyAI] {combatant.name} aggressively casts AoE {best_spell.name} (lvl {best_spell.level}) targeting {target_names}")
+                    logger.debug(f"[PartyAI] {combatant.name} aggressively casts AoE {best_spell.name} (lvl {best_spell.level}) targeting {target_names}")
                 else:
                     # Single target spell
                     target = dangerous
-                    logger.info(f"[PartyAI] {combatant.name} aggressively casts {best_spell.name} (lvl {best_spell.level}) vs {dangerous.name}")
+                    logger.debug(f"[PartyAI] {combatant.name} aggressively casts {best_spell.name} (lvl {best_spell.level}) vs {dangerous.name}")
 
                 return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
 
@@ -831,7 +831,7 @@ class PartyAIStrategy(AIStrategy):
             ]
             if cantrips:
                 cantrip = max(cantrips, key=self._estimate_spell_damage)
-                logger.info(f"[PartyAI] {combatant.name} casts {cantrip.name} vs {dangerous.name}")
+                logger.debug(f"[PartyAI] {combatant.name} casts {cantrip.name} vs {dangerous.name}")
                 return {'type': 'cast_spell', 'spell': SpellAction(cantrip), 'target': dangerous}
 
             spell_attacks = [
@@ -841,7 +841,7 @@ class PartyAIStrategy(AIStrategy):
 
             if spell_attacks:
                 best_spell = max(spell_attacks, key=lambda a: a.hit_bonus(combatant))
-                logger.info(f"[PartyAI] {combatant.name} uses {best_spell.name} vs {dangerous.name}")
+                logger.debug(f"[PartyAI] {combatant.name} uses {best_spell.name} vs {dangerous.name}")
                 return {'type': 'attack', 'action': best_spell, 'target': dangerous}
 
         # Try attack actions
@@ -853,7 +853,7 @@ class PartyAIStrategy(AIStrategy):
         if attack_actions:
             best_action = max(attack_actions, key=lambda a: (a.hit_bonus(combatant), self._average_damage(a)))
             best_bonus = best_action.hit_bonus(combatant)
-            logger.info(f"[PartyAI] {combatant.name} attacks with {best_action.name} (+{best_bonus}) vs {dangerous.name}")
+            logger.debug(f"[PartyAI] {combatant.name} attacks with {best_action.name} (+{best_bonus}) vs {dangerous.name}")
             return {'type': 'attack', 'action': best_action, 'target': dangerous}
 
         # Try damaging spells as last resort
@@ -874,11 +874,11 @@ class PartyAIStrategy(AIStrategy):
                 # Target all enemies with area effect spells
                 target = enemies
                 target_names = ", ".join([e.name for e in enemies])
-                logger.info(f"[PartyAI] {combatant.name} casts AoE {spell.name} targeting {target_names}")
+                logger.debug(f"[PartyAI] {combatant.name} casts AoE {spell.name} targeting {target_names}")
             else:
                 # Single target spell
                 target = dangerous
-                logger.info(f"[PartyAI] {combatant.name} casts {spell.name} vs {dangerous.name}")
+                logger.debug(f"[PartyAI] {combatant.name} casts {spell.name} vs {dangerous.name}")
 
             return {'type': 'cast_spell', 'spell': spell_action, 'target': target}
 
@@ -1003,7 +1003,7 @@ class MonsterAIStrategy(AIStrategy):
                 and getattr(a, 'ready', True)
             ]
             if area_attacks:
-                logger.info(f"[MonsterAI] {combatant.name} uses {area_attacks[0].name}")
+                logger.debug(f"[MonsterAI] {combatant.name} uses {area_attacks[0].name}")
                 return {'type': 'attack', 'action': area_attacks[0], 'target': enemies}
 
             # Use special abilities if available
@@ -1018,10 +1018,10 @@ class MonsterAIStrategy(AIStrategy):
                 if getattr(special_action, 'area_effect', False):
                     target = enemies
                     target_names = ", ".join([e.name for e in enemies])
-                    logger.info(f"[MonsterAI] {combatant.name} uses AoE special ability: {special_action.name} targeting {target_names}")
+                    logger.debug(f"[MonsterAI] {combatant.name} uses AoE special ability: {special_action.name} targeting {target_names}")
                 else:
                     target = self.evaluate_targets(combatant, enemies, combat_state)[0]
-                    logger.info(f"[MonsterAI] {combatant.name} uses special ability: {special_action.name} vs {target.name}")
+                    logger.debug(f"[MonsterAI] {combatant.name} uses special ability: {special_action.name} vs {target.name}")
                 return {'type': 'special', 'action': special_action, 'target': target}
 
             # Priority 2: Select target using varied strategy
@@ -1039,9 +1039,9 @@ class MonsterAIStrategy(AIStrategy):
                 if getattr(attack_action, 'area_effect', False):
                     target = enemies
                     target_names = ", ".join([e.name for e in enemies])
-                    logger.info(f"[MonsterAI] {combatant.name} uses AoE attack: {attack_action.name} targeting {target_names}")
+                    logger.debug(f"[MonsterAI] {combatant.name} uses AoE attack: {attack_action.name} targeting {target_names}")
                 else:
-                    logger.info(f"[MonsterAI] {combatant.name} attacks {target.name}")
+                    logger.debug(f"[MonsterAI] {combatant.name} attacks {target.name}")
                 return {'type': 'attack', 'action': attack_action, 'target': target}
 
             # Default: wait if no attack actions

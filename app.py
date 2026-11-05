@@ -22,6 +22,7 @@ from flask import (
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.exceptions import HTTPException
 
 # Local imports
 from controllers.batch_simulation_controller import BatchSimulationController
@@ -50,8 +51,6 @@ RATE_LIMIT_SIMULATE = "10 per minute"
 RATE_LIMIT_STATUS = "30 per minute"
 RATE_LIMIT_API_MONSTERS = "100 per minute"
 RATE_LIMIT_API_BALANCE = "50 per minute"
-RATE_LIMIT_RESULTS_DETAILED = "50 per minute"
-RATE_LIMIT_RESULTS_STATS = "50 per minute"
 RATE_LIMIT_RESULTS_EXPORT = "20 per minute"
 
 # Constants - Input Validation
@@ -83,14 +82,15 @@ def configure_app(app: Flask) -> None:
         app: Flask application instance
     """
     # Secret key configuration
-    app.secret_key = os.environ.get('FLASK_SECRET_KEY', DEFAULT_SECRET_KEY)
+    # FLASK_SECRET_KEY, or SECRET_KEY as the README, docs and docker-compose.yml set it
+    app.secret_key = os.environ.get('FLASK_SECRET_KEY') or os.environ.get('SECRET_KEY') or DEFAULT_SECRET_KEY
 
     # Warn if using default secret key
     if app.secret_key == DEFAULT_SECRET_KEY:
         if not app.debug:
             logger.error(
                 "CRITICAL SECURITY WARNING: Using default secret key! "
-                "Set FLASK_SECRET_KEY environment variable in production!"
+                "Set the SECRET_KEY (or FLASK_SECRET_KEY) environment variable in production!"
             )
         else:
             logger.warning("Using default development secret key - DO NOT use in production!")
@@ -303,6 +303,21 @@ def _session_owns(record: Optional[Dict[str, Any]]) -> bool:
     """Return True if a simulation/batch DB record belongs to the current session."""
     return bool(record) and record.get('session_id') == session.get('session_id')
 
+def latest_simulation_id() -> Optional[int]:
+    """
+    This session's latest simulation: the one the simulation controller just finished, or
+    failing that the last one saved in the database.
+    """
+    session_id = session['session_id']
+    sim_id = simulation_controller.get_simulation_id(session_id)
+    if not sim_id:
+        try:
+            sim_id = db.get_last_simulation_id(session_id)
+        except Exception as e:
+            logger.error(f"Failed to get simulation ID from database: {e}")
+            log_exception(e)
+    return sim_id
+
 # Main Routes
 
 @app.route('/')
@@ -503,33 +518,6 @@ def encounter_clear() -> Tuple[Any, int]:
 
 # API Routes
 
-@app.route('/api/session/clear', methods=['POST'])
-def api_session_clear() -> Tuple[Any, int]:
-    """
-    Clear all session data for troubleshooting.
-
-    Returns:
-        JSON response indicating success or failure
-    """
-    try:
-        # Keep only the session_id
-        session_id = session.get('session_id')
-
-        # Clear all other session data
-        session.clear()
-
-        # Restore the session_id
-        session['session_id'] = session_id
-
-        # Create a fresh session in the database
-        db.create_session(session_id)
-
-        logger.info(f"Cleared session data for {session_id}")
-        return jsonify({'success': True, 'message': 'Session cleared successfully'}), 200
-    except Exception as e:
-        log_exception(e)
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/simulation/debug', methods=['GET'])
 def api_simulation_debug() -> Tuple[Any, int]:
     """
@@ -552,8 +540,6 @@ def api_simulation_debug() -> Tuple[Any, int]:
             'session_id': session_id,
             'simulation_id': sim_id,
             'simulation_state': sim_state,
-            'session_simulation_id': session.get('simulation_id'),
-            'session_last_simulation_id': session.get('last_simulation_id')
         }
 
         return jsonify(debug_info), 200
@@ -760,11 +746,6 @@ def simulate() -> Any:
     # (either no state exists, or the previous simulation is done)
     existing_state = simulation_controller.simulation_states.get(session_id)
     if not existing_state or existing_state.get('done', False):
-        # Clear old simulation ID from session when starting a new simulation
-        if 'simulation_id' in session:
-            del session['simulation_id']
-            logger.info(f"Cleared old simulation_id from session for new simulation")
-
         # Load party and monsters from session
         try:
             party, party_level = load_party_from_session()
@@ -798,9 +779,9 @@ def simulate_status() -> Any:
         JSON response with simulation status
     """
     session_id = session.get('session_id', 'NO_SESSION_ID')
-    logger.info(f"Status endpoint called for session_id: {session_id}")
+    logger.debug(f"Status endpoint called for session_id: {session_id}")
     status = simulation_controller.handle_simulation_progress()
-    logger.info(f"Status endpoint returning: {status}")
+    logger.debug(f"Status endpoint returning: {status}")
     return jsonify(status)
 
 @app.route('/simulate/results', methods=['GET'])
@@ -811,22 +792,7 @@ def simulate_results() -> Response:
     Returns:
         Redirect response
     """
-    # Get the simulation ID from the session or simulation controller
-    sim_id = session.get('simulation_id')
-
-    if not sim_id:
-        # Try to get from simulation controller state
-        session_id = session['session_id']
-        sim_id = simulation_controller.get_simulation_id(session_id)
-
-        # If still no sim_id, try database
-        if not sim_id:
-            try:
-                sim_id = db.get_last_simulation_id(session_id)
-            except Exception as e:
-                logger.error(f"Failed to get simulation ID from database: {e}")
-                log_exception(e)
-
+    sim_id = latest_simulation_id()
     if sim_id:
         return redirect(url_for('results', sim_id=sim_id))
     else:
@@ -980,29 +946,12 @@ def results() -> str:
     Raises:
         ValidationError: If simulation ID is invalid
     """
-    # Prefer explicit sim_id from query string when provided; fall back to session
-    sim_id = request.args.get('sim_id', type=int) or session.get('simulation_id')
-
-    if sim_id and sim_id < 0:
+    # Prefer explicit sim_id from query string when provided; fall back to this session's latest
+    sim_id = request.args.get('sim_id', type=int)
+    if sim_id is not None and sim_id < 0:
         raise ValidationError("Invalid simulation ID")
-
-    # If no sim_id provided, use the last simulation from the database for this session
     if not sim_id:
-        logger.info('/results: sim_id missing from query params and session')
-        session_id = session['session_id']
-
-        # First try to get from simulation controller state
-        sim_id = simulation_controller.get_simulation_id(session_id)
-
-        # If still no sim_id, try database
-        if not sim_id:
-            logger.info('/results: trying to get from database')
-            try:
-                sim_id = db.get_last_simulation_id(session_id)
-            except Exception as e:
-                logger.error(f"Failed to get simulation ID from database: {e}")
-                log_exception(e)
-
+        sim_id = latest_simulation_id()
         if not sim_id:
             # No simulation found, return empty results
             logger.warning("No simulation found for results display")
@@ -1058,62 +1007,18 @@ def results() -> str:
         log_exception(e)
         return render_template('error.html', error='An unexpected error occurred while loading results.'), 500
 
-@app.route('/results/detailed')
-@limiter.limit(RATE_LIMIT_RESULTS_DETAILED)
-def results_detailed() -> Dict[str, List[str]]:
-    """
-    Get detailed combat log.
-
-    Returns:
-        JSON-compatible dictionary with detailed log
-
-    Raises:
-        ValidationError: If simulation ID is invalid
-    """
-    sim_id = session.get('simulation_id')
-    if sim_id and sim_id < 0:
-        raise ValidationError("Invalid simulation ID")
-
-    log = results_controller.handle_detailed_log_display(sim_id)
-    return {'log': [sanitize_html(entry) for entry in log]}
-
-@app.route('/results/statistics')
-@limiter.limit(RATE_LIMIT_RESULTS_STATS)
-def results_statistics() -> Dict[str, Any]:
-    """
-    Get combat statistics.
-
-    Returns:
-        JSON-compatible dictionary with statistics
-
-    Raises:
-        ValidationError: If simulation ID is invalid
-    """
-    sim_id = session.get('simulation_id')
-    if sim_id and sim_id < 0:
-        raise ValidationError("Invalid simulation ID")
-
-    stats = results_controller.generate_combat_statistics(sim_id)
-    return {'statistics': stats}
-
 @app.route('/results/export')
 @limiter.limit(RATE_LIMIT_RESULTS_EXPORT)
-def results_export() -> Tuple[str, int, Dict[str, str]]:
+def results_export() -> Any:
     """
-    Export simulation results as JSON.
-
-    Returns:
-        JSON string with results and content-type header
-
-    Raises:
-        ValidationError: If simulation ID is invalid
+    Export a simulation's results as JSON: the one in the sim_id query parameter, or this
+    session's latest. Only simulations belonging to this session can be exported.
     """
-    sim_id = session.get('simulation_id')
-    if sim_id and sim_id < 0:
-        raise ValidationError("Invalid simulation ID")
-
+    sim_id = request.args.get('sim_id', type=int) or latest_simulation_id()
+    if not sim_id or not _session_owns(db.get_simulation(sim_id)):
+        return jsonify({'error': 'Simulation not found'}), 404
     summary = results_controller.format_simulation_results(sim_id)
-    return json.dumps(summary), 200, {'Content-Type': 'application/json'}
+    return Response(json.dumps(summary), mimetype='application/json')
 
 @app.route('/history')
 def history() -> str:
@@ -1145,6 +1050,11 @@ def healthz() -> Tuple[str, int]:
 
 # Error Handlers
 
+def _wants_json() -> bool:
+    """True for a fetch/AJAX request, which gets a JSON error rather than the error page."""
+    return (request.is_json or request.content_type == 'application/json' or
+            (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html))
+
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError) -> Tuple[Any, int]:
     """
@@ -1157,28 +1067,15 @@ def handle_app_error(error: AppError) -> Tuple[Any, int]:
         JSON response or rendered error page
     """
     log_exception(error)
-
-    # Check if this is a JSON request (from fetch/AJAX)
-    is_json_request = (
-        request.is_json or
-        request.content_type == 'application/json' or
-        request.headers.get('Content-Type') == 'application/json' or
-        (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html)
-    )
-
-    if is_json_request:
-        response = jsonify({
-            'error': str(error),
-            'type': error.__class__.__name__
-        })
-        return response, 400
-
+    if _wants_json():
+        return jsonify({'error': str(error), 'type': error.__class__.__name__}), 400
     return render_template('error.html', error=error), 400
 
 @app.errorhandler(Exception)
-def handle_unexpected_error(error: Exception) -> Tuple[Any, int]:
+def handle_unexpected_error(error: Exception) -> Any:
     """
-    Handle unexpected errors.
+    Handle unexpected errors. HTTP errors (404, 405, 429 from the rate limiter) keep their own
+    status and response.
 
     Args:
         error: Exception instance
@@ -1186,23 +1083,11 @@ def handle_unexpected_error(error: Exception) -> Tuple[Any, int]:
     Returns:
         JSON response or rendered error page
     """
+    if isinstance(error, HTTPException):
+        return error
     log_exception(error)
-
-    # Check if this is a JSON request (from fetch/AJAX)
-    is_json_request = (
-        request.is_json or
-        request.content_type == 'application/json' or
-        request.headers.get('Content-Type') == 'application/json' or
-        (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html)
-    )
-
-    if is_json_request:
-        response = jsonify({
-            'error': 'An unexpected error occurred.',
-            'type': error.__class__.__name__
-        })
-        return response, 500
-
+    if _wants_json():
+        return jsonify({'error': 'An unexpected error occurred.', 'type': error.__class__.__name__}), 500
     return render_template('error.html', error='An unexpected error occurred.'), 500
 
 # Application Entry Point
