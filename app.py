@@ -159,8 +159,8 @@ def validate_input(
                 # Allow numbers, fractions, and slash for CR
                 if not re.match(r'^[0-9/]+$', value):
                     raise ValidationError(f"Invalid characters in field {key}")
-            elif key == 'template_name':
-                # Allow letters, numbers, spaces, apostrophes, and common punctuation for template names
+            elif key in ('template_name', 'batch_name'):
+                # Allow letters, numbers, spaces, apostrophes, and common punctuation for names
                 if not re.match(r'^[a-zA-Z0-9\s\'\-_.,!?()]+$', value):
                     raise ValidationError(f"Invalid characters in field {key}")
             else:
@@ -818,14 +818,14 @@ def batch_simulation_start() -> Tuple[Any, int]:
     Start a batch simulation.
 
     Returns:
-        JSON response with batch ID or error
-
-    Raises:
-        ValidationError: If batch parameters are invalid
+        JSON response with batch ID, or an error: 400 for bad input, 500 for anything else
     """
     try:
         data = validate_input(request.get_json() or {})
-        num_runs = int(data.get('num_runs', 10))
+        try:
+            num_runs = int(data.get('num_runs', 10))
+        except (TypeError, ValueError):
+            raise ValidationError("Number of runs must be a whole number")
         batch_name = data.get('batch_name', f'Batch {int(time.time())}')
 
         if num_runs < MIN_BATCH_RUNS or num_runs > MAX_BATCH_RUNS:
@@ -845,11 +845,14 @@ def batch_simulation_start() -> Tuple[Any, int]:
 
         # Start batch simulation
         logger.info(f"Starting batch simulation: {num_runs} runs, {len(party)} party members, {len(monsters)} monsters")
-        batch_id = batch_simulation_controller.execute_batch_simulation(
-            party, monsters, num_runs, batch_name, session_id,
-            arena_name=load_arena_from_session(),
-            compare_without_arena=bool(data.get('compare_without_arena'))
-        )
+        try:
+            batch_id = batch_simulation_controller.execute_batch_simulation(
+                party, monsters, num_runs, batch_name, session_id,
+                arena_name=load_arena_from_session(),
+                compare_without_arena=bool(data.get('compare_without_arena'))
+            )
+        except ValueError as e:  # the controller's input checks, e.g. an unknown map
+            raise ValidationError(str(e))
 
         logger.info(f"Started batch simulation {batch_id} with {num_runs} runs")
         return jsonify({
@@ -857,14 +860,20 @@ def batch_simulation_start() -> Tuple[Any, int]:
             'message': 'Batch simulation started',
             'batch_id': batch_id
         }), 200
-    except Exception as e:
-        log_exception(e)
+    except ValidationError as e:
         return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return _json_server_error(e)
+
+def _json_server_error(error: Exception) -> Tuple[Any, int]:
+    """A 500 for the batch pages' fetch calls, without the exception's text."""
+    log_exception(error)
+    return jsonify({'error': 'An unexpected error occurred.', 'type': error.__class__.__name__}), 500
 
 @app.route('/batch/progress/<int:batch_id>', methods=['GET'])
 def batch_simulation_progress(batch_id: int) -> Tuple[Any, int]:
     """
-    Get batch simulation progress.
+    Get batch simulation progress. 404 unless the batch belongs to this session.
 
     Args:
         batch_id: Batch simulation ID
@@ -873,12 +882,28 @@ def batch_simulation_progress(batch_id: int) -> Tuple[Any, int]:
         JSON response with progress information
     """
     try:
+        batch = db.get_batch_simulation(batch_id)
+        if not _session_owns(batch):
+            return jsonify({'error': f"Batch simulation {batch_id} not found"}), 404
         progress = batch_simulation_controller.get_batch_progress(batch_id)
+        if progress is None:
+            progress = _finished_batch_progress(batch)
         logger.debug(f"Batch {batch_id} progress: {progress.get('completed_runs', 0)}/{progress.get('total_runs', 0)} runs, {progress.get('progress', 0):.1f}% complete")
         return jsonify(progress), 200
     except Exception as e:
-        log_exception(e)
-        return jsonify({'error': str(e)}), 400
+        return _json_server_error(e)
+
+def _finished_batch_progress(batch: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Progress for a batch the controller no longer holds, because the server restarted. Its
+    statistics are only saved once it finishes, so without them it was cut off part way.
+    """
+    progress = {'progress': 100, 'completed_runs': batch['total_runs'], 'failed_runs': 0,
+                'total_runs': batch['total_runs'], 'party_wins': batch['party_wins'],
+                'monster_wins': batch['monster_wins'], 'done': True, 'error': None}
+    if not batch['total_runs']:
+        progress['error'] = 'This batch stopped before it finished, because the server was restarted.'
+    return progress
 
 @app.route('/batch/results/<int:batch_id>', methods=['GET'])
 def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
@@ -891,14 +916,10 @@ def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
     Returns:
         Rendered HTML template or error page
     """
-    try:
-        if not _session_owns(db.get_batch_simulation(batch_id)):
-            return render_template('error.html', error=f"Batch simulation {batch_id} not found"), 404
-        results = batch_simulation_controller.get_batch_results(batch_id)
-        return render_template('batch_results.html', results=results), 200
-    except Exception as e:
-        log_exception(e)
-        return render_template('error.html', error=str(e)), 400
+    if not _session_owns(db.get_batch_simulation(batch_id)):
+        return render_template('error.html', error=f"Batch simulation {batch_id} not found"), 404
+    results = batch_simulation_controller.get_batch_results(batch_id)
+    return render_template('batch_results.html', results=results), 200
 
 @app.route('/batch/history', methods=['GET'])
 def batch_simulation_history() -> Tuple[str, int]:
@@ -908,12 +929,8 @@ def batch_simulation_history() -> Tuple[str, int]:
     Returns:
         Rendered HTML template or error page
     """
-    try:
-        history = batch_simulation_controller.get_batch_history(session['session_id'])
-        return render_template('batch_history.html', batches=history), 200
-    except Exception as e:
-        log_exception(e)
-        return render_template('error.html', error=str(e)), 400
+    history = batch_simulation_controller.get_batch_history(session['session_id'])
+    return render_template('batch_history.html', batches=history), 200
 
 @app.route('/api/batch/history', methods=['GET'])
 def api_batch_history() -> Tuple[Any, int]:
@@ -927,8 +944,7 @@ def api_batch_history() -> Tuple[Any, int]:
         history = batch_simulation_controller.get_batch_history(session['session_id'])
         return jsonify(history), 200
     except Exception as e:
-        log_exception(e)
-        return jsonify({'error': str(e)}), 400
+        return _json_server_error(e)
 
 # Results Routes
 

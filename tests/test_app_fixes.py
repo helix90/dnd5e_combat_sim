@@ -1,13 +1,14 @@
-"""HTTP errors keep their status, the secret key setting, exporting a chosen simulation, and the
-simulation status only saying 'done' once the result is saved."""
+"""HTTP errors keep their status, the secret key setting, exporting a chosen simulation, the
+simulation status only saying 'done' once the result is saved, and the batch routes' checks."""
 import os
 import subprocess
 import sys
 import threading
+from unittest.mock import patch
 
 import pytest
 
-from app import app as flask_app, db, simulation_controller
+from app import app as flask_app, batch_simulation_controller, db, simulation_controller
 from models.character import Character
 from models.monster import Monster
 from models.actions import AttackAction
@@ -113,3 +114,83 @@ def test_status_is_only_done_once_the_result_is_saved(client):
     assert seen and not seen[0].get('done')
     state = simulation_controller.simulation_states[owner]
     assert state['done'] and state['simulation_id'] and not state.get('error')
+
+
+# Batches
+
+
+@pytest.fixture
+def ready(client):
+    """A client with a party and an encounter chosen, ready to start a batch."""
+    client.post('/party', data={'party_id': '1', 'party_level': '5'})
+    client.post('/encounter/custom', json={'monsters': [{'name': 'Goblin', 'cr': '1/4', 'hp': 7, 'ac': 15}],
+                                           'party_level': 5, 'party_size': 4})
+    return client
+
+
+def start(client, **data):
+    return client.post('/batch/start', json={'num_runs': 10, **data})
+
+
+def test_batch_names_can_have_apostrophes(ready):
+    with patch('app.batch_simulation_controller.execute_batch_simulation', return_value=1) as batch:
+        assert start(ready, batch_name="Wolf's test").status_code == 200
+    assert batch.call_args.args[3] == "Wolf's test"
+
+
+def test_batch_names_still_reject_markup(ready):
+    assert start(ready, batch_name='<b>bold</b>').status_code == 400
+
+
+def test_a_run_count_that_isnt_a_number_is_a_400(ready):
+    response = start(ready, num_runs='lots')
+    assert response.status_code == 400 and 'whole number' in response.get_json()['error']
+
+
+def test_the_controllers_input_checks_are_400s(ready):
+    with patch('app.batch_simulation_controller.execute_batch_simulation', side_effect=ValueError('Unknown map')):
+        response = start(ready)
+    assert response.status_code == 400 and response.get_json()['error'] == 'Unknown map'
+
+
+def test_server_errors_starting_a_batch_are_500s_without_the_details(ready):
+    with patch('app.batch_simulation_controller.execute_batch_simulation',
+               side_effect=RuntimeError('disk I/O error at /secret/path')):
+        response = start(ready)
+    assert response.status_code == 500
+    assert 'secret' not in response.get_json()['error']
+
+
+def test_batch_progress_is_404_for_another_sessions_batch(client):
+    other = db.create_batch_simulation('someone-else', 'theirs', 5, 'custom')
+    assert client.get(f'/batch/progress/{other}').status_code == 404
+
+
+def test_batch_progress_is_404_for_an_unknown_batch(client):
+    assert client.get('/batch/progress/999999999').status_code == 404
+
+
+def test_progress_of_a_batch_cut_off_by_a_restart_says_so(client):
+    # Saved in the database, but no longer in the controller's memory
+    batch_id = db.create_batch_simulation(session_id(client), 'mine', 5, 'custom')
+    progress = client.get(f'/batch/progress/{batch_id}').get_json()
+    assert progress['done'] and 'restarted' in progress['error']
+
+
+def test_progress_of_a_batch_finished_before_a_restart_has_its_totals(client):
+    batch_id = db.create_batch_simulation(session_id(client), 'mine', 5, 'custom')
+    db.update_batch_statistics(batch_id, 10, 7, 3, 4.5, 20.0)
+    progress = client.get(f'/batch/progress/{batch_id}').get_json()
+    assert progress['done'] and not progress['error']
+    assert (progress['completed_runs'], progress['party_wins'], progress['monster_wins']) == (10, 7, 3)
+
+
+def test_progress_of_a_running_batch_comes_from_the_controller(client):
+    batch_id = db.create_batch_simulation(session_id(client), 'mine', 5, 'custom')
+    batch_simulation_controller.batch_states[batch_id] = {'progress': 40, 'completed_runs': 4, 'total_runs': 10,
+                                                          'done': False, 'error': None}
+    try:
+        progress = client.get(f'/batch/progress/{batch_id}').get_json()
+    finally:
+        del batch_simulation_controller.batch_states[batch_id]
+    assert progress['completed_runs'] == 4 and not progress['done']
