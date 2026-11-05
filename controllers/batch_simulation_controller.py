@@ -180,21 +180,15 @@ class BatchSimulationController:
         logger.debug(f"Batch {batch_id}: Thread started, is_alive={t.is_alive()}")
         return batch_id
 
-    def get_batch_progress(self, batch_id: int) -> Dict[str, Any]:
+    def get_batch_progress(self, batch_id: int) -> Optional[Dict[str, Any]]:
         """
-        Get the current progress of a batch simulation.
+        Get the current progress of a batch simulation, or None for a batch this controller
+        didn't start (one from before a server restart).
         """
         with self.state_lock:
-            state = self.batch_states.get(batch_id, {
-                'progress': 0,
-                'completed_runs': 0,
-                'failed_runs': 0,
-                'total_runs': 0,
-                'party_wins': 0,
-                'monster_wins': 0,
-                'done': False,
-                'error': None
-            })
+            state = self.batch_states.get(batch_id)
+            if state is None:
+                return None
             progress = dict(state)  # a copy, so callers can't change it or see it change
             if 'baseline' in progress:
                 progress['baseline'] = dict(progress['baseline'])
