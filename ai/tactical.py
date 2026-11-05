@@ -1,6 +1,8 @@
 from typing import Any, List, Dict, Protocol, Optional
 import logging
 
+from ai import errors
+
 # Constants for threat calculation
 HP_CONTRIBUTION_FACTOR = 0.1  # HP contribution to threat (hp / 10)
 SPECIAL_ABILITY_THREAT_BONUS = 2.0  # Threat bonus for special abilities
@@ -136,8 +138,10 @@ class TacticalAnalyzer:
         except ValueError:
             # Re-raise validation errors
             raise
-        except Exception as e:
-            logger.warning(f"Error calculating threat level for {getattr(combatant, 'name', 'Unknown')}: {e}")
+        except Exception:
+            if errors.RAISE_ERRORS:
+                raise
+            logger.exception(f"Error calculating threat level for {getattr(combatant, 'name', 'Unknown')}")
             return DEFAULT_THREAT_LEVEL
 
     def find_optimal_targets(
@@ -196,8 +200,10 @@ class TacticalAnalyzer:
         except ValueError:
             # Re-raise validation errors
             raise
-        except Exception as e:
-            logger.error(f"Error finding optimal targets for {getattr(combatant, 'name', 'Unknown')}: {e}")
+        except Exception:
+            if errors.RAISE_ERRORS:
+                raise
+            logger.exception(f"Error finding optimal targets for {getattr(combatant, 'name', 'Unknown')}")
             # Return unsorted list as fallback
             return potential_targets if isinstance(potential_targets, list) else []
 
@@ -243,8 +249,10 @@ class TacticalAnalyzer:
         except ValueError:
             # Re-raise validation errors
             raise
-        except Exception as e:
-            logger.warning(f"Error evaluating advantage for {getattr(combatant, 'name', 'Unknown')}: {e}")
+        except Exception:
+            if errors.RAISE_ERRORS:
+                raise
+            logger.exception(f"Error evaluating advantage for {getattr(combatant, 'name', 'Unknown')}")
             return []
 
     def resource_management(
@@ -324,7 +332,9 @@ class TacticalAnalyzer:
         except ValueError:
             # Re-raise validation errors
             raise
-        except Exception as e:
-            logger.error(f"Error in resource management for {getattr(combatant, 'name', 'Unknown')}: {e}")
+        except Exception:
+            if errors.RAISE_ERRORS:
+                raise
+            logger.exception(f"Error in resource management for {getattr(combatant, 'name', 'Unknown')}")
             # Return safe defaults
             return {'low_slots': False, 'recommend_conserve': False}

@@ -1,0 +1,6 @@
+# The app's requirements plus the test and load-test tools; not installed in the Docker image
+-r requirements.txt
+pytest==7.4.3
+pytest-flask==1.3.0
+pytest-cov==4.1.0
+locust==2.17.0

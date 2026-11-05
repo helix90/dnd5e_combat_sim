@@ -67,7 +67,7 @@ A comprehensive web-based combat simulator for Dungeons & Dragons 5th Edition, f
 
 3. **Install dependencies**
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements-dev.txt  # the app plus the test tools; the app alone needs requirements.txt
    ```
 
 4. **Initialize database**
@@ -167,7 +167,8 @@ dnd5e_combat_sim/
 ├── tests/                 # Test suite
 ├── scripts/               # Deployment and utility scripts
 ├── docs/                  # Documentation
-└── requirements.txt       # Python dependencies
+├── requirements.txt       # Python dependencies
+└── requirements-dev.txt   # Plus the test and load-test tools
 ```
 
 ### Key Components

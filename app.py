@@ -36,7 +36,6 @@ from utils.exceptions import (
 )
 from utils.logging import log_exception
 from utils.party_loader import PartyLoader
-from utils.paths import data_path
 
 # Constants - Application Configuration
 DEFAULT_SECRET_KEY = 'dev-secret-key'
@@ -58,9 +57,6 @@ MAX_INPUT_LENGTH_DEFAULT = 1000
 MAX_INPUT_LENGTH_JSON = 5000
 MIN_BATCH_RUNS = 1
 MAX_BATCH_RUNS = 1000
-
-# Constants - File Paths
-ENCOUNTER_TEMPLATES_FILE = data_path('encounter_templates.json')
 
 # Constants - Default Values
 DEFAULT_PARTY_ID = 1
@@ -168,37 +164,6 @@ def validate_input(
                     raise ValidationError(f"Invalid characters in field {key}")
 
     return data
-
-def sanitize_html(text: Any) -> str:
-    """
-    Sanitize HTML to prevent XSS attacks.
-
-    Removes dangerous HTML tags and attributes that could execute JavaScript.
-
-    Args:
-        text: Text to sanitize
-
-    Returns:
-        Sanitized text string
-    """
-    if not isinstance(text, str):
-        return str(text)
-
-    # Remove potentially dangerous HTML tags
-    dangerous_tags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'style', 'link']
-    for tag in dangerous_tags:
-        text = re.sub(f'<{tag}[^>]*>.*?</{tag}>', '', text, flags=re.IGNORECASE | re.DOTALL)
-        text = re.sub(f'<{tag}[^>]*>', '', text, flags=re.IGNORECASE)
-
-    # Remove dangerous attributes (event handlers)
-    dangerous_attrs = ['onclick', 'onerror', 'onload', 'onmouseover', 'onfocus', 'onblur']
-    for attr in dangerous_attrs:
-        text = re.sub(f'{attr}\\s*=\\s*["\'][^"\']*["\']', '', text, flags=re.IGNORECASE)
-
-    # Remove javascript: protocol
-    text = re.sub(r'javascript:', '', text, flags=re.IGNORECASE)
-
-    return text
 
 def load_party_from_session() -> Tuple[List[Any], int]:
     """
@@ -413,7 +378,7 @@ def encounter_custom() -> Any:
                 max_length=MAX_INPUT_LENGTH_JSON
             )
             monsters = data.get('monsters', [])
-            party_level = int(data.get('party_level', 3))
+            party_level = int(data.get('party_level', session.get('selected_party_level', DEFAULT_PARTY_LEVEL)))
             party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
 
             # Validate monster data (no field restriction - monsters have many varied fields)
@@ -447,7 +412,7 @@ def encounter_prebuilt() -> Any:
         try:
             data = validate_input(request.get_json() or {})
             template_name = data.get('template_name')
-            party_level = int(data.get('party_level', 3))
+            party_level = int(data.get('party_level', session.get('selected_party_level', DEFAULT_PARTY_LEVEL)))
             party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
 
             if not template_name:
@@ -637,7 +602,7 @@ def api_encounter_balance() -> Any:
             max_length=MAX_INPUT_LENGTH_JSON
         )
         monsters = data.get('monsters', [])
-        party_level = int(data.get('party_level', 3))
+        party_level = int(data.get('party_level', session.get('selected_party_level', DEFAULT_PARTY_LEVEL)))
         party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
 
         # Validate monster data (no field restriction - monsters have many varied fields)
@@ -662,19 +627,7 @@ def api_prebuilt_encounters() -> Tuple[Any, int]:
     Returns:
         JSON response with template list
     """
-    try:
-        with open(ENCOUNTER_TEMPLATES_FILE, 'r', encoding='utf-8') as f:
-            templates = json.load(f)["encounters"]
-        return jsonify(templates), 200
-    except FileNotFoundError as e:
-        log_exception(e)
-        return jsonify({"error": f"Encounter templates file not found: {ENCOUNTER_TEMPLATES_FILE}"}), 500
-    except json.JSONDecodeError as e:
-        log_exception(e)
-        return jsonify({"error": "Invalid JSON in encounter templates file"}), 500
-    except Exception as e:
-        log_exception(e)
-        return jsonify({"error": "Failed to load prebuilt encounters"}), 500
+    return jsonify(encounter_controller.templates), 200
 
 @app.route('/api/party/current', methods=['GET'])
 def api_current_party() -> Any:
@@ -995,7 +948,7 @@ def results() -> str:
     try:
         summary = results_controller.format_simulation_results(sim_id)
         statistics = results_controller.generate_combat_statistics(sim_id)
-        log = [sanitize_html(str(entry)) for entry in summary['logs']]
+        log = [str(entry) for entry in summary['logs']]  # the template escapes it
         replay = db.get_replay(sim_id) if record.get('arena') else None
         # One line per action, in the order of the replay's frames (escaped by the page's script)
         replay_log = [{'round': entry.get('round_number'), 'name': entry.get('character_name'),

@@ -108,8 +108,8 @@ build_application() {
             print_status "Docker build completed"
             ;;
         "local")
-            # Install dependencies
-            pip install -r requirements.txt
+            # Install dependencies, with the test tools, since the tests run before a local deploy
+            pip install -r requirements-dev.txt
             print_status "Local build completed"
             ;;
     esac
