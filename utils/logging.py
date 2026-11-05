@@ -3,7 +3,8 @@ import os
 import sys
 from datetime import datetime
 
-LOG_DIR = os.path.join(os.path.dirname(__file__), '..', 'logs')
+# The tests point LOG_DIR elsewhere (tests/conftest.py) so they don't fill the app's logs
+LOG_DIR = os.environ.get('LOG_DIR') or os.path.join(os.path.dirname(__file__), '..', 'logs')
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, f'app_{datetime.now().strftime("%Y%m%d")}.log')
 

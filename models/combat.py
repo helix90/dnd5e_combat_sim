@@ -18,6 +18,7 @@ from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET, describe_area
 from models.battlefield import (MONSTERS, PARTY, Battlefield, area_of, area_range, bonus_dash, bonus_disengage,
                                 ignores_cover, melee_attacks)
+from models.log_text import rider_text, target_text
 from models.multiattack import for_target, parse_multiattack
 from models.damage import apply_damage, has_ability, regain_hp
 from models import class_features as feature_rules
@@ -43,9 +44,6 @@ def _average_damage(action: Any) -> float:
 
 
 # How the log describes a condition an attack applied: "Aldric is knocked prone!"
-CONDITION_TEXT = {'Paralyzed': 'is paralyzed', 'Prone': 'is knocked prone',
-                  'Infernal Wound': 'has an infernal wound', 'Mummy Rot': 'is cursed with mummy rot'}
-
 # A ghast's Stench: the CON save a creature starting its turn next to one makes
 STENCH_DC = 10
 
@@ -1576,13 +1574,12 @@ class Combat:
                     elif 'damage' in result:
                         crit = " (critical hit)" if result.get('critical') else ""
                         line = f"{actor} uses {action} on {self._target_text(result)}: {result['damage']} damage{crit}."
-                        lines.append(line + self._rider_text(actor, result))
+                        lines.append(line + rider_text(actor, result))
                     elif result.get('action') == 'Turn Undead':
                         lines.append(f"{actor} {result['description']}.")
                     elif 'total_damage' in result:
-                        riders = ''.join(self._rider_text(actor, a) for a in result.get('individual_attacks', []))
                         lines.append(f"{actor} uses {action} on {self._target_text(result)}: {result['total_damage']} damage."
-                                     + riders)
+                                     + rider_text(actor, result))
                     elif 'healing' in result:
                         lines.append(f"{actor} uses {action} on {self._target_text(result)}: heals {result['healing']} HP.")
                     else:
@@ -1599,24 +1596,9 @@ class Combat:
                         lines[start] = f"{result['reaction']}: {lines[start]}"
         return lines
 
-    @classmethod
-    def _rider_text(cls, actor: str, result: Dict[str, Any]) -> str:
-        """What an attack's hit did besides damage: a condition, a drained maximum, the attacker healing."""
-        target = cls._target_text(result)
-        text = ''
-        if result.get('condition_applied'):
-            condition = result['condition_applied']
-            text += f" {target} {CONDITION_TEXT.get(condition, 'is ' + condition.lower())}!"
-        if result.get('hp_drained'):
-            text += f" {target}'s hit point maximum drops by {result['hp_drained']} (to {result['target_max_hp_after']})."
-        if result.get('attacker_healed'):
-            text += f" {actor} regains {result['attacker_healed']} HP."
-        return text
-
     @staticmethod
     def _target_text(result: Dict[str, Any]) -> str:
-        target = result.get('target', '')
-        return ', '.join(str(t) for t in target) if isinstance(target, list) else str(target)
+        return target_text(result)
 
     @staticmethod
     def _with_position_notes(line: str, actor: str, result: Dict[str, Any]) -> str:

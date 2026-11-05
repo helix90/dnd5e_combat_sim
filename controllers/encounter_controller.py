@@ -69,8 +69,6 @@ class EncounterController:
         """
         session.pop('encounter_monsters', None)
         session.pop('selected_encounter', None)
-        session.pop('simulation_id', None)
-        session.pop('last_simulation_id', None)
 
     def _validate_encounter_inputs(self, party_level: int, party_size: int, monster_list: Optional[List[Dict[str, Any]]] = None) -> None:
         """

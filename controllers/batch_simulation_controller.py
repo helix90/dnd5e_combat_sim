@@ -1,6 +1,5 @@
 import copy
 import threading
-import time
 from typing import List, Dict, Any, Optional
 from models.arena_library import get_arena
 from models.combat import Combat
@@ -32,7 +31,7 @@ class BatchSimulationController:
         from utils.logging import logger
 
         logger.info(f"execute_batch_simulation called: session_id={session_id}, num_runs={num_runs}, batch_name={batch_name}")
-        logger.info(f"Party: {len(party)} members, Monsters: {len(monsters)} monsters")
+        logger.debug(f"Party: {len(party)} members, Monsters: {len(monsters)} monsters")
 
         # Input validation
         if num_runs <= 0:
@@ -45,13 +44,13 @@ class BatchSimulationController:
             raise ValueError("monsters cannot be empty")
         arena = get_arena(arena_name)  # ValueError for an unknown map
 
-        logger.info("Input validation passed")
+        logger.debug("Input validation passed")
 
         # Create batch simulation record first
         party_level = max(char.get('level', 1) if isinstance(char, dict) else getattr(char, 'level', 1)
                           for char in party)
         encounter_type = 'custom'  # Could be enhanced to detect prebuilt encounters
-        logger.info(f"Creating batch simulation record: party_level={party_level}, encounter_type={encounter_type}")
+        logger.debug(f"Creating batch simulation record: party_level={party_level}, encounter_type={encounter_type}")
         baseline_id = None
         if arena is not None and compare_without_arena:
             baseline_id = self.db.create_batch_simulation(session_id, f"{batch_name} (no arena)", party_level,
@@ -82,7 +81,7 @@ class BatchSimulationController:
                     'monster_wins': 0, 'total_rounds': 0, 'total_party_hp_remaining': 0,
                 }
 
-        logger.info(f"Initialized batch state for batch_id={batch_id}")
+        logger.debug(f"Initialized batch state for batch_id={batch_id}")
 
         def tally(target_id: int) -> Dict[str, Any]:
             """The state's counters for one of the batches (the main one or its baseline)."""
@@ -146,7 +145,7 @@ class BatchSimulationController:
                     completed_runs = counts['completed_runs']
                     avg_rounds = counts['total_rounds'] / completed_runs if completed_runs else 0
                     avg_party_hp = counts['total_party_hp_remaining'] / completed_runs if completed_runs else 0
-                    logger.info(f"Batch {target_id}: Updating database statistics")
+                    logger.debug(f"Batch {target_id}: Updating database statistics")
                     self.db.update_batch_statistics(
                         target_id, completed_runs, counts['party_wins'], counts['monster_wins'], avg_rounds,
                         avg_party_hp
@@ -173,12 +172,12 @@ class BatchSimulationController:
                         'total_runs': num_runs
                     }
 
-        logger.info(f"Batch {batch_id}: Starting background thread")
+        logger.debug(f"Batch {batch_id}: Starting background thread")
         t = threading.Thread(target=run)
         t.daemon = False  # Ensure thread is not daemon so it completes
         t.start()
         self.batch_threads[batch_id] = t
-        logger.info(f"Batch {batch_id}: Thread started, is_alive={t.is_alive()}")
+        logger.debug(f"Batch {batch_id}: Thread started, is_alive={t.is_alive()}")
         return batch_id
 
     def get_batch_progress(self, batch_id: int) -> Dict[str, Any]:
@@ -264,46 +263,3 @@ class BatchSimulationController:
         except Exception as e:
             log_exception(e)
             raise BatchSimulationError(f"Failed to get batch history: {e}")
-
-    def cleanup_batch(self, batch_id: int):
-        """
-        Clean up resources for a completed batch simulation.
-        Should be called after retrieving final results.
-        """
-        with self.state_lock:
-            # Only cleanup if batch is done
-            if batch_id in self.batch_states and self.batch_states[batch_id].get('done', False):
-                # Remove state
-                if batch_id in self.batch_states:
-                    del self.batch_states[batch_id]
-                # Remove thread reference
-                if batch_id in self.batch_threads:
-                    del self.batch_threads[batch_id]
-
-    def cleanup_completed_batches(self):
-        """
-        Clean up all completed batch simulations to free memory.
-        Should be called periodically or when memory is a concern.
-        """
-        with self.state_lock:
-            completed_ids = [
-                batch_id for batch_id, state in self.batch_states.items()
-                if state.get('done', False)
-            ]
-
-        # Cleanup outside the lock to avoid holding it too long
-        for batch_id in completed_ids:
-            self.cleanup_batch(batch_id)
-
-    def shutdown(self):
-        """
-        Gracefully shutdown by waiting for all batch threads to complete.
-        Call this before application exit.
-        """
-        with self.state_lock:
-            thread_ids = list(self.batch_threads.keys())
-
-        for batch_id in thread_ids:
-            thread = self.batch_threads.get(batch_id)
-            if thread and thread.is_alive():
-                thread.join(timeout=30)  # Wait max 30 seconds per thread 

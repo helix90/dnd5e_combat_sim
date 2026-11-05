@@ -211,42 +211,6 @@ Get simulation results page.
 **Query Parameters:**
 - `sim_id` (optional): Specific simulation ID
 
-#### GET /results/detailed
-Get detailed combat log.
-
-**Query Parameters:**
-- `sim_id`: Simulation ID
-
-**Response:**
-```json
-{
-  "log": [
-    "-- Round 1 --",
-    "Arannis casts Fireball on Goblin: 24 damage.",
-    "Goblin attacks Arannis: 5 damage."
-  ]
-}
-```
-
-#### GET /results/statistics
-Get combat statistics.
-
-**Query Parameters:**
-- `sim_id`: Simulation ID
-
-**Response:**
-```json
-{
-  "statistics": {
-    "total_rounds": 3,
-    "winner": "party",
-    "damage_dealt": 45,
-    "damage_taken": 12,
-    "spells_cast": 2
-  }
-}
-```
-
 #### GET /results/export
 Export simulation results as JSON.
 
@@ -406,7 +370,7 @@ curl http://localhost:5000/simulate/status
 
 5. **Get Results:**
 ```bash
-curl http://localhost:5000/results/statistics?sim_id=1
+curl http://localhost:5000/results/export?sim_id=1
 ```
 
 ## Rate Limiting Headers

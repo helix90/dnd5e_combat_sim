@@ -186,7 +186,7 @@ class TacticalAnalyzer:
             if sorted_targets:
                 top_target = sorted_targets[0]
                 top_threat = self.calculate_threat_level(top_target, combat_state)
-                logger.info(
+                logger.debug(
                     f"{combatant_name} identified optimal target: {top_target.name} "
                     f"(threat: {top_threat:.1f})"
                 )
@@ -297,7 +297,7 @@ class TacticalAnalyzer:
                     resources['total_slots_remaining'] = total_slots
 
                     if low_slots:
-                        logger.info(f"{combatant.name} has low/no spell slots remaining")
+                        logger.debug(f"{combatant.name} has low/no spell slots remaining")
                     else:
                         logger.debug(f"{combatant.name} has {total_slots} spell slots remaining")
                 else:
@@ -313,7 +313,7 @@ class TacticalAnalyzer:
                 resources['recommend_conserve'] = encounters_remaining > 2
 
                 if resources.get('recommend_conserve'):
-                    logger.info(
+                    logger.debug(
                         f"{combatant.name} should conserve resources "
                         f"({encounters_remaining} encounters remaining)"
                     )

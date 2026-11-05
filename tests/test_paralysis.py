@@ -133,7 +133,7 @@ def test_combat_log_records_paralysis(tmp_path):
             'action': 'Paralyzed', 'type': 'condition',
             'description': 'is paralyzed and loses its turn; fails a CON save (7) and remains paralyzed'}},
     ])
-    assert logs[0]['result'] == 'Hit for 5 damage; target is paralyzed'
+    assert logs[0]['result'] == 'Hit for 5 damage. Hero is paralyzed!'
     assert logs[1]['action_type'] == 'condition'
     assert logs[1]['result'].startswith('is paralyzed and loses its turn')
     assert logs[1]['damage'] == 0

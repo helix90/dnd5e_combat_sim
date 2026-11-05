@@ -1,6 +1,6 @@
 import pytest
 from app import app as flask_app
-from utils.exceptions import APIError, DatabaseError
+from utils.exceptions import DatabaseError
 from utils.party_loader import PartyLoader
 
 @pytest.fixture
@@ -62,17 +62,6 @@ def test_party_level_selection(client, party):
         assert data['party_level'] == test_level
         for char in data['characters']:
             assert char['level'] == test_level
-
-# API failure and fallback
-@pytest.mark.usefixtures('client')
-def test_api_failure_fallback(client, monkeypatch):
-    from utils.api_client import APIClient
-    def fail_fetch_spell_data(self, name):
-        raise APIError('API down')
-    monkeypatch.setattr(APIClient, 'fetch_spell_data', fail_fetch_spell_data)
-    # Try to load a spell via the API (should fallback or error gracefully)
-    rv = client.get('/encounter')  # Triggers spell/monster loading in some flows
-    assert rv.status_code == 200 or rv.status_code == 400
 
 # DB failure recovery
 @pytest.mark.usefixtures('client')
@@ -214,4 +203,4 @@ def test_batch_party_vs_kobold_mob(client):
 #         if not found:
 #             print(f"[DEBUG] Assertion failed for level {test_level}. char_names: {char_names}, char_classes: {char_classes}")
 #             print(f"[DEBUG] Full simulation log: {sim_state.get('log', [])}")
-#         assert found, f"Character with correct name, class, and level <= {test_level} not found in simulation log." 
+#         assert found, f"Character with correct name, class, and level <= {test_level} not found in simulation log."

@@ -6,7 +6,6 @@ import os
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_ROOT, 'data')
-CONFIG_DIR = os.path.join(PROJECT_ROOT, 'config')
 
 
 def data_path(filename: str) -> str:

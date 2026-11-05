@@ -15,8 +15,6 @@ from models.arena import Area
 from models.buffs import cannot_regain_hp
 from models.damage import apply_damage, damage_after_save, regain_hp
 from models.rolls import attack_hits, attack_roll as roll_attack, is_critical, roll_saving_throw
-from utils.api_client import APIClient
-from utils.exceptions import APIError
 
 if TYPE_CHECKING:
     from models.character import Character
@@ -182,37 +180,6 @@ class Spell:
     @property
     def duration_rounds(self) -> int:
         return parse_duration_rounds(self.duration)
-
-    @classmethod
-    def from_api(cls, name, api_client=None):
-        api = api_client or APIClient()
-        api_data = api.fetch_spell_data(name)
-        if not api_data:
-            raise APIError(f"Spell '{name}' not found in API or local data.")
-        # Validate and map API fields to Spell fields
-        kwargs = {
-            'name': api_data.get('name', name),
-            'level': api_data.get('level', 0),
-            'school': api_data.get('school', ''),
-            'casting_time': api_data.get('casting_time', ''),
-            'range': api_data.get('range', ''),
-            'duration': api_data.get('duration', ''),
-            'components': {
-                'verbal': 'V' in api_data.get('components', ''),
-                'somatic': 'S' in api_data.get('components', ''),
-                'material': 'M' in api_data.get('components', ''),
-            },
-            'damage_dice': api_data.get('damage_dice', None),
-            'damage_type': api_data.get('damage_type', None),
-            'save_type': api_data.get('save_type', None),
-            'save_dc_bonus': 0,
-            'description': api_data.get('desc', ''),
-            'is_attack_spell': api_data.get('attack_type', '') == 'ranged' or api_data.get('attack_type', '') == 'melee',
-            'healing': 'heal' in api_data.get('desc', '').lower(),
-            'area_effect': api_data.get('area_of_effect', None) is not None,
-            'concentration': api_data.get('concentration', '').lower() == 'yes',
-        }
-        return cls(**kwargs)
 
     def calculate_damage(self, caster_level: int = 1, critical: bool = False, slot_level: Optional[int] = None) -> int:
         """

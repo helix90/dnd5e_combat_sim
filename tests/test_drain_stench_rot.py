@@ -281,3 +281,21 @@ def test_stench_happens_in_a_fight():
             found = True
             break
     assert found
+
+
+def test_the_saved_log_shows_what_each_attack_of_a_multiattack_did(tmp_path):
+    from models.db import DatabaseManager
+    logs = DatabaseManager(str(tmp_path / 'test.db'))._convert_combat_log_format([
+        {'type': 'action', 'actor': 'Wight 1', 'result': {
+            'action': 'Multiattack', 'type': 'special', 'target': 'Aldric', 'total_damage': 14,
+            'individual_attacks': [
+                {'action': 'Longsword', 'target': 'Aldric', 'hit': True, 'damage': 9, 'hp_drained': 9,
+                 'target_max_hp_after': 51},
+                {'action': 'Longsword', 'target': 'Aldric', 'hit': True, 'damage': 5}]}},
+        {'type': 'action', 'actor': 'Horned Devil 1', 'result': {
+            'action': 'Multiattack', 'type': 'special', 'target': 'Aldric', 'total_damage': 20,
+            'individual_attacks': [{'action': 'Tail', 'target': 'Aldric', 'hit': True, 'damage': 20,
+                                    'condition_applied': 'Infernal Wound'}]}},
+    ])
+    assert logs[0]['result'] == "Multiattack on Aldric: 14 damage. Aldric's hit point maximum drops by 9 (to 51)."
+    assert logs[1]['result'] == 'Multiattack on Aldric: 20 damage. Aldric has an infernal wound!'
