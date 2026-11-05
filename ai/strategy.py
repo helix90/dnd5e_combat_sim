@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Dict, Protocol, Callable, Optional
 import logging
 import random
+
+from ai import errors
 from models import class_features as feature_rules
 from models import concentration, spell_effects
 from models.buffs import cannot_regain_hp, is_spellbound
@@ -189,8 +191,10 @@ class AIStrategy(ABC):
                 threat += CLASS_FEATURES_THREAT_BONUS
 
             return threat
-        except Exception as e:
-            logger.warning(f"Error in threat_assessment for {getattr(combatant, 'name', 'Unknown')}: {e}")
+        except Exception:
+            if errors.RAISE_ERRORS:
+                raise
+            logger.exception(f"Error in threat_assessment for {getattr(combatant, 'name', 'Unknown')}")
             return 1.0  # Default low threat
 
     @abstractmethod
@@ -361,8 +365,10 @@ class PartyAIStrategy(AIStrategy):
             logger.debug(f"[PartyAI] {combatant.name} chooses to defend (no valid targets)")
             return {'type': 'defend'}
 
-        except Exception as e:
-            logger.error(f"Error in PartyAI choose_action for {getattr(combatant, 'name', 'Unknown')}: {e}")
+        except Exception:
+            if errors.RAISE_ERRORS:
+                raise
+            logger.exception(f"Error in PartyAI choose_action for {getattr(combatant, 'name', 'Unknown')}")
             return {'type': 'defend'}
 
     def _try_heal_ally(self, combatant: Any, injured_allies: List[Any], is_critical: bool = False) -> Optional[Dict[str, Any]]:
@@ -1048,8 +1054,10 @@ class MonsterAIStrategy(AIStrategy):
             logger.debug(f"[MonsterAI] {combatant.name} waits (no attack actions)")
             return {'type': 'wait'}
 
-        except Exception as e:
-            logger.error(f"Error in MonsterAI choose_action for {getattr(combatant, 'name', 'Unknown')}: {e}")
+        except Exception:
+            if errors.RAISE_ERRORS:
+                raise
+            logger.exception(f"Error in MonsterAI choose_action for {getattr(combatant, 'name', 'Unknown')}")
             return {'type': 'wait'}
 
     def _should_use_special_ability(self, combatant: Any, enemies: List[Any], combat_state: Dict[str, Any]) -> bool:
