@@ -1,15 +1,7 @@
 """The Battlefield picker: no map, each encounter's own map, or a chosen map, on the encounter and batch pages."""
 import pytest
 
-from app import app as flask_app
 from models.arena_library import ENCOUNTER_MAP
-
-
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        yield client
 
 
 def picked(page: str, mode: str) -> bool:

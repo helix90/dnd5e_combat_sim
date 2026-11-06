@@ -4,12 +4,10 @@ Integration tests for spell casting in combat.
 Tests spell casting mechanics integrated with the combat system.
 """
 
-import pytest
 from unittest.mock import patch
 from models.character import Character
 from models.monster import Monster
-from models.combat import Combat, CombatLogger
-from models.spells import Spell
+from models.combat import Combat
 from models.spell_manager import SpellManager
 
 
@@ -117,8 +115,6 @@ class TestSpellCombatIntegration:
         self.cleric.add_spell(sacred_flame)
         
         # Debug: Check initial spell slots
-        print(f"Wizard spell slots before: {self.wizard.spell_slots_remaining}")
-        print(f"Cleric spell slots before: {self.cleric.spell_slots_remaining}")
         
         # Create combat with participants
         combat = Combat([self.wizard, self.cleric, self.goblin, self.orc])
@@ -128,10 +124,8 @@ class TestSpellCombatIntegration:
         
         # Wizard casts Fireball at both monsters
         result1 = self.wizard.cast_spell("Fireball", self.goblin)
-        print(f"Fireball result 1: {result1}")
         
         result2 = self.wizard.cast_spell("Fireball", self.orc)
-        print(f"Fireball result 2: {result2}")
         
         # Verify Fireball results
         assert result1['success'] is True
@@ -149,7 +143,6 @@ class TestSpellCombatIntegration:
         # Cleric casts Sacred Flame at the orc (but orc is dead, so target goblin instead)
         self.orc.hp = 10  # Revive orc for testing
         result3 = self.cleric.cast_spell("Sacred Flame", self.orc)
-        print(f"Sacred Flame result: {result3}")
         
         # Verify Sacred Flame result
         assert result3['success'] is True
@@ -159,8 +152,6 @@ class TestSpellCombatIntegration:
         assert self.orc.hp == 0  # 10 - 12, floored at 0
         
         # Check spell slot consumption
-        print(f"Wizard spell slots after: {self.wizard.spell_slots_remaining}")
-        print(f"Cleric spell slots after: {self.cleric.spell_slots_remaining}")
         assert self.wizard.spell_slots_remaining[3] == 0  # Used both level 3 slots
         # Sacred Flame is a cantrip, no slots used
 
@@ -185,16 +176,12 @@ class TestSpellCombatIntegration:
         self.cleric.add_spell(healing_word)
         
         # Debug: Check initial spell slots
-        print(f"Cleric spell slots before: {self.cleric.spell_slots_remaining}")
         
         # Damage the wizard
         self.wizard.hp = 5  # Wizard is badly wounded
-        print(f"Wizard HP before healing: {self.wizard.hp}")
         
         # Cleric casts Cure Wounds on wizard
         result1 = self.cleric.cast_spell("Cure Wounds", self.wizard)
-        print(f"Cure Wounds result: {result1}")
-        print(f"Wizard HP after Cure Wounds: {self.wizard.hp}")
         
         # Verify healing result
         assert result1['success'] is True
@@ -204,12 +191,9 @@ class TestSpellCombatIntegration:
         
         # Damage the wizard again
         self.wizard.hp = 2
-        print(f"Wizard HP before Healing Word: {self.wizard.hp}")
         
         # Cleric casts Healing Word on wizard
         result2 = self.cleric.cast_spell("Healing Word", self.wizard)
-        print(f"Healing Word result: {result2}")
-        print(f"Wizard HP after Healing Word: {self.wizard.hp}")
         
         # Verify healing result
         assert result2['success'] is True
@@ -218,7 +202,6 @@ class TestSpellCombatIntegration:
         assert self.wizard.hp == 10  # 2 + 8 = 10
         
         # Check spell slot consumption
-        print(f"Cleric spell slots after: {self.cleric.spell_slots_remaining}")
         assert self.cleric.spell_slots_remaining[1] == 2  # Cure Wounds and Healing Word are both 1st level
         assert self.cleric.spell_slots_remaining[2] == 3
 
@@ -244,7 +227,6 @@ class TestSpellCombatIntegration:
         
         # Wizard casts Fire Bolt (should hit)
         result1 = self.wizard.cast_spell("Fire Bolt", self.goblin)
-        print(f"Fire Bolt result: {result1}")
         
         # Verify Fire Bolt result
         assert result1['success'] is True
@@ -269,7 +251,6 @@ class TestSpellCombatIntegration:
         
         # Wizard casts Eldritch Blast (should miss)
         result2 = self.wizard.cast_spell("Eldritch Blast", self.goblin)
-        print(f"Eldritch Blast result: {result2}")
         
         # Verify Eldritch Blast result
         assert result2['success'] is True

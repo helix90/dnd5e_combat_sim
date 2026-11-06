@@ -1,8 +1,7 @@
 """Integration tests for buff spells in combat."""
-import pytest
 from models.character import Character
 from models.monster import Monster
-from models.spells import Spell, SpellAction
+from models.spells import Spell
 from models.spell_manager import SpellManager
 from models.actions import AttackAction
 
@@ -164,7 +163,6 @@ class TestBuffSpellIntegration:
         caster.add_spell(fireball)
 
         # Cast fireball at the blessed character
-        initial_hp = character.hp
         result = caster.cast_spell("Fireball", character, spell_slot_level=3)
 
         # Verify buff_bonus is in the saving throw result
@@ -314,7 +312,3 @@ class TestBuffSpellIntegration:
         # Should handle gracefully
         assert result['buff_applied'] is False
         assert 'reason' in result
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

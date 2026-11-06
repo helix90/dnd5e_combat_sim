@@ -5,37 +5,14 @@ These tests verify full workflows including background thread completion,
 database saves with real objects, and combat log conversion.
 They are designed to catch object serialization bugs that unit tests might miss.
 """
-import pytest
-import time
 import uuid
-from app import app as flask_app
+from app import db
+from tests.helpers import results_page, run_simulation, session_id, shows_simulation
 from models.combat import Combat
 from models.character import Character
 from models.monster import Monster
-from models.db import DatabaseManager
 from models.spell_manager import SpellManager
 from utils.party_loader import PartyLoader
-
-
-@pytest.fixture
-def client():
-    """Create a test client for the Flask app."""
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        with flask_app.app_context():
-            yield client
-
-
-@pytest.fixture
-def db():
-    """Create a database manager instance."""
-    return DatabaseManager()
-
-
-@pytest.fixture
-def session_id():
-    """Generate a unique session ID for testing."""
-    return str(uuid.uuid4())
 
 
 def test_simulation_completes_and_saves_to_database(client):
@@ -68,46 +45,14 @@ def test_simulation_completes_and_saves_to_database(client):
     })
     assert rv2.status_code == 200
 
-    # Start simulation
-    rv3 = client.get('/simulate')
-    assert rv3.status_code == 200
+    status = run_simulation(client)
+    page = results_page(client)
+    assert shows_simulation(page, status['simulation_id'])
 
-    # Poll status until done (max 30 seconds)
-    simulation_done = False
-    for i in range(60):
-        rv4 = client.get('/simulate/status')
-        assert rv4.status_code == 200
-        data = rv4.get_json()
-        if data.get('done'):
-            simulation_done = True
-            break
-        time.sleep(0.5)
-
-    assert simulation_done, "Simulation did not complete within 30 seconds"
-
-    # Get results
-    rv5 = client.get('/simulate/results', follow_redirects=True)
-    assert rv5.status_code == 200
-    html = rv5.data.decode('utf-8')
-
-    # Verify results contain expected content (either combat log or simulation results)
-    # The page might show combat log, history, or results depending on the template
-    assert ('Combat Log' in html or 'combat log' in html.lower() or
-            'Simulation' in html or 'History' in html or 'Results' in html)
-
-    # Verify database save worked by checking we have a simulation ID in session
-    with client.session_transaction() as sess:
-        session_id = sess.get('session_id')
-        assert session_id is not None, "Session should have a session_id"
-
-    # Verify simulation was saved to database
-    db = DatabaseManager()
-    sim_id = db.get_last_simulation_id(session_id)
-    assert sim_id is not None, "Simulation was not saved to database"
-
-    simulation = db.get_simulation(sim_id)
-    assert simulation is not None, "Simulation should be retrievable from database"
-    assert simulation['id'] == sim_id
+    simulation = db.get_simulation(status['simulation_id'])
+    assert simulation['session_id'] == session_id(client)
+    assert simulation['result'] in ('party', 'monsters')
+    assert db.get_combat_logs(status['simulation_id'])
 
 
 def test_combat_log_saves_with_action_objects():
@@ -158,33 +103,20 @@ def test_combat_log_saves_with_action_objects():
     assert has_actions, "Combat log does not contain action entries"
 
     # Now try to save this to the database - this is where the bug would occur
-    db = DatabaseManager()
-    try:
-        # First ensure the session exists (create or use existing)
-        # This avoids the foreign key constraint error
-        with db._get_connection() as conn:
-            conn.execute("INSERT OR IGNORE INTO sessions (session_id) VALUES (?)", (session_id,))
-            conn.commit()
+    db.create_session(session_id)
 
-        sim_id = db.save_simulation_result(session_id, result)
-        assert sim_id > 0, "Failed to save simulation"
+    sim_id = db.save_simulation_result(session_id, result)
+    assert sim_id > 0, "Failed to save simulation"
 
-        # Verify we can load it back
-        simulation = db.get_simulation(sim_id)
-        assert simulation is not None
-        assert simulation['id'] == sim_id
+    # Verify we can load it back
+    simulation = db.get_simulation(sim_id)
+    assert simulation is not None
+    assert simulation['id'] == sim_id
 
-        # Verify combat log was saved
-        combat_logs = db.get_combat_logs(sim_id)
-        assert combat_logs is not None
-        assert len(combat_logs) > 0
-
-    except AttributeError as e:
-        if "'Action' object has no attribute 'lower'" in str(e):
-            pytest.fail("Failed to handle Action objects in combat log: " + str(e))
-        raise
-    except Exception as e:
-        pytest.fail(f"Unexpected error saving combat result: {e}")
+    # Verify combat log was saved
+    combat_logs = db.get_combat_logs(sim_id)
+    assert combat_logs is not None
+    assert len(combat_logs) > 0
 
 
 def test_combat_log_saves_with_character_monster_objects():
@@ -212,9 +144,7 @@ def test_combat_log_saves_with_character_monster_objects():
 
     # Add a spell to the wizard
     spell_manager = SpellManager()
-    fireball = spell_manager.get_spell("Fireball")
-    if fireball:
-        character.add_spell(fireball)
+    character.add_spell(spell_manager.get_spell("Fireball"))
 
     monster = Monster(
         name="Test Orc",
@@ -233,35 +163,25 @@ def test_combat_log_saves_with_character_monster_objects():
     assert 'log' in result
 
     # Save to database - this is where Character/Monster object errors would occur
-    db = DatabaseManager()
-    try:
-        # First ensure the session exists
-        with db._get_connection() as conn:
-            conn.execute("INSERT OR IGNORE INTO sessions (session_id) VALUES (?)", (session_id,))
-            conn.commit()
+    db.create_session(session_id)
 
-        sim_id = db.save_simulation_result(session_id, result)
-        assert sim_id > 0
+    sim_id = db.save_simulation_result(session_id, result)
+    assert sim_id > 0
 
-        # Verify we can retrieve it
-        simulation = db.get_simulation(sim_id)
-        assert simulation is not None
+    # Verify we can retrieve it
+    simulation = db.get_simulation(sim_id)
+    assert simulation is not None
 
-        # Verify combat log entries were saved correctly
-        combat_logs = db.get_combat_logs(sim_id)
-        assert combat_logs is not None
+    # Verify combat log entries were saved correctly
+    combat_logs = db.get_combat_logs(sim_id)
+    assert combat_logs is not None
 
-        # Check that actor and target fields are strings, not objects
-        for entry in combat_logs:
-            if 'character_name' in entry:
-                assert isinstance(entry['character_name'], str), f"Character name should be string, got {type(entry['character_name'])}"
-            if 'target' in entry:
-                assert isinstance(entry['target'], str), f"Target should be string, got {type(entry['target'])}"
-
-    except Exception as e:
-        if 'type \'Character\' is not supported' in str(e) or 'type \'Monster\' is not supported' in str(e):
-            pytest.fail(f"Failed to convert Character/Monster objects to strings: {e}")
-        raise
+    # Check that actor and target fields are strings, not objects
+    for entry in combat_logs:
+        if 'character_name' in entry:
+            assert isinstance(entry['character_name'], str), f"Character name should be string, got {type(entry['character_name'])}"
+        if 'target' in entry:
+            assert isinstance(entry['target'], str), f"Target should be string, got {type(entry['target'])}"
 
 
 def test_convert_combat_log_format_with_real_objects():
@@ -311,27 +231,16 @@ def test_convert_combat_log_format_with_real_objects():
     }
 
     # Test the conversion
-    db = DatabaseManager()
-    try:
-        converted = db._convert_combat_log_format([log_entry])
+    converted = db._convert_combat_log_format([log_entry])
 
-        assert len(converted) > 0, "Conversion should produce at least one entry"
-        entry = converted[0]
+    assert len(converted) > 0, "Conversion should produce at least one entry"
+    entry = converted[0]
 
-        # Verify the conversion worked correctly
-        assert entry['character_name'] == "Test Cleric", "Actor name should be extracted correctly"
-        assert entry['action_type'] in ['attack', 'special'], "Action type should be determined"
-        assert entry['target'] == "Test Zombie", "Target name should be extracted correctly"
-        assert entry['damage'] == 8, "Damage should be extracted"
-
-    except AttributeError as e:
-        if "'Action' object has no attribute 'lower'" in str(e):
-            pytest.fail("Failed to handle Action objects: " + str(e))
-        raise
-    except Exception as e:
-        if 'is not supported' in str(e):
-            pytest.fail(f"Failed to convert objects to strings: {e}")
-        raise
+    # Verify the conversion worked correctly
+    assert entry['character_name'] == "Test Cleric", "Actor name should be extracted correctly"
+    assert entry['action_type'] in ['attack', 'special'], "Action type should be determined"
+    assert entry['target'] == "Test Zombie", "Target name should be extracted correctly"
+    assert entry['damage'] == 8, "Damage should be extracted"
 
 
 def test_multiple_simulations_dont_show_old_results(client):
@@ -347,55 +256,16 @@ def test_multiple_simulations_dont_show_old_results(client):
     party_level = 2
     party_size = len(party['characters'])
 
-    # Run first simulation
-    client.post('/party', data={'party_id': party['id'], 'party_level': party_level}, follow_redirects=True)
-    client.post('/encounter/prebuilt', json={
-        'template_name': 'Goblin Ambush',
-        'party_level': party_level,
-        'party_size': party_size
-    })
-    client.get('/simulate')
+    def fight(template_name):
+        client.post('/party', data={'party_id': party['id'], 'party_level': party_level}, follow_redirects=True)
+        client.post('/encounter/prebuilt', json={'template_name': template_name, 'party_level': party_level,
+                                                 'party_size': party_size})
+        return run_simulation(client)['simulation_id']
 
-    # Wait for completion
-    for _ in range(60):
-        status = client.get('/simulate/status').get_json()
-        if status.get('done'):
-            break
-        time.sleep(0.5)
-
-    # Get first simulation ID
-    with client.session_transaction() as sess:
-        first_sim_id = sess.get('simulation_id')
-
-    # Run second simulation with different encounter
-    client.post('/party', data={'party_id': party['id'], 'party_level': party_level}, follow_redirects=True)
-    client.post('/encounter/prebuilt', json={
-        'template_name': 'Kobold Mob',
-        'party_level': party_level,
-        'party_size': party_size
-    })
-    client.get('/simulate')
-
-    # Wait for completion
-    for _ in range(60):
-        status = client.get('/simulate/status').get_json()
-        if status.get('done'):
-            break
-        time.sleep(0.5)
-
-    # Get second simulation ID
-    with client.session_transaction() as sess:
-        second_sim_id = sess.get('simulation_id')
-
-    # Verify we got different simulation IDs (or at least cleared the old one)
-    # The important thing is we don't see the first simulation's results
-    if first_sim_id and second_sim_id:
-        assert first_sim_id != second_sim_id, "Simulation IDs should be different for different runs"
-
-    # Get results and verify they're for the second simulation
-    rv = client.get('/simulate/results', follow_redirects=True)
-    html = rv.data.decode('utf-8')
-
-    # Should show current results, not be stuck on old ones
-    assert rv.status_code == 200
-    assert 'Combat Log' in html or 'combat log' in html.lower()
+    first = fight('Goblin Ambush')
+    second = fight('Kobold Mob')
+    assert first != second
+    # The results page goes to the second fight, not the first
+    page = results_page(client)
+    assert shows_simulation(page, second) and not shows_simulation(page, first)
+    assert 'Kobold' in page and 'Goblin' not in page

@@ -1,5 +1,4 @@
 """Test dice notation parsing with modifiers like 1d4+1."""
-import pytest
 from models.spells import Spell
 
 
@@ -94,7 +93,3 @@ class TestDiceModifierParsing:
         for _ in range(10):
             damage = spell.calculate_damage(caster_level=11)
             assert 5 <= damage <= 32
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

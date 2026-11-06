@@ -1,6 +1,5 @@
 """Class features: Rage, Reckless Attack, Divine Smite, Action Surge, Second Wind, Martial Arts,
 Flurry of Blows, Stunning Strike, Turn Undead, Lay on Hands and the passive ones."""
-import json
 from unittest.mock import patch
 
 import pytest

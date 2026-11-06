@@ -8,9 +8,7 @@ This test validates that:
 4. Saved combat logs have action_type='spell' for spell actions
 5. Spell statistics can be correctly counted from database
 """
-import pytest
 import uuid
-import json
 from unittest.mock import MagicMock
 from models.character import Character
 from models.monster import Monster
@@ -114,11 +112,11 @@ class TestCombatResultFormat:
         )
         fighter.max_hp = 45  # Set max HP so they're injured
 
-        # Create weak enemy so combat doesn't end immediately
+        # A tough enemy, so the cleric gets a turn before the fight ends
         goblin = Monster(
             name="Goblin",
             challenge_rating="1/4",
-            hp=7,
+            hp=60,
             ac=13,
             ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
         )
@@ -133,36 +131,24 @@ class TestCombatResultFormat:
 
         # Now save to database and verify spell actions are identified
         db = DatabaseManager()
-        try:
-            # Ensure session exists
-            with db._get_connection() as conn:
-                conn.execute("INSERT OR IGNORE INTO sessions (session_id) VALUES (?)", (session_id,))
-                conn.commit()
+        db.create_session(session_id)
 
-            # Save simulation
-            sim_id = db.save_simulation_result(session_id, result)
-            assert sim_id > 0
+        # Save simulation
+        sim_id = db.save_simulation_result(session_id, result)
+        assert sim_id > 0
 
-            # Get combat logs
-            combat_logs = db.get_combat_logs(sim_id)
-            assert combat_logs is not None
-            assert len(combat_logs) > 0
+        # Get combat logs
+        combat_logs = db.get_combat_logs(sim_id)
+        assert combat_logs is not None
+        assert len(combat_logs) > 0
 
-            # Check for spell actions in the logs
-            spell_actions = [log for log in combat_logs if log.get('action_type') == 'spell']
+        # Check for spell actions in the logs
+        spell_actions = [log for log in combat_logs if log.get('action_type') == 'spell']
 
-            # We should have at least some actions (might not have spells if combat was very short)
-            # But if there are spell actions, they should be properly marked
-            if len(spell_actions) > 0:
-                for spell_log in spell_actions:
-                    assert spell_log['action_type'] == 'spell', "Spell actions should have action_type='spell'"
-                    assert 'character_name' in spell_log
-                    assert 'target' in spell_log
-                    # Result should be a human-readable string for display
-                    assert isinstance(spell_log['result'], str)
-
-        except Exception as e:
-            pytest.fail(f"Failed to save or retrieve spell actions: {e}")
+        # The cleric heals the injured fighter, and the log says so in words
+        heals = [log for log in spell_actions if log['character_name'] == cleric.name and log['target'] == 'Sir Cedric']
+        assert heals, spell_actions
+        assert all(isinstance(log['result'], str) and log['result'] for log in heals)
 
     def test_convert_combat_log_format_detects_spell_actions(self):
         """Test that _convert_combat_log_format correctly identifies spell actions."""
@@ -280,36 +266,29 @@ class TestCombatResultFormat:
         }
 
         db = DatabaseManager()
-        try:
-            # Ensure session exists
-            with db._get_connection() as conn:
-                conn.execute("INSERT OR IGNORE INTO sessions (session_id) VALUES (?)", (session_id,))
-                conn.commit()
+        db.create_session(session_id)
 
-            # Save simulation
-            sim_id = db.save_simulation_result(session_id, result)
+        # Save simulation
+        sim_id = db.save_simulation_result(session_id, result)
 
-            # Count spell actions from database
-            combat_logs = db.get_combat_logs(sim_id)
+        # Count spell actions from database
+        combat_logs = db.get_combat_logs(sim_id)
 
-            spell_actions = [log for log in combat_logs if log.get('action_type') == 'spell']
-            attack_actions = [log for log in combat_logs if log.get('action_type') == 'attack']
+        spell_actions = [log for log in combat_logs if log.get('action_type') == 'spell']
+        attack_actions = [log for log in combat_logs if log.get('action_type') == 'attack']
 
-            # We should have exactly 2 spell actions and 1 attack
-            assert len(spell_actions) == 2, f"Expected 2 spell actions, got {len(spell_actions)}"
-            assert len(attack_actions) == 1, f"Expected 1 attack action, got {len(attack_actions)}"
+        # We should have exactly 2 spell actions and 1 attack
+        assert len(spell_actions) == 2, f"Expected 2 spell actions, got {len(spell_actions)}"
+        assert len(attack_actions) == 1, f"Expected 1 attack action, got {len(attack_actions)}"
 
-            # Verify spell action details
-            damage_spell = [s for s in spell_actions if s.get('damage', 0) > 0][0]
-            assert damage_spell['character_name'] == 'Wizard'
-            assert damage_spell['damage'] == 10
+        # Verify spell action details
+        damage_spell = [s for s in spell_actions if s.get('damage', 0) > 0][0]
+        assert damage_spell['character_name'] == 'Wizard'
+        assert damage_spell['damage'] == 10
 
-            healing_spell = [s for s in spell_actions if s.get('damage', 0) < 0][0]
-            assert healing_spell['character_name'] == 'Cleric'
-            assert healing_spell['damage'] == -12  # Healing as negative
-
-        except Exception as e:
-            pytest.fail(f"Failed to count spell statistics: {e}")
+        healing_spell = [s for s in spell_actions if s.get('damage', 0) < 0][0]
+        assert healing_spell['character_name'] == 'Cleric'
+        assert healing_spell['damage'] == -12  # Healing as negative
 
     def test_combat_without_type_field_still_detects_spells(self):
         """Test backward compatibility: detect spells even without explicit 'type' field."""
@@ -335,7 +314,3 @@ class TestCombatResultFormat:
 
         # Should still detect as spell based on 'spell' key in result
         assert entry['action_type'] == 'spell', "Should detect spell from 'spell' key in result"
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

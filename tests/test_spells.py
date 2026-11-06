@@ -4,12 +4,9 @@ Unit tests for the spell system.
 Tests the Spell class, SpellAction class, and spell casting mechanics.
 """
 
-import pytest
-import random
 from unittest.mock import patch, MagicMock
 from models.spells import Spell, SpellAction
 from models.character import Character
-from models.monster import Monster
 
 
 class TestSpell:

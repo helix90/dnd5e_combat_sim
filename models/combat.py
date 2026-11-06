@@ -9,7 +9,6 @@ from typing import List, Dict, Any, Optional, Tuple
 from utils.exceptions import SimulationError
 from utils.logging import log_exception
 from ai.strategy import PartyAIStrategy, MonsterAIStrategy, lowest_slot
-from ai.tactical import TacticalAnalyzer
 from ai.aiming import aim_area
 from ai.positioning import fit_plan
 from models.buffs import is_incapacitated, is_paralyzed, is_spellbound, is_stunned, is_turned
@@ -71,7 +70,6 @@ class Combat(TurnEffects):
                 self.ai_strategy_map[p] = MonsterAIStrategy()
         # Cache for initiative rolls and other calculations
         self._initiative_cache = {}
-        self.tactical = TacticalAnalyzer()
         # True while the creature taking its turn has Disengaged (no opportunity attacks)
         self._disengaged = False
         # The turn being taken: Sneak Attack dice still unused, class features used (for the log)

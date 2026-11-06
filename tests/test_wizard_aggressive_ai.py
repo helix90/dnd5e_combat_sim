@@ -1,7 +1,6 @@
 """
 Test that wizards use offensive spells aggressively in early rounds.
 """
-import pytest
 from models.character import Character
 from models.monster import Monster
 from models.spells import Spell
@@ -115,14 +114,8 @@ class TestWizardAggressiveAI:
             assert spell.level > 0, f"Round {round_num}: Wizard used cantrip {spell.name} instead of leveled spell"
             assert spell.damage_dice is not None, f"Round {round_num}: Spell {spell.name} has no damage"
 
-            # Should prioritize highest level spells first
-            # Fireball (level 3) should be used first if slots available
-            if wizard.spell_slots_remaining.get('3', 0) > 0 or wizard.spell_slots_remaining.get(3, 0) > 0:
-                assert spell.level == 3, f"Round {round_num}: Should use Fireball (lvl 3), used {spell.name} (lvl {spell.level})"
-            elif wizard.spell_slots_remaining.get('2', 0) > 0 or wizard.spell_slots_remaining.get(2, 0) > 0:
-                assert spell.level == 2, f"Round {round_num}: Should use Scorching Ray (lvl 2), used {spell.name} (lvl {spell.level})"
-            elif wizard.spell_slots_remaining.get('1', 0) > 0 or wizard.spell_slots_remaining.get(1, 0) > 0:
-                assert spell.level == 1, f"Round {round_num}: Should use Magic Missile (lvl 1), used {spell.name} (lvl {spell.level})"
+            # Choosing doesn't spend a slot, so the highest-level spell is always on offer
+            assert spell.name == 'Fireball', f"Round {round_num}: Should use Fireball, used {spell.name}"
 
     def test_wizard_falls_back_to_cantrips_after_early_rounds(self):
         """Test that wizards conserve spell slots after round 5."""
@@ -199,13 +192,9 @@ class TestWizardAggressiveAI:
 
         action = ai.choose_action(wizard, combat_state)
 
-        # Should use cantrip (Fire Bolt) to conserve spell slots
-        # Either as an attack action or cast_spell with cantrip
-        if action['type'] == 'attack':
-            assert action['action'].name == 'Fire Bolt'
-        elif action['type'] == 'cast_spell':
-            # If casting a spell, it should be a cantrip
-            assert action['spell'].spell.level == 0
+        # Should cast the Fire Bolt cantrip to conserve spell slots
+        assert action['type'] == 'cast_spell'
+        assert action['spell'].spell.name == 'Fire Bolt'
 
     def test_cleric_not_affected_by_aggressive_strategy(self):
         """Test that clerics (who have healing) don't use aggressive spell strategy."""
@@ -285,7 +274,3 @@ class TestWizardAggressiveAI:
         # Should cast the Sacred Flame cantrip instead of a levelled spell
         assert action['type'] == 'cast_spell'
         assert action['spell'].spell.name == 'Sacred Flame'
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

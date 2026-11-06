@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 
 from ai.positioning import _Planner, fit_plan
-from app import app as flask_app
 from models.actions import AttackAction
 from models.arena import COVER_HALF, COVER_TOTAL, Arena, Placement, Terrain
 from models.arena_library import (DEFAULT_MAP, ENCOUNTER_MAP, arena_choices, get_arena, load_arena_definitions,
@@ -234,13 +233,6 @@ def test_fights_on_encounter_maps_finish(template):
 ])
 def test_resolve_arena_choice(choice, template, expected):
     assert resolve_arena_choice(choice, template) == expected
-
-
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        yield client
 
 
 def test_encounter_map_choice_uses_the_prebuilt_encounters_map(client):

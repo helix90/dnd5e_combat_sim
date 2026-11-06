@@ -1,5 +1,4 @@
 """Test that AI casts buff spells in combat."""
-import pytest
 from unittest.mock import patch
 from models.character import Character
 from models.monster import Monster
@@ -220,7 +219,3 @@ class TestAIBuffCasting:
         # Verify only one spell slot was used
         slots_used = initial_slots - cleric.spell_slots_remaining.get(1, 0)
         assert slots_used == 1, f"Only 1 spell slot should be used, but {slots_used} were used"
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

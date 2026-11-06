@@ -1,14 +1,7 @@
 import os
 import time
 import pytest
-from app import app as flask_app
 
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        with flask_app.app_context():
-            yield client
 
 def get_all_parties():
     from utils.party_loader import PartyLoader
@@ -16,7 +9,8 @@ def get_all_parties():
 
 def get_all_prebuilt_encounters():
     import json
-    with open('data/encounter_templates.json') as f:
+    from utils.paths import data_path
+    with open(data_path('encounter_templates.json')) as f:
         return [e['name'] for e in json.load(f)['encounters']]
 
 @pytest.mark.skipif(not os.environ.get('BENCHMARK'), reason="Skip performance benchmarks unless BENCHMARK env var is set.")
@@ -40,17 +34,18 @@ def test_combat_simulation_benchmarks(client):
             rv = client.get('/simulate')
             assert rv.status_code == 200
             # Wait for simulation to finish (poll status)
-            for _ in range(30):
-                status = client.get('/simulate/status')
-                if b'complete' in status.data or b'finished' in status.data:
+            for _ in range(600):
+                if client.get('/simulate/status').get_json().get('done'):
                     break
-                time.sleep(0.2)
+                time.sleep(0.01)
+            else:
+                pytest.fail(f"{enc_name} did not finish")
             end = time.time()
             elapsed = end - start
             timings.append(elapsed)
             print(f"Party: {party['name']}, Encounter: {enc_name}, Time: {elapsed:.2f}s")
     if timings:
-        print(f"\nCombat Simulation Benchmark Results:")
+        print("\nCombat Simulation Benchmark Results:")
         print(f"Runs: {len(timings)}")
         print(f"Min: {min(timings):.2f}s, Max: {max(timings):.2f}s, Avg: {sum(timings)/len(timings):.2f}s")
 
@@ -135,8 +130,8 @@ def test_endpoint_response_times(client):
             slow_endpoints.append((endpoint, data['avg']))
     
     if slow_endpoints:
-        print(f"\n⚠️  Slow endpoints detected (>1s average):")
+        print("\n⚠️  Slow endpoints detected (>1s average):")
         for endpoint, avg_time in slow_endpoints:
             print(f"   {endpoint}: {avg_time:.1f}ms")
     else:
-        print(f"\n✅ All endpoints performing well (<1s average)") 
+        print("\n✅ All endpoints performing well (<1s average)") 

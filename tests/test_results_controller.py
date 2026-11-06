@@ -1,4 +1,3 @@
-import pytest
 from controllers.results_controller import ResultsController
 
 class MockDB:

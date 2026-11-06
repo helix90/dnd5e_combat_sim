@@ -1,8 +1,6 @@
 """Test buff and status effect system."""
-import pytest
 from models.buffs import Buff, BuffManager, create_bless_buff
 from models.character import Character
-from models.spells import Spell
 from models.spell_manager import SpellManager
 
 
@@ -147,7 +145,3 @@ class TestBuffSystem:
 
         assert hasattr(character, 'buffs')
         assert isinstance(character.buffs, BuffManager)
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])
