@@ -248,7 +248,7 @@ pytest tests/ -v
 BENCHMARK=1 pytest tests/test_performance.py -v
 
 # Load tests
-locust -f tests/test_load.py --host=http://localhost:5000
+locust -f tests/locustfile.py --host=http://localhost:5000
 ```
 
 ### Test Categories

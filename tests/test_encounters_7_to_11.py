@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 import pytest
 
-from app import app as flask_app
 from models.actions import AttackAction
 from models.character import Character
 from models.character_builder import build_party
@@ -204,13 +203,6 @@ def test_new_encounters_finish_without_a_map(template):
     random.seed(7)
     party, monsters = encounter(template)
     assert Combat(party + monsters).run()['winner'] in ('party', 'monsters')
-
-
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        yield client
 
 
 def test_encounter_list_offers_levels_7_to_11(client):

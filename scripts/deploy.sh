@@ -256,7 +256,7 @@ run_load_tests() {
         fi
         
         # Run load test for 1 minute
-        timeout 60s locust -f tests/test_load.py --host="https://$APP_NAME.fly.dev" --users 5 --spawn-rate 1 --run-time 1m --headless || true
+        timeout 60s locust -f tests/locustfile.py --host="https://$APP_NAME.fly.dev" --users 5 --spawn-rate 1 --run-time 1m --headless || true
         
         print_status "Load tests completed"
     fi

@@ -4,7 +4,6 @@ Test that characters can heal themselves when injured.
 This test validates the fix for the bug where characters were excluded from
 the allies list in combat_state, preventing them from healing themselves.
 """
-import pytest
 from models.character import Character
 from models.monster import Monster
 from models.combat import Combat
@@ -200,7 +199,3 @@ class TestSelfHealing:
 
         assert action['type'] == 'cast_spell'
         assert action['target'] == fighter, "Should heal most injured ally (fighter at 11% HP)"
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

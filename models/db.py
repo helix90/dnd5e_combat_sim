@@ -492,26 +492,6 @@ class DatabaseManager:
             log_exception(e)
             raise DatabaseError(f"Failed to save batch run result: {e}")
     
-    def cleanup_old_sessions(self, days_old: int = 7) -> int:
-        """Clean up old sessions and related data."""
-        try:
-            start_time = time.time()
-            with self._get_connection() as conn:
-                # Delete old sessions and related data
-                cursor = conn.execute(
-                    """
-                    DELETE FROM sessions 
-                    WHERE created_at < datetime('now', '-{} days')
-                    """.format(days_old)
-                )
-                deleted_count = cursor.rowcount
-                conn.commit()
-            self._log_slow_query("cleanup_old_sessions", time.time() - start_time)
-            return deleted_count
-        except Exception as e:
-            log_exception(e)
-            raise DatabaseError(f"Failed to cleanup old sessions: {e}")
-    
     def get_combat_logs(self, sim_id: int) -> List[Dict[str, Any]]:
         """Get combat logs for a specific simulation."""
         try:

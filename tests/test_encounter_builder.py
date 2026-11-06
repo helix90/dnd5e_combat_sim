@@ -1,10 +1,10 @@
 import pytest
-import os
 from models.encounter_builder import EncounterBuilder
+from utils.paths import data_path
 
 @pytest.fixture(scope="module")
 def builder():
-    return EncounterBuilder(monsters_file="data/monsters.json")
+    return EncounterBuilder(monsters_file=data_path("monsters.json"))
 
 def test_monster_loading(builder):
     assert len(builder.monster_data) >= 10
@@ -40,4 +40,6 @@ def test_prebuilt_encounter_integrity(builder):
 def test_generate_encounter_warning(builder):
     kobolds = [next(m for m in builder.monster_data if m["name"] == "Kobold") for _ in range(20)]
     warning = builder.generate_encounter_warning(kobolds, party_level=1, party_size=4)
-    assert "deadly" in warning or "trivial" in warning or "balanced" in warning 
+    assert warning == "Warning: This encounter is deadly for the party."  # 20 kobolds for four 1st-level characters
+    one = builder.generate_encounter_warning(kobolds[:4], party_level=1, party_size=4)
+    assert one == "Encounter is balanced." 

@@ -332,7 +332,3 @@ def test_party_casters_can_cast_leveled_spells():
     assert not calyra.can_cast_spell('Fireball')
     assert calyra.can_cast_spell('Fireball', spell_slot_level=3) is False
     assert calyra.spell_slots[3] == 2  # the maximum is untouched
-
-
-if __name__ == '__main__':
-    pytest.main([__file__, '-v'])

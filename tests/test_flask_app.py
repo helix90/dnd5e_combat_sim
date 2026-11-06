@@ -1,12 +1,7 @@
-import pytest
-from app import app as flask_app
+import time
 
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        with flask_app.app_context():
-            yield client
+from tests.helpers import results_page, run_simulation, session_id, shows_simulation
+
 
 def test_index_route(client):
     rv = client.get('/')
@@ -34,43 +29,16 @@ def test_encounter_route(client):
     assert b'balance' in rv2.data
 
 def test_simulate_route(client):
-    rv = client.get('/simulate')
-    assert rv.status_code == 200
-    assert b'Combat Simulation' in rv.data
-    # Simulate polling for status (simulate immediate completion for test)
-    from app import simulation_controller
-    session_id = None
-    with client.session_transaction() as sess:
-        session_id = sess['session_id']
-    # Manually set simulation as done for test
-    simulation_controller.simulation_states[session_id] = {
-        'progress': 100, 'log': ['Done'], 'done': True
-    }
-    status = client.get('/simulate/status')
-    assert status.status_code == 200
-    assert b'progress' in status.data
-    # Now test results redirect
-    rv2 = client.get('/simulate/results', follow_redirects=True)
-    assert rv2.status_code == 200
-    # The results page should load (may not contain 'Simulation Results' text, so check for generic content)
-    assert b'History' in rv2.data or b'logs' in rv2.data or b'Simulation' in rv2.data
+    client.post('/party', data={'party_id': 1, 'party_level': 3}, follow_redirects=True)
+    client.post('/encounter/prebuilt', json={'template_name': 'Goblin Ambush', 'party_level': 3, 'party_size': 4})
+    assert b'Combat Simulation' in client.get('/simulate').data
+    status = run_simulation(client)
+    assert status['progress'] == 100
+    page = results_page(client)
+    assert shows_simulation(page, status['simulation_id']) and 'Show Detailed Combat Log' in page
+    # The finished fight is listed in the history
+    assert f"sim_id={status['simulation_id']}" in client.get('/history').get_data(as_text=True)
 
-def test_results_and_history(client):
-    # Simulate a run to create a simulation and logs
-    client.post('/party', data={'party_id': 1}, follow_redirects=True)
-    client.get('/encounter')  # Just to set up session
-    rv = client.get('/simulate')
-    assert rv.status_code == 200
-    from app import simulation_controller
-    session_id = None
-    with client.session_transaction() as sess:
-        session_id = sess['session_id']
-    simulation_controller.simulation_states[session_id] = {
-        'progress': 100, 'log': ['Done'], 'done': True
-    }
-    rv2 = client.get('/simulate/results', follow_redirects=True)
-    assert rv2.status_code == 200
-    assert b'History' in rv2.data or b'logs' in rv2.data or b'Simulation' in rv2.data
 
 def test_simulation_progress_endpoint(client, monkeypatch):
     # Simulate a running simulation state
@@ -100,32 +68,29 @@ def test_simulation_error_handling(client, monkeypatch):
     assert b'Sim error!' in rv.data
 
 def test_simulation_execution_failure(client, monkeypatch):
-    # Patch Combat.run to raise an exception
-    from app import simulation_controller
-    class DummyCombat:
-        def run(self, progress_callback=None):
-            raise Exception('Forced failure')
-    monkeypatch.setattr('models.combat.Combat', DummyCombat)
-    session_id = 'fail-session'
-    with client.session_transaction() as sess:
-        sess['session_id'] = session_id
-    # Start simulation (should handle error)
-    rv = client.get('/simulate')
-    assert rv.status_code == 200
-    # Simulate status should show error after run
-    simulation_controller.simulation_states[session_id] = {
-        'progress': 100, 'log': [], 'done': True, 'error': 'Forced failure'
-    }
-    rv2 = client.get('/simulate/status')
-    assert b'Forced failure' in rv2.data
+    class FailingCombat:
+        def __init__(self, *args, **kwargs):
+            pass
 
-def test_api_prebuilt_encounters():
-    with flask_app.test_client() as client:
-        response = client.get('/api/encounters/prebuilt')
-        assert response.status_code == 200
-        data = response.get_json()
-        assert isinstance(data, list)
-        assert any('name' in enc for enc in data) 
+        def run(self, progress_callback=None):
+            raise RuntimeError('Forced failure')
+    monkeypatch.setattr('controllers.simulation_controller.Combat', FailingCombat)
+    client.post('/party', data={'party_id': 1, 'party_level': 3}, follow_redirects=True)
+    client.post('/encounter/prebuilt', json={'template_name': 'Goblin Ambush', 'party_level': 3, 'party_size': 4})
+    assert client.get('/simulate').status_code == 200
+    deadline = time.time() + 10
+    while not (status := client.get('/simulate/status').get_json())['done']:
+        assert time.time() < deadline
+        time.sleep(0.01)
+    assert status['error'] == 'Forced failure'
+
+
+def test_api_prebuilt_encounters(client):
+    response = client.get('/api/encounters/prebuilt')
+    assert response.status_code == 200
+    data = response.get_json()
+    assert len(data) >= 48 and all('name' in enc and 'level' in enc for enc in data)
+
 
 def test_results_rejects_other_sessions_simulation(client):
     from app import db
@@ -138,11 +103,9 @@ def test_results_rejects_other_sessions_simulation(client):
 def test_results_allows_own_simulation(client):
     from app import db
     client.get('/')  # establishes session_id
-    with client.session_transaction() as sess:
-        session_id = sess['session_id']
-    own_sim = db.save_simulation(session_id, 3, 'goblin', 'win', 4, 12)
+    own_sim = db.save_simulation(session_id(client), 3, 'goblin', 'win', 4, 12)
     rv = client.get(f'/results?sim_id={own_sim}')
-    assert rv.status_code == 200
+    assert rv.status_code == 200 and shows_simulation(rv.get_data(as_text=True), own_sim)
 
 
 def test_batch_results_rejects_other_sessions_batch(client):

@@ -3,9 +3,7 @@ import copy
 import json
 from unittest.mock import patch
 
-import pytest
 
-from app import app as flask_app
 from controllers.batch_simulation_controller import BatchSimulationController
 from models.actions import AttackAction
 from models.arena import Arena, Placement
@@ -120,13 +118,6 @@ def test_replay_is_stored_compressed_and_lines_up_with_the_log(tmp_path):
     assert replay == json.loads(json.dumps(result['replay']))
     assert len(db.get_combat_logs(sim_id)) == len(replay['frames'])
     assert db.get_replay(db.save_simulation_result('s1', Combat([hero(), monster()]).run())) is None
-
-
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        yield client
 
 
 def test_results_page_shows_the_battle_map(client, tmp_path):

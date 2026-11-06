@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from app import app as flask_app, batch_simulation_controller, db, simulation_controller
+from app import batch_simulation_controller, db, simulation_controller
 from models.character import Character
 from models.monster import Monster
 from models.actions import AttackAction
@@ -18,11 +18,9 @@ SCORES = {'str': 14, 'dex': 14, 'con': 14, 'int': 10, 'wis': 10, 'cha': 10}
 
 
 @pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        client.get('/')  # starts a session
-        yield client
+def client(client):
+    client.get('/')  # starts a session
+    return client
 
 
 def session_id(client):

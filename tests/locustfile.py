@@ -5,7 +5,6 @@ Load testing for D&D 5e Combat Simulator using Locust.
 import time
 import random
 from locust import HttpUser, task, between
-from typing import Dict, Any
 
 class CombatSimulatorUser(HttpUser):
     """Simulates a user interacting with the combat simulator."""
@@ -22,7 +21,7 @@ class CombatSimulatorUser(HttpUser):
     def _get_parties(self) -> list:
         """Get available parties."""
         try:
-            response = self.client.get("/party")
+            self.client.get("/party")
             # Parse parties from HTML response (simplified)
             return [1, 2, 3, 4, 5, 6]  # Party IDs
         except:
@@ -226,4 +225,4 @@ class APIUser(CombatSimulatorUser):
             self.client.post("/encounter/custom", json=encounter_data)
 
 # Locust configuration
-# Run with: locust -f tests/test_load.py --host=http://localhost:5000 
+# Run with: locust -f tests/locustfile.py --host=http://localhost:5000 

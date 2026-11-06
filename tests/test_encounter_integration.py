@@ -1,28 +1,29 @@
-import pytest
+"""Every encounter template builds in full and gets a difficulty rating and a matching warning."""
 import json
+
+import pytest
+
 from models.encounter_builder import EncounterBuilder
+from utils.paths import data_path
 
-@pytest.fixture(scope="module")
+with open(data_path('encounter_templates.json')) as f:
+    TEMPLATES = json.load(f)['encounters']
+
+WARNINGS = {'deadly': 'Warning: This encounter is deadly for the party.',
+            'trivial': 'Warning: This encounter is trivial for the party.'}
+
+
+@pytest.fixture(scope='module')
 def builder():
-    return EncounterBuilder(monsters_file="data/monsters.json")
+    return EncounterBuilder(monsters_file=data_path('monsters.json'))
 
-@pytest.fixture(scope="module")
-def templates():
-    with open("data/encounter_templates.json") as f:
-        return json.load(f)["encounters"]
 
-def test_encounter_templates_balanced(builder, templates):
-    # For each template, generate and validate the encounter
-    for template in templates:
-        encounter = builder.create_encounter_from_template(template)
-        party_level = template["level"]
-        party_size = 4
-        result = builder.calculate_encounter_difficulty(encounter, party_level, party_size)
-        warning = builder.generate_encounter_warning(encounter, party_level, party_size)
-        # Print for manual review (optional)
-        print(f"{template['name']} (Level {party_level}): {result['difficulty']} - {warning}")
-        # Assert that most templates are not deadly or trivial
-        assert result["difficulty"] in ("easy", "medium", "hard", "deadly", "trivial")
-        # Optionally, allow some templates to be deadly for demonstration
-        # If you want to enforce balance, uncomment below:
-        # assert result["difficulty"] in ("easy", "medium", "hard") 
+@pytest.mark.parametrize('template', TEMPLATES, ids=lambda t: t['name'])
+def test_encounter_templates_build_and_are_rated(builder, template):
+    encounter = builder.create_encounter_from_template(template)
+    assert len(encounter) == sum(m['count'] for m in template['monsters'])
+    # Templates may be deliberately deadly or trivial: the project measures how far CR is off
+    difficulty = builder.calculate_encounter_difficulty(encounter, template['level'], 4)['difficulty']
+    assert difficulty in ('trivial', 'easy', 'medium', 'hard', 'deadly')
+    assert builder.generate_encounter_warning(encounter, template['level'], 4) == \
+        WARNINGS.get(difficulty, 'Encounter is balanced.')

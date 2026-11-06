@@ -5,7 +5,6 @@ This is a regression test for a bug where area effect spell damage
 was not being recorded in the database's damage field.
 """
 
-import pytest
 import uuid
 from models.character import Character
 from models.monster import Monster
@@ -71,12 +70,9 @@ def test_aoe_spell_damage_tracking():
     combat = Combat(participants)
     combat.roll_initiative()
 
-    # Run one round - should be enough for wizard to cast Fireball
-    max_rounds = 2
-    rounds_run = 0
-    while not combat.is_combat_over() and rounds_run < max_rounds:
-        combat.next_turn()
-        rounds_run += 1
+    # Up to the end of the wizard's first turn, whatever the initiative order
+    while not combat.is_combat_over() and combat.next_turn() is not wizard:
+        pass
 
     # Get combat result
     combat_log = combat.get_combat_log()
@@ -93,18 +89,14 @@ def test_aoe_spell_damage_tracking():
                 fireball_total_damage = result.get('total_damage', 0)
                 break
 
-    # If Fireball wasn't cast (bad luck on initiative/AI), skip this test
-    if not fireball_cast:
-        pytest.skip("Fireball was not cast during combat (AI chose different action)")
+    # Against three goblins the wizard's best choice is Fireball
+    assert fireball_cast, "the wizard should cast Fireball on its first turn"
 
     # Now save to database and verify
     db = DatabaseManager()
     session_id = str(uuid.uuid4())
 
-    # Ensure session exists
-    with db._get_connection() as conn:
-        conn.execute("INSERT OR IGNORE INTO sessions (session_id) VALUES (?)", (session_id,))
-        conn.commit()
+    db.create_session(session_id)
 
     # Build the combat result
     # Determine winner
@@ -161,7 +153,6 @@ def test_aoe_spell_damage_tracking():
     assert total_damage_in_db == fireball_total_damage, \
         f"AoE spell damage mismatch! Expected {fireball_total_damage}, got {total_damage_in_db} in database"
 
-    print(f"SUCCESS: AoE spell damage correctly tracked - {total_damage_in_db} damage recorded")
 
 
 def test_single_target_spell_damage_tracking():
@@ -182,14 +173,10 @@ def test_single_target_spell_damage_tracking():
         spell_slots={1: 4, 2: 2}
     )
 
-    # Load Guiding Bolt spell if available
+    # Load Guiding Bolt
     spell_manager = SpellManager()
-    try:
-        guiding_bolt = spell_manager.get_spell("Guiding Bolt")
-        cleric.add_spell(guiding_bolt)
-    except:
-        # If Guiding Bolt doesn't exist, skip this test
-        pytest.skip("Guiding Bolt spell not available")
+    guiding_bolt = spell_manager.get_spell("Guiding Bolt")
+    cleric.add_spell(guiding_bolt)
 
     # Create a goblin as target
     goblin = Monster(
@@ -216,10 +203,7 @@ def test_single_target_spell_damage_tracking():
     db = DatabaseManager()
     session_id = str(uuid.uuid4())
 
-    # Ensure session exists
-    with db._get_connection() as conn:
-        conn.execute("INSERT OR IGNORE INTO sessions (session_id) VALUES (?)", (session_id,))
-        conn.commit()
+    db.create_session(session_id)
 
     # Build the combat result
     # Determine winner
@@ -266,11 +250,3 @@ def test_single_target_spell_damage_tracking():
 
     # Just verify that logs were saved (basic sanity check)
     assert log_count > 0, "No combat logs saved for single-target spell test"
-
-    print(f"SUCCESS: Single-target spell test passed - {log_count} logs recorded")
-
-
-if __name__ == '__main__':
-    # Run the tests
-    test_aoe_spell_damage_tracking()
-    test_single_target_spell_damage_tracking()

@@ -1,16 +1,14 @@
 """Arena phase 2: positions, movement, reach and range, adjacency, weapon choice and AI movement."""
-import json
 import sqlite3
 from unittest.mock import patch
 
 import pytest
 
 from ai.positioning import fit_plan
-from app import app as flask_app
 from models.actions import Action, AttackAction
 from models.arena import Arena, Placement, Terrain, COVER_TOTAL
 from models.arena_library import arena_choices, get_arena, load_arena_definitions
-from models.battlefield import MONSTERS, PARTY, Battlefield
+from models.battlefield import MONSTERS, PARTY
 from models.buffs import create_paralyzed_condition
 from models.character import Character
 from models.combat import Combat
@@ -436,12 +434,6 @@ def test_get_arena():
 
 
 # App and storage
-
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        yield client
 
 
 def test_choosing_an_arena(client):

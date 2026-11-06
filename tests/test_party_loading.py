@@ -15,13 +15,6 @@ from utils.party_loader import PartyLoader
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-@pytest.fixture
-def client():
-    flask_app.config['TESTING'] = True
-    with flask_app.test_client() as client:
-        yield client
-
-
 def test_build_party_from_party_loader():
     party = PartyLoader.get_party_with_level(1, 5)['characters']
     characters = {c.name: c for c in build_party(party, SpellManager())}
