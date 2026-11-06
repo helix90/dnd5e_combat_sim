@@ -54,5 +54,5 @@ source venv/bin/activate && python -m pytest tests/test_combat.py -v
 
 - All Python commands should use the virtual environment interpreter
 - The project uses Flask for the web interface
-- Combat simulation is handled by the `Combat` class in `models/combat.py`
+- Combat simulation is handled by the `Combat` class in `models/combat.py`, with start- and end-of-turn effects in `models/turn_effects.py` (a mixin) and the combat log in `models/combat_log.py`
 - AI strategy is implemented in `ai/strategy.py` with separate PartyAI and MonsterAI classes

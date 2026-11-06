@@ -93,13 +93,10 @@ def test_combat_state_tracking(hero, rogue, goblin):
     assert not combat.is_combat_over()
     # Knock out goblin
     goblin.hp = 0
-    # Clear the alive participants cache to force recalculation
-    combat._alive_participants_cache = None
     assert combat.is_combat_over()
     # Knock out both heroes
     hero.hp = 0
     rogue.hp = 0
-    combat._alive_participants_cache = None
     assert combat.is_combat_over()
 
 def test_combat_logger():

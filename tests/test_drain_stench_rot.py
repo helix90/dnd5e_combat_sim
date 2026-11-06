@@ -220,7 +220,7 @@ def test_the_party_does_not_try_to_heal_a_cursed_ally():
 def test_stench_poisons_a_creature_starting_its_turn_next_to_a_ghast():
     fighter, ghast = hero(), monster('Ghast')
     combat = on_arena((fighter, 5, 5), (ghast, 6, 5))
-    with patch('models.combat.roll_saving_throw', return_value=FAIL):
+    with patch('models.turn_effects.roll_saving_throw', return_value=FAIL):
         combat._stench(fighter)
     assert fighter.buffs.has_condition('poisoned')
     assert attack_roll(fighter, ghast).disadvantage
@@ -234,10 +234,10 @@ def test_a_successful_save_makes_the_creature_immune_to_that_ghasts_stench():
     fighter, ghast = hero(), monster('Ghast', 'Ghast 1')
     other = monster('Ghast', 'Ghast 2')
     combat = on_arena((fighter, 5, 5), (ghast, 6, 5), (other, 4, 5))
-    with patch('models.combat.roll_saving_throw', side_effect=[SAVE, FAIL]):
+    with patch('models.turn_effects.roll_saving_throw', side_effect=[SAVE, FAIL]):
         combat._stench(fighter)
     assert fighter.buffs.has_condition('poisoned')
-    with patch('models.combat.roll_saving_throw', return_value=FAIL) as save:
+    with patch('models.turn_effects.roll_saving_throw', return_value=FAIL) as save:
         combat._stench(fighter)
     assert save.call_count == 1  # only Ghast 2 still gets a save
 
@@ -245,7 +245,7 @@ def test_a_successful_save_makes_the_creature_immune_to_that_ghasts_stench():
 def test_no_stench_save_away_from_the_ghast():
     fighter, ghast = hero(), monster('Ghast')
     combat = on_arena((fighter, 5, 5), (ghast, 8, 5))
-    with patch('models.combat.roll_saving_throw', return_value=FAIL) as save:
+    with patch('models.turn_effects.roll_saving_throw', return_value=FAIL) as save:
         combat._stench(fighter)
     save.assert_not_called()
 
@@ -253,7 +253,7 @@ def test_no_stench_save_away_from_the_ghast():
 def test_creatures_immune_to_poison_ignore_the_stench():
     ghoul, ghast = monster('Ghoul'), monster('Ghast')
     combat = on_arena((ghoul, 5, 5), (ghast, 6, 5))
-    with patch('models.combat.roll_saving_throw', return_value=FAIL) as save:
+    with patch('models.turn_effects.roll_saving_throw', return_value=FAIL) as save:
         combat._stench(ghoul)
     save.assert_not_called()
 
@@ -264,7 +264,7 @@ def test_without_an_arena_stench_reaches_whoever_is_fighting_the_ghast_in_melee(
     combat._note_melee_target(fighter, {'type': 'attack', 'action': fighter.actions[0], 'target': ghast})
     bow = AttackAction('Longbow', '', 'Longbow', '1d8', 'piercing', weapon_type='ranged', range=[150, 600])
     combat._note_melee_target(archer, {'type': 'attack', 'action': bow, 'target': ghast})
-    with patch('models.combat.roll_saving_throw', return_value=FAIL):
+    with patch('models.turn_effects.roll_saving_throw', return_value=FAIL):
         combat._stench(fighter)
         combat._stench(archer)
     assert fighter.buffs.has_condition('poisoned') and not archer.buffs.has_condition('poisoned')
