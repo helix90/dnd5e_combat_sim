@@ -146,6 +146,8 @@ dnd5e_combat_sim/
 │   ├── character.py       # Character class and abilities
 │   ├── monster.py         # Monster class and actions
 │   ├── combat.py          # Combat simulation engine
+│   ├── turn_effects.py    # Start- and end-of-turn effects, and turns of creatures that can't act
+│   ├── combat_log.py      # The combat log and its text for the live view
 │   ├── spells.py          # Spell system and casting
 │   ├── spell_effects.py   # What spells do besides damage and healing
 │   ├── concentration.py   # Concentration on spells
