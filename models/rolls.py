@@ -19,20 +19,22 @@ Callers can also pass advantage/disadvantage explicitly for situational sources
 Per 5e rules, multiple sources of advantage don't stack, and any advantage plus any
 disadvantage cancel out to a single straight roll.
 """
+
 import random
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from models.buffs import BuffManager, fails_str_dex_saves, is_prone
 
-ATTACK_ROLLS = 'attack_rolls'
-ATTACKS_AGAINST = 'attacks_against'
-SAVING_THROWS = 'saving_throws'
+ATTACK_ROLLS = "attack_rolls"
+ATTACKS_AGAINST = "attacks_against"
+SAVING_THROWS = "saving_throws"
 
 
 @dataclass
 class D20Roll:
     """Outcome of a d20 roll. `result` is the die that counts; `rolls` are all dice rolled."""
+
     result: int
     rolls: List[int] = field(default_factory=list)
     advantage: bool = False
@@ -47,31 +49,33 @@ def roll_d20(advantage: bool = False, disadvantage: bool = False) -> D20Roll:
     if not (advantage or disadvantage):
         return D20Roll(first, [first])
     rolls = [first, random.randint(1, 20)]
-    return D20Roll(max(rolls) if advantage else min(rolls), rolls, advantage, disadvantage)
+    return D20Roll(
+        max(rolls) if advantage else min(rolls), rolls, advantage, disadvantage
+    )
 
 
 def _buffs(creature: Any):
-    buffs = getattr(creature, 'buffs', None)
+    buffs = getattr(creature, "buffs", None)
     # isinstance guards against test doubles whose auto-created attributes are truthy
     return buffs if isinstance(buffs, BuffManager) else None
 
 
 def has_magic_resistance(creature: Any) -> bool:
     """Magic Resistance (horned devil, erinyes): advantage on saves against spells and magical effects."""
-    abilities = getattr(creature, 'special_abilities', None)
-    return isinstance(abilities, list) and 'Magic Resistance' in abilities
+    abilities = getattr(creature, "special_abilities", None)
+    return isinstance(abilities, list) and "Magic Resistance" in abilities
 
 
 def has_advantage(creature: Any, *roll_keys: str) -> bool:
     """True if any active effect on the creature grants advantage on one of the roll keys."""
     buffs = _buffs(creature)
-    return bool(buffs) and any(buffs.grants('advantage', key) for key in roll_keys)
+    return bool(buffs) and any(buffs.grants("advantage", key) for key in roll_keys)
 
 
 def has_disadvantage(creature: Any, *roll_keys: str) -> bool:
     """True if any active effect on the creature imposes disadvantage on one of the roll keys."""
     buffs = _buffs(creature)
-    return bool(buffs) and any(buffs.grants('disadvantage', key) for key in roll_keys)
+    return bool(buffs) and any(buffs.grants("disadvantage", key) for key in roll_keys)
 
 
 def attack_hits(natural_roll: int, total_attack: int, target_ac: int) -> bool:
@@ -82,7 +86,11 @@ def attack_hits(natural_roll: int, total_attack: int, target_ac: int) -> bool:
 
 def is_critical(natural_roll: int, attacker: Any) -> bool:
     """A natural 20 is a critical hit, or 19-20 for a Champion fighter (see critical_threshold)."""
-    threshold = attacker.critical_threshold() if callable(getattr(attacker, 'critical_threshold', None)) else 20
+    threshold = (
+        attacker.critical_threshold()
+        if callable(getattr(attacker, "critical_threshold", None))
+        else 20
+    )
     # isinstance guards against test doubles whose auto-created methods return mocks
     return natural_roll >= (threshold if isinstance(threshold, int) else 20)
 
@@ -90,13 +98,23 @@ def is_critical(natural_roll: int, attacker: Any) -> bool:
 def protected_from(attacker: Any, target: Any) -> bool:
     """Protection from Evil and Good: the attacker's creature type is one the target is protected from."""
     buffs = _buffs(target)
-    kind = getattr(attacker, 'creature_type', None)
-    return bool(buffs) and isinstance(kind, str) and any(
-        kind in b.metadata.get('protection_from', ()) for b in buffs.active_buffs)
+    kind = getattr(attacker, "creature_type", None)
+    return (
+        bool(buffs)
+        and isinstance(kind, str)
+        and any(
+            kind in b.metadata.get("protection_from", ()) for b in buffs.active_buffs
+        )
+    )
 
 
-def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantage: bool = False,
-                within_5ft: Optional[bool] = None) -> D20Roll:
+def attack_roll(
+    attacker: Any,
+    target: Any,
+    advantage: bool = False,
+    disadvantage: bool = False,
+    within_5ft: Optional[bool] = None,
+) -> D20Roll:
     """
     Roll an attack's d20, combining effects on the attacker and the target with any explicit
     sources. Effects that only apply to the attacker's next attack roll (Vicious Mockery) end.
@@ -105,50 +123,76 @@ def attack_roll(attacker: Any, target: Any, advantage: bool = False, disadvantag
     """
     prone = within_5ft is not None and is_prone(target)
     roll = roll_d20(
-        advantage=(advantage or has_advantage(attacker, ATTACK_ROLLS) or has_advantage(target, ATTACKS_AGAINST)
-                   or (prone and within_5ft)),
-        disadvantage=(disadvantage or has_disadvantage(attacker, ATTACK_ROLLS)
-                      or has_disadvantage(target, ATTACKS_AGAINST) or protected_from(attacker, target)
-                      or (prone and not within_5ft)),
+        advantage=(
+            advantage
+            or has_advantage(attacker, ATTACK_ROLLS)
+            or has_advantage(target, ATTACKS_AGAINST)
+            or (prone and within_5ft)
+        ),
+        disadvantage=(
+            disadvantage
+            or has_disadvantage(attacker, ATTACK_ROLLS)
+            or has_disadvantage(target, ATTACKS_AGAINST)
+            or protected_from(attacker, target)
+            or (prone and not within_5ft)
+        ),
     )
     buffs = _buffs(attacker)
-    if buffs and any(b.metadata.get('next_attack_only') for b in buffs.active_buffs):
-        buffs.active_buffs = [b for b in buffs.active_buffs if not b.metadata.get('next_attack_only')]
+    if buffs and any(b.metadata.get("next_attack_only") for b in buffs.active_buffs):
+        buffs.active_buffs = [
+            b for b in buffs.active_buffs if not b.metadata.get("next_attack_only")
+        ]
     return roll
 
 
-def roll_saving_throw(creature: Any, save_type: str, save_dc: int,
-                      advantage: bool = False, disadvantage: bool = False,
-                      cover_bonus: int = 0, magical: bool = False) -> Dict[str, Any]:
+def roll_saving_throw(
+    creature: Any,
+    save_type: str,
+    save_dc: int,
+    advantage: bool = False,
+    disadvantage: bool = False,
+    cover_bonus: int = 0,
+    magical: bool = False,
+) -> Dict[str, Any]:
     """
     Roll a saving throw for a creature, including buff bonuses (e.g. Bless), advantage/
     disadvantage and, for DEX saves, a cover bonus. A paralyzed, stunned or unconscious creature
     automatically fails STR and DEX saves. Against a spell or other magical effect (magical=True),
     a creature with Magic Resistance has advantage.
     """
-    keys = (SAVING_THROWS, f'{SAVING_THROWS}:{save_type}')
+    keys = (SAVING_THROWS, f"{SAVING_THROWS}:{save_type}")
     magic_resistance = magical and has_magic_resistance(creature)
     d20 = roll_d20(
         advantage=advantage or magic_resistance or has_advantage(creature, *keys),
         disadvantage=disadvantage or has_disadvantage(creature, *keys),
     )
-    save_bonus = creature.saving_throw_bonus(save_type) if hasattr(creature, 'saving_throw_bonus') else 0
-    buff_bonus = creature.buffs.calculate_total_bonus('saving_throws') if hasattr(creature, 'buffs') else 0
+    save_bonus = (
+        creature.saving_throw_bonus(save_type)
+        if hasattr(creature, "saving_throw_bonus")
+        else 0
+    )
+    buff_bonus = (
+        creature.buffs.calculate_total_bonus("saving_throws")
+        if hasattr(creature, "buffs")
+        else 0
+    )
     total_save = d20.result + save_bonus + buff_bonus + cover_bonus
-    auto_fail = save_type in ('str', 'dex') and fails_str_dex_saves(creature)  # paralyzed, stunned, asleep
+    auto_fail = save_type in ("str", "dex") and fails_str_dex_saves(
+        creature
+    )  # paralyzed, stunned, asleep
     result = {
-        'save_roll': d20.result,
-        'save_rolls': d20.rolls,
-        'advantage': d20.advantage,
-        'disadvantage': d20.disadvantage,
-        'save_bonus': save_bonus,
-        'buff_bonus': buff_bonus,
-        'total_save': total_save,
-        'save_success': not auto_fail and total_save >= save_dc,
-        'auto_fail': auto_fail,
+        "save_roll": d20.result,
+        "save_rolls": d20.rolls,
+        "advantage": d20.advantage,
+        "disadvantage": d20.disadvantage,
+        "save_bonus": save_bonus,
+        "buff_bonus": buff_bonus,
+        "total_save": total_save,
+        "save_success": not auto_fail and total_save >= save_dc,
+        "auto_fail": auto_fail,
     }
     if cover_bonus:
-        result['cover_bonus'] = cover_bonus
+        result["cover_bonus"] = cover_bonus
     if magic_resistance:
-        result['magic_resistance'] = True
+        result["magic_resistance"] = True
     return result

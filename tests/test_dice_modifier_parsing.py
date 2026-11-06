@@ -1,4 +1,5 @@
 """Test dice notation parsing with modifiers like 1d4+1."""
+
 from models.spells import Spell
 
 
@@ -14,9 +15,9 @@ class TestDiceModifierParsing:
             casting_time="1 action",
             range="120 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="1d4+1",  # This should parse correctly
-            damage_type="force"
+            damage_type="force",
         )
 
         # Calculate damage multiple times to ensure consistency
@@ -34,9 +35,9 @@ class TestDiceModifierParsing:
             casting_time="1 action",
             range="60 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="2d6-2",
-            damage_type="cold"
+            damage_type="cold",
         )
 
         for _ in range(10):
@@ -53,10 +54,10 @@ class TestDiceModifierParsing:
             casting_time="1 action",
             range="150 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': True},
+            components={"verbal": True, "somatic": True, "material": True},
             damage_dice="8d6",
             damage_type="fire",
-            save_type="dex"
+            save_type="dex",
         )
 
         for _ in range(10):
@@ -73,10 +74,10 @@ class TestDiceModifierParsing:
             casting_time="1 action",
             range="60 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="1d10+2",
             damage_type="force",
-            is_attack_spell=True
+            is_attack_spell=True,
         )
 
         # Level 1 character: 1d10+2 (3-12 damage)

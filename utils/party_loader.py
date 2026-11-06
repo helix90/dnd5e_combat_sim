@@ -9,19 +9,19 @@ from utils.logging import log_exception
 from utils.paths import data_path
 
 # Constants
-PARTY_JSON_FILENAME = 'parties.json'
-CHARACTER_JSON_FILENAME = 'characters.json'
+PARTY_JSON_FILENAME = "parties.json"
+CHARACTER_JSON_FILENAME = "characters.json"
 MIN_PARTY_ID = 1
 MAX_PARTY_ID = 1000
 MIN_LEVEL = 1
 MAX_LEVEL = 20
-KEY_NAME = 'name'
-KEY_CLASS = 'class'
-KEY_CHARACTER_CLASS = 'character_class'
-KEY_PARTY = 'party'
-KEY_CHARACTERS = 'characters'
-KEY_LEVEL = 'level'
-KEY_ID = 'id'
+KEY_NAME = "name"
+KEY_CLASS = "class"
+KEY_CHARACTER_CLASS = "character_class"
+KEY_PARTY = "party"
+KEY_CHARACTERS = "characters"
+KEY_LEVEL = "level"
+KEY_ID = "id"
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,9 @@ class PartyLoader:
     # Class-level caches
     _parties_cache: List[Dict[str, Any]] = None
     _characters_cache: Dict[int, List[Dict[str, Any]]] = None  # level -> characters
-    _character_index: Dict[Tuple[int, str, str], Dict[str, Any]] = None  # (level, name, class) -> character
+    _character_index: Dict[Tuple[int, str, str], Dict[str, Any]] = (
+        None  # (level, name, class) -> character
+    )
     _cache_lock = threading.Lock()
 
     # File paths
@@ -67,7 +69,7 @@ class PartyLoader:
 
         try:
             logger.debug(f"Loading parties from {cls._party_json_path}")
-            with open(cls._party_json_path, 'r', encoding='utf-8') as f:
+            with open(cls._party_json_path, "r", encoding="utf-8") as f:
                 parties = json.load(f)
 
             if not isinstance(parties, list):
@@ -101,7 +103,7 @@ class PartyLoader:
 
         try:
             logger.debug(f"Loading characters from {cls._character_json_path}")
-            with open(cls._character_json_path, 'r', encoding='utf-8') as f:
+            with open(cls._character_json_path, "r", encoding="utf-8") as f:
                 all_levels = json.load(f)
 
             if not isinstance(all_levels, list):
@@ -118,12 +120,16 @@ class PartyLoader:
                     characters_by_level[level] = characters
                     total_characters += len(characters)
 
-            logger.info(f"Loaded {total_characters} characters across {len(characters_by_level)} levels from disk")
+            logger.info(
+                f"Loaded {total_characters} characters across {len(characters_by_level)} levels from disk"
+            )
             return characters_by_level
 
         except FileNotFoundError as e:
             log_exception(e)
-            raise ValidationError(f"Character data file not found: {cls._character_json_path}")
+            raise ValidationError(
+                f"Character data file not found: {cls._character_json_path}"
+            )
         except json.JSONDecodeError as e:
             log_exception(e)
             raise ValidationError(f"Invalid JSON in character data file: {e}")
@@ -145,12 +151,12 @@ class PartyLoader:
         index = {}
         for level, characters in cls._characters_cache.items():
             for char in characters:
-                name = char.get(KEY_NAME, '').strip().lower()
+                name = char.get(KEY_NAME, "").strip().lower()
                 char_class = (
-                    char.get(KEY_CLASS) or
-                    char.get(KEY_CHARACTER_CLASS) or
-                    ''
-                ).strip().lower()
+                    (char.get(KEY_CLASS) or char.get(KEY_CHARACTER_CLASS) or "")
+                    .strip()
+                    .lower()
+                )
 
                 if name and char_class:
                     key = (level, name, char_class)
@@ -236,7 +242,9 @@ class PartyLoader:
         if not isinstance(party_id, int):
             raise ValidationError("party_id must be an integer")
         if party_id < MIN_PARTY_ID or party_id > MAX_PARTY_ID:
-            raise ValidationError(f"party_id must be between {MIN_PARTY_ID} and {MAX_PARTY_ID}")
+            raise ValidationError(
+                f"party_id must be between {MIN_PARTY_ID} and {MAX_PARTY_ID}"
+            )
 
     @classmethod
     def _validate_level(cls, level: int) -> None:
@@ -280,7 +288,9 @@ class PartyLoader:
         with cls._cache_lock:
             for party in cls._parties_cache:
                 if party.get(KEY_ID) == party_id:
-                    logger.info(f"Found party with ID {party_id}: {party.get(KEY_NAME, 'Unknown')}")
+                    logger.info(
+                        f"Found party with ID {party_id}: {party.get(KEY_NAME, 'Unknown')}"
+                    )
                     # Return deep copy to prevent external modifications
                     return copy.deepcopy(party)
 
@@ -290,10 +300,7 @@ class PartyLoader:
 
     @classmethod
     def _lookup_character(
-        cls,
-        name: str,
-        char_class: str,
-        level: int
+        cls, name: str, char_class: str, level: int
     ) -> Dict[str, Any]:
         """
         Look up a character by name, class, and level using indexed cache.
@@ -378,16 +385,14 @@ class PartyLoader:
         full_party = []
         characters = party.get(KEY_CHARACTERS, [])
 
-        logger.debug(f"Enriching {len(characters)} characters for party {party_id} at level {actual_level}")
+        logger.debug(
+            f"Enriching {len(characters)} characters for party {party_id} at level {actual_level}"
+        )
 
         for c in characters:
             # Extract character identifiers
-            name = c.get(KEY_NAME, '').strip()
-            char_class = (
-                c.get(KEY_CLASS) or
-                c.get(KEY_CHARACTER_CLASS) or
-                ''
-            ).strip()
+            name = c.get(KEY_NAME, "").strip()
+            char_class = (c.get(KEY_CLASS) or c.get(KEY_CHARACTER_CLASS) or "").strip()
 
             if not name or not char_class:
                 logger.warning(f"Skipping character with missing name or class: {c}")
@@ -398,7 +403,9 @@ class PartyLoader:
             found = cls._lookup_character(name, char_class, actual_level)
 
             if found:
-                logger.debug(f"Found full data for {name} ({char_class}) at level {actual_level}")
+                logger.debug(
+                    f"Found full data for {name} ({char_class}) at level {actual_level}"
+                )
                 full_party.append(copy.deepcopy(found))
             else:
                 # Fallback to original party character if not found

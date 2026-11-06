@@ -4,6 +4,7 @@ from models.monster import Monster
 from models.combat import Combat, CombatLogger
 from models.actions import AttackAction
 
+
 @pytest.fixture
 def hero():
     return Character(
@@ -11,11 +12,19 @@ def hero():
         level=3,
         character_class="Fighter",
         race="Human",
-        ability_scores={'str': 16, 'dex': 14, 'con': 12, 'int': 10, 'wis': 10, 'cha': 10},
+        ability_scores={
+            "str": 16,
+            "dex": 14,
+            "con": 12,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=20,
         ac=16,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
+
 
 @pytest.fixture
 def rogue():
@@ -24,11 +33,19 @@ def rogue():
         level=3,
         character_class="Rogue",
         race="Elf",
-        ability_scores={'str': 10, 'dex': 18, 'con': 12, 'int': 10, 'wis': 10, 'cha': 10},
+        ability_scores={
+            "str": 10,
+            "dex": 18,
+            "con": 12,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=18,
         ac=15,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
+
 
 @pytest.fixture
 def goblin():
@@ -37,15 +54,18 @@ def goblin():
         challenge_rating="1/4",
         hp=7,
         ac=15,
-        ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
     )
+
 
 def test_initiative_rolling_and_sorting(monkeypatch, hero, rogue, goblin):
     # Patch random.randint to control initiative rolls
     rolls = [15, 18, 12]  # hero, rogue, goblin
+
     def fake_randint(a, b):
         return rolls.pop(0)
-    monkeypatch.setattr('random.randint', fake_randint)
+
+    monkeypatch.setattr("random.randint", fake_randint)
     combat = Combat([hero, rogue, goblin])
     combat.roll_initiative()
     order = combat.get_initiative_order()
@@ -54,9 +74,10 @@ def test_initiative_rolling_and_sorting(monkeypatch, hero, rogue, goblin):
     assert order[1].name == "Hero"
     assert order[2].name == "Goblin"
 
+
 def test_turn_order_and_rounds(monkeypatch, hero, rogue, goblin):
     # Patch random.randint for initiative
-    monkeypatch.setattr('random.randint', lambda a, b: 10)
+    monkeypatch.setattr("random.randint", lambda a, b: 10)
     combat = Combat([hero, rogue, goblin])
     combat.roll_initiative()
     # All have same roll, so dex mod breaks tie: Rogue (4), Hero (2), Goblin (2)
@@ -84,6 +105,7 @@ def test_turn_order_and_rounds(monkeypatch, hero, rogue, goblin):
     else:
         assert combat.is_combat_over()
 
+
 def test_combat_state_tracking(hero, rogue, goblin):
     # Ensure goblin starts alive
     goblin.hp = 7
@@ -99,15 +121,17 @@ def test_combat_state_tracking(hero, rogue, goblin):
     rogue.hp = 0
     assert combat.is_combat_over()
 
+
 def test_combat_logger():
     logger = CombatLogger()
     logger.log_round_start(1)
     logger.log_action("Hero", {"hit": True, "damage": 5})
     log = logger.get_combat_log()
-    assert log[0]['type'] == 'round_start'
-    assert log[1]['type'] == 'action'
-    assert log[1]['actor'] == "Hero"
-    assert log[1]['result']['damage'] == 5
+    assert log[0]["type"] == "round_start"
+    assert log[1]["type"] == "action"
+    assert log[1]["actor"] == "Hero"
+    assert log[1]["result"]["damage"] == 5
+
 
 def test_initiative_tiebreaker(monkeypatch):
     # Two characters with same roll and dex
@@ -116,64 +140,95 @@ def test_initiative_tiebreaker(monkeypatch):
         level=1,
         character_class="Fighter",
         race="Human",
-        ability_scores={'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10},
+        ability_scores={
+            "str": 10,
+            "dex": 10,
+            "con": 10,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=10,
         ac=10,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
     c2 = Character(
         name="B",
         level=1,
         character_class="Fighter",
         race="Human",
-        ability_scores={'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10},
+        ability_scores={
+            "str": 10,
+            "dex": 10,
+            "con": 10,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=10,
         ac=10,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
-    monkeypatch.setattr('random.randint', lambda a, b: 10)
+    monkeypatch.setattr("random.randint", lambda a, b: 10)
     combat = Combat([c1, c2])
     combat.roll_initiative()
     order = combat.get_initiative_order()
     # Order is deterministic due to random.random, but both are valid
     assert set([order[0].name, order[1].name]) == {"A", "B"}
 
+
 def test_integration_2v1_combat(monkeypatch):
     # Hero and Rogue vs Goblin
     # Patch random.randint for initiative and attack rolls
     init_rolls = [15, 18, 12]  # hero, rogue, goblin
     attack_rolls = [18, 5, 20, 3, 15, 2, 10, 1]  # d20, damage, d20, damage, ...
+
     def fake_randint(a, b):
         if a == 1 and b == 20:
             return init_rolls.pop(0) if init_rolls else attack_rolls.pop(0)
         return 5  # damage
-    monkeypatch.setattr('random.randint', fake_randint)
+
+    monkeypatch.setattr("random.randint", fake_randint)
     hero = Character(
         name="Hero",
         level=3,
         character_class="Fighter",
         race="Human",
-        ability_scores={'str': 16, 'dex': 14, 'con': 12, 'int': 10, 'wis': 10, 'cha': 10},
+        ability_scores={
+            "str": 16,
+            "dex": 14,
+            "con": 12,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=20,
         ac=16,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
     rogue = Character(
         name="Rogue",
         level=3,
         character_class="Rogue",
         race="Elf",
-        ability_scores={'str': 10, 'dex': 18, 'con': 12, 'int': 10, 'wis': 10, 'cha': 10},
+        ability_scores={
+            "str": 10,
+            "dex": 18,
+            "con": 12,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=18,
         ac=15,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
     goblin = Monster(
         name="Goblin",
         challenge_rating="1/4",
         hp=7,  # Set to 7 to match the fixture
         ac=13,
-        ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
     )
     combat = Combat([hero, rogue, goblin])
     combat.roll_initiative()
@@ -192,30 +247,40 @@ def test_integration_2v1_combat(monkeypatch):
     # Check goblin is likely knocked out
     assert goblin.hp < 12
     log = combat.get_combat_log()
-    assert any(entry['type'] == 'action' for entry in log)
+    assert any(entry["type"] == "action" for entry in log)
+
 
 def test_combat_damage_and_end(monkeypatch):
     # Patch random.randint for deterministic combat
     rolls = [18, 18, 18, 5, 5, 5, 18, 5, 18, 5]  # Always hit, always 5 damage
+
     def fake_randint(a, b):
         return rolls.pop(0) if rolls else 18
-    monkeypatch.setattr('random.randint', fake_randint)
+
+    monkeypatch.setattr("random.randint", fake_randint)
     hero = Character(
         name="Hero",
         level=3,
         character_class="Fighter",
         race="Human",
-        ability_scores={'str': 16, 'dex': 14, 'con': 12, 'int': 10, 'wis': 10, 'cha': 10},
+        ability_scores={
+            "str": 16,
+            "dex": 14,
+            "con": 12,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=20,
         ac=16,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
     goblin = Monster(
         name="Goblin",
         challenge_rating="1/4",
         hp=7,
         ac=13,
-        ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
     )
     combat = Combat([hero, goblin])
     combat.roll_initiative()
@@ -226,7 +291,8 @@ def test_combat_damage_and_end(monkeypatch):
     assert goblin.hp <= 0
     assert not goblin.is_alive()
     # Combat should be over
-    assert combat.is_combat_over() 
+    assert combat.is_combat_over()
+
 
 def test_no_double_ability_modifier_for_monster_attacks(monkeypatch):
     """Test that monster attacks with a dice string modifier do not double-count the ability modifier."""
@@ -235,7 +301,7 @@ def test_no_double_ability_modifier_for_monster_attacks(monkeypatch):
     from models.actions import AttackAction
 
     # Patch random.randint to always return max value for predictability (19 on the d20, not a crit)
-    monkeypatch.setattr('random.randint', lambda a, b: 19 if b == 20 else b)
+    monkeypatch.setattr("random.randint", lambda a, b: 19 if b == 20 else b)
 
     # Kobold: DEX 15 (+2), attack is '1d4+2' (should NOT add DEX mod again)
     kobold = Monster(
@@ -244,21 +310,38 @@ def test_no_double_ability_modifier_for_monster_attacks(monkeypatch):
         hp=5,
         ac=12,
         ability_scores={"str": 7, "dex": 15, "con": 9, "int": 8, "wis": 7, "cha": 8},
-        actions=[AttackAction(name="Dagger", description="Stab", weapon_name="Dagger", damage_dice="1d4+2", damage_type="piercing")]
+        actions=[
+            AttackAction(
+                name="Dagger",
+                description="Stab",
+                weapon_name="Dagger",
+                damage_dice="1d4+2",
+                damage_type="piercing",
+            )
+        ],
     )
     dummy_target = Character(
         name="Dummy",
         level=1,
         character_class="Fighter",
         race="Human",
-        ability_scores={"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
+        ability_scores={
+            "str": 10,
+            "dex": 10,
+            "con": 10,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=20,
         ac=10,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
     # Should be 1d4 (4) + 2 = 6, not 8
     result = kobold.actions[0].execute(kobold, dummy_target)
-    assert result['damage'] == 6, f"Expected 6, got {result['damage']} (should not double-count DEX mod)"
+    assert (
+        result["damage"] == 6
+    ), f"Expected 6, got {result['damage']} (should not double-count DEX mod)"
 
     # Fighter: STR 16 (+3), attack is '1d8' (should add STR mod)
     fighter = Character(
@@ -266,15 +349,31 @@ def test_no_double_ability_modifier_for_monster_attacks(monkeypatch):
         level=1,
         character_class="Fighter",
         race="Human",
-        ability_scores={"str": 16, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10},
+        ability_scores={
+            "str": 16,
+            "dex": 10,
+            "con": 10,
+            "int": 10,
+            "wis": 10,
+            "cha": 10,
+        },
         hp=20,
         ac=16,
-        proficiency_bonus=2
+        proficiency_bonus=2,
     )
-    sword_attack = AttackAction(name="Sword Attack", description="Slash", weapon_name="Longsword", damage_dice="1d8", damage_type="slashing")
+    sword_attack = AttackAction(
+        name="Sword Attack",
+        description="Slash",
+        weapon_name="Longsword",
+        damage_dice="1d8",
+        damage_type="slashing",
+    )
     # Should be 1d8 (8) + 3 = 11
     result2 = sword_attack.execute(fighter, dummy_target)
-    assert result2['damage'] == 11, f"Expected 11, got {result2['damage']} (should add STR mod)" 
+    assert (
+        result2["damage"] == 11
+    ), f"Expected 11, got {result2['damage']} (should add STR mod)"
+
 
 def test_combat_log_includes_spell_name(monkeypatch):
     """Test that the combat log includes the actual spell name when a spell is cast."""
@@ -294,23 +393,30 @@ def test_combat_log_includes_spell_name(monkeypatch):
         components={"verbal": True, "somatic": True, "material": False},
         damage_dice="1d8",
         description="A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier.",
-        healing=True
+        healing=True,
     )
     cleric = Character(
         name="Branwen",
         level=3,
         character_class="Cleric",
         race="Dwarf",
-        ability_scores={"str": 14, "dex": 10, "con": 16, "int": 10, "wis": 16, "cha": 8},
+        ability_scores={
+            "str": 14,
+            "dex": 10,
+            "con": 16,
+            "int": 10,
+            "wis": 16,
+            "cha": 8,
+        },
         hp=20,
         ac=18,
         proficiency_bonus=2,
         actions=[],
         spell_list=["Cure Wounds"],
-        spell_slots={1: 2}
+        spell_slots={1: 2},
     )
     cleric.add_spell(spell)
-    
+
     # Create a monster to make this a proper character vs monster encounter
     goblin = Monster(
         name="Goblin",
@@ -323,40 +429,63 @@ def test_combat_log_includes_spell_name(monkeypatch):
         damage_resistances=[],
         damage_immunities=[],
         multiattack=False,
-        actions=[{"name": "Scimitar", "type": "attack", "damage_dice": "1d6+2", "damage_type": "slashing"}]
+        actions=[
+            {
+                "name": "Scimitar",
+                "type": "attack",
+                "damage_dice": "1d6+2",
+                "damage_type": "slashing",
+            }
+        ],
     )
-    
+
     # Patch AI to always cast Cure Wounds on cleric (healing herself)
     class AlwaysHealStrategy:
         def choose_action(self, combatant, combat_state):
-            return {'type': 'cast_spell', 'spell': SpellAction(spell), 'target': cleric}
-        def evaluate_targets(self, *a, **k): return []
-        def threat_assessment(self, *a, **k): return 0
-        def opportunity_cost_analysis(self, *a, **k): return 0
+            return {"type": "cast_spell", "spell": SpellAction(spell), "target": cleric}
+
+        def evaluate_targets(self, *a, **k):
+            return []
+
+        def threat_assessment(self, *a, **k):
+            return 0
+
+        def opportunity_cost_analysis(self, *a, **k):
+            return 0
+
     combat = Combat([cleric, goblin])
     combat.ai_strategy_map[cleric] = AlwaysHealStrategy()
+
     # Patch initiative so cleric always goes first
     def fake_randint(a, b):
         # First call: cleric, second: goblin
         return 20 if fake_randint.calls == 0 else 1
+
     fake_randint.calls = 0
+
     def fake_randint_wrapper(a, b):
         val = fake_randint(a, b)
         fake_randint.calls += 1
         return val
-    monkeypatch.setattr('random.randint', fake_randint_wrapper)
+
+    monkeypatch.setattr("random.randint", fake_randint_wrapper)
     # Run more turns to ensure spell is cast and logged
     combat.roll_initiative()
     for _ in range(4):
         combat.next_turn()
     log_lines = combat.format_log_for_web()
-    assert any("casts Cure Wounds on" in line for line in log_lines), f"Expected spell name in log, got: {log_lines}" 
+    assert any(
+        "casts Cure Wounds on" in line for line in log_lines
+    ), f"Expected spell name in log, got: {log_lines}"
+
 
 def test_rounds_advance_after_last_in_initiative_dies():
-    scores = {'str': 10, 'dex': 10, 'con': 10, 'int': 10, 'wis': 10, 'cha': 10}
-    hero = Character('Hero', 1, 'Fighter', 'Human', scores, hp=100, ac=30, proficiency_bonus=2)
-    goblin = Monster('Goblin', '1/4', 100, 30, scores)
-    orc = Monster('Orc', '1/2', 15, 13, scores)
+    scores = {"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10}
+    hero = Character(
+        "Hero", 1, "Fighter", "Human", scores, hp=100, ac=30, proficiency_bonus=2
+    )
+    goblin = Monster("Goblin", "1/4", 100, 30, scores)
+    orc = Monster("Orc", "1/2", 15, 13, scores)
     combat = Combat([hero, goblin, orc])
     combat.initiative_order = [hero, goblin, orc]
     orc.hp = 0  # the creature last in initiative is dead
@@ -367,16 +496,36 @@ def test_rounds_advance_after_last_in_initiative_dies():
     assert rounds == [1, 1, 2, 2, 3, 3]
 
 
-@pytest.mark.parametrize('description, expected', [
-    ('The troll makes three attacks: one with its bite and two with its claws.', ['Bite', 'Claw', 'Claw']),
-    ('The giant makes two greatclub attacks.', ['Greatclub', 'Greatclub']),
-    ('The wight makes two longsword attacks or two longbow attacks.', ['Longsword', 'Longsword']),
-    ('The vampire spawn makes two attacks, only one of which can be a bite attack.', ['Claws', 'Bite']),
-])
+@pytest.mark.parametrize(
+    "description, expected",
+    [
+        (
+            "The troll makes three attacks: one with its bite and two with its claws.",
+            ["Bite", "Claw", "Claw"],
+        ),
+        ("The giant makes two greatclub attacks.", ["Greatclub", "Greatclub"]),
+        (
+            "The wight makes two longsword attacks or two longbow attacks.",
+            ["Longsword", "Longsword"],
+        ),
+        (
+            "The vampire spawn makes two attacks, only one of which can be a bite attack.",
+            ["Claws", "Bite"],
+        ),
+    ],
+)
 def test_multiattack_descriptions(description, expected):
-    names = ['Claws', 'Bite', 'Claw', 'Greatclub', 'Rock', 'Longsword', 'Longbow']
-    if 'troll' in description:
-        names = ['Bite', 'Claw']
-    actions = [AttackAction(name=n, description=n, weapon_name=n, damage_dice='1d6', damage_type='slashing')
-               for n in names]
+    names = ["Claws", "Bite", "Claw", "Greatclub", "Rock", "Longsword", "Longbow"]
+    if "troll" in description:
+        names = ["Bite", "Claw"]
+    actions = [
+        AttackAction(
+            name=n,
+            description=n,
+            weapon_name=n,
+            damage_dice="1d6",
+            damage_type="slashing",
+        )
+        for n in names
+    ]
     assert [a.name for a in Combat._parse_multiattack(description, actions)] == expected

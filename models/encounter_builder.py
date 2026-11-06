@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 
 from utils.paths import data_path
 
-MONSTERS_FILE = data_path('monsters.json')
+MONSTERS_FILE = data_path("monsters.json")
 
 # Standard 5e XP thresholds for 4 characters (per character: easy/med/hard/deadly)
 XP_THRESHOLDS = {
@@ -31,20 +31,51 @@ XP_THRESHOLDS = {
 
 # XP by challenge rating (SRD)
 CR_XP = {
-    "0": 10, "1/8": 25, "1/4": 50, "1/2": 100, "1": 200, "2": 450, "3": 700, "4": 1100, "5": 1800,
-    "6": 2300, "7": 2900, "8": 3900, "9": 5000, "10": 5900, "11": 7200, "12": 8400, "13": 10000,
-    "14": 11500, "15": 13000, "16": 15000, "17": 18000, "18": 20000, "19": 22000, "20": 25000,
-    "21": 33000, "22": 41000, "23": 50000, "24": 62000, "25": 75000, "26": 90000, "27": 105000,
-    "28": 120000, "29": 135000, "30": 155000,
+    "0": 10,
+    "1/8": 25,
+    "1/4": 50,
+    "1/2": 100,
+    "1": 200,
+    "2": 450,
+    "3": 700,
+    "4": 1100,
+    "5": 1800,
+    "6": 2300,
+    "7": 2900,
+    "8": 3900,
+    "9": 5000,
+    "10": 5900,
+    "11": 7200,
+    "12": 8400,
+    "13": 10000,
+    "14": 11500,
+    "15": 13000,
+    "16": 15000,
+    "17": 18000,
+    "18": 20000,
+    "19": 22000,
+    "20": 25000,
+    "21": 33000,
+    "22": 41000,
+    "23": 50000,
+    "24": 62000,
+    "25": 75000,
+    "26": 90000,
+    "27": 105000,
+    "28": 120000,
+    "29": 135000,
+    "30": 155000,
 }
 
 # Encounter multipliers by number of monsters
 ENCOUNTER_MULTIPLIERS = [1, 1.5, 2, 2.5, 3, 4]
 
+
 class EncounterBuilder:
     """
     Builds and validates combat encounters using monster data and party info.
     """
+
     def __init__(self, monsters_file: str = MONSTERS_FILE):
         with open(monsters_file) as f:
             self.monster_data = json.load(f)["monsters"]
@@ -56,7 +87,9 @@ class EncounterBuilder:
             cr_dict.setdefault(m["cr"], []).append(m)
         return cr_dict
 
-    def calculate_encounter_difficulty(self, monsters: List[Dict[str, Any]], party_level: int, party_size: int = 4) -> Dict[str, Any]:
+    def calculate_encounter_difficulty(
+        self, monsters: List[Dict[str, Any]], party_level: int, party_size: int = 4
+    ) -> Dict[str, Any]:
         """
         Calculate total XP, apply multipliers, and compare to party thresholds.
         """
@@ -85,16 +118,25 @@ class EncounterBuilder:
             difficulty = "medium"
         elif total_xp >= thresholds[0] * party_size:
             difficulty = "easy"
-        return {"base_xp": base_xp, "total_xp": total_xp, "difficulty": difficulty, "thresholds": thresholds}
+        return {
+            "base_xp": base_xp,
+            "total_xp": total_xp,
+            "difficulty": difficulty,
+            "thresholds": thresholds,
+        }
 
-    def validate_encounter_balance(self, monsters: List[Dict[str, Any]], party_level: int, party_size: int = 4) -> bool:
+    def validate_encounter_balance(
+        self, monsters: List[Dict[str, Any]], party_level: int, party_size: int = 4
+    ) -> bool:
         """
         Return True if encounter is not deadly or trivial.
         """
         result = self.calculate_encounter_difficulty(monsters, party_level, party_size)
         return result["difficulty"] in ("easy", "medium", "hard")
 
-    def generate_encounter_warning(self, monsters: List[Dict[str, Any]], party_level: int, party_size: int = 4) -> str:
+    def generate_encounter_warning(
+        self, monsters: List[Dict[str, Any]], party_level: int, party_size: int = 4
+    ) -> str:
         """
         Return a warning string if the encounter is imbalanced.
         """
@@ -105,7 +147,9 @@ class EncounterBuilder:
             return "Warning: This encounter is trivial for the party."
         return "Encounter is balanced."
 
-    def create_encounter_from_template(self, template: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def create_encounter_from_template(
+        self, template: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
         """
         Create an encounter from a template (list of monster names/CRs).
         """
@@ -119,7 +163,11 @@ class EncounterBuilder:
             if not matches:
                 # Try base-name match (e.g., template says "Skeleton" and DB has "Skeleton" entries)
                 base_name = name.replace("\u00a0", " ").strip()
-                matches = [m for m in self.monster_data if (m.get("name") or "").strip() == base_name]
+                matches = [
+                    m
+                    for m in self.monster_data
+                    if (m.get("name") or "").strip() == base_name
+                ]
             if not matches:
                 missing_monsters.append(name)
                 continue
@@ -129,11 +177,13 @@ class EncounterBuilder:
                 if count > 1:
                     monster_copy["name"] = f"{name} {i+1}"
                 encounter.append(monster_copy)
-        
+
         if missing_monsters:
-            raise ValueError(f"Monsters not found in database: {', '.join(missing_monsters)}")
-        
+            raise ValueError(
+                f"Monsters not found in database: {', '.join(missing_monsters)}"
+            )
+
         if not encounter:
             raise ValueError("No valid monsters found in template")
-            
-        return encounter 
+
+        return encounter

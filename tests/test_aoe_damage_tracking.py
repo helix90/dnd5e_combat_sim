@@ -28,11 +28,18 @@ def test_aoe_spell_damage_tracking():
         level=5,
         character_class="Wizard",
         race="Human",
-        ability_scores={'str': 8, 'dex': 14, 'con': 12, 'int': 16, 'wis': 12, 'cha': 10},
+        ability_scores={
+            "str": 8,
+            "dex": 14,
+            "con": 12,
+            "int": 16,
+            "wis": 12,
+            "cha": 10,
+        },
         hp=28,
         ac=12,
         proficiency_bonus=3,
-        spell_slots={1: 4, 2: 3, 3: 2}
+        spell_slots={1: 4, 2: 3, 3: 2},
     )
 
     # Load and add Fireball spell
@@ -46,7 +53,7 @@ def test_aoe_spell_damage_tracking():
         challenge_rating="1/4",
         hp=15,
         ac=15,
-        ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
     )
 
     goblin2 = Monster(
@@ -54,7 +61,7 @@ def test_aoe_spell_damage_tracking():
         challenge_rating="1/4",
         hp=15,
         ac=15,
-        ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
     )
 
     goblin3 = Monster(
@@ -62,7 +69,7 @@ def test_aoe_spell_damage_tracking():
         challenge_rating="1/4",
         hp=15,
         ac=15,
-        ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
     )
 
     # Run combat
@@ -81,12 +88,14 @@ def test_aoe_spell_damage_tracking():
     fireball_total_damage = 0
 
     for entry in log:
-        if entry['type'] == 'action':
-            result = entry['result']
-            if result.get('spell') == 'Fireball' or (result.get('action') == 'Fireball'):
+        if entry["type"] == "action":
+            result = entry["result"]
+            if result.get("spell") == "Fireball" or (
+                result.get("action") == "Fireball"
+            ):
                 fireball_cast = True
                 # Get the total damage from AoE spell
-                fireball_total_damage = result.get('total_damage', 0)
+                fireball_total_damage = result.get("total_damage", 0)
                 break
 
     # Against three goblins the wizard's best choice is Fireball
@@ -100,44 +109,58 @@ def test_aoe_spell_damage_tracking():
 
     # Build the combat result
     # Determine winner
-    alive_party = [p for p in combat.participants if hasattr(p, 'character_class') and p.is_alive()]
-    alive_monsters = [p for p in combat.participants if not hasattr(p, 'character_class') and p.is_alive()]
+    alive_party = [
+        p for p in combat.participants if hasattr(p, "character_class") and p.is_alive()
+    ]
+    alive_monsters = [
+        p
+        for p in combat.participants
+        if not hasattr(p, "character_class") and p.is_alive()
+    ]
 
     if not alive_party:
-        winner = 'monsters'
+        winner = "monsters"
     elif not alive_monsters:
-        winner = 'party'
+        winner = "party"
     else:
-        winner = 'unknown'
+        winner = "unknown"
 
     result = {
-        'winner': winner,
-        'rounds': combat.current_round,
-        'log': combat.get_combat_log(),
-        'participants': []
+        "winner": winner,
+        "rounds": combat.current_round,
+        "log": combat.get_combat_log(),
+        "participants": [],
     }
 
     for participant in combat.participants:
-        result['participants'].append({
-            'name': participant.name,
-            'hp': participant.hp,
-            'is_alive': participant.is_alive(),
-            'team': 'party' if hasattr(participant, 'character_class') else 'monsters'
-        })
+        result["participants"].append(
+            {
+                "name": participant.name,
+                "hp": participant.hp,
+                "is_alive": participant.is_alive(),
+                "team": (
+                    "party" if hasattr(participant, "character_class") else "monsters"
+                ),
+            }
+        )
 
     # Save simulation result (this is where the bug was)
     sim_id = db.save_simulation_result(session_id, result)
 
     # Query the combat_logs table for the wizard's spell action
     import sqlite3
+
     conn = sqlite3.connect(db.db_path)
     cursor = conn.cursor()
 
-    cursor.execute('''
+    cursor.execute(
+        """
         SELECT character_name, action_type, damage
         FROM combat_logs
         WHERE simulation_id = ? AND character_name = 'TestWizard' AND action_type = 'spell'
-    ''', (sim_id,))
+    """,
+        (sim_id,),
+    )
 
     wizard_spell_logs = cursor.fetchall()
     conn.close()
@@ -146,13 +169,14 @@ def test_aoe_spell_damage_tracking():
     total_damage_in_db = sum(log[2] for log in wizard_spell_logs if log[2] > 0)
 
     # Verify that damage was recorded
-    assert total_damage_in_db > 0, \
-        f"AoE spell damage not recorded! Expected {fireball_total_damage}, got {total_damage_in_db}"
+    assert (
+        total_damage_in_db > 0
+    ), f"AoE spell damage not recorded! Expected {fireball_total_damage}, got {total_damage_in_db}"
 
     # Verify that the damage matches what was dealt
-    assert total_damage_in_db == fireball_total_damage, \
-        f"AoE spell damage mismatch! Expected {fireball_total_damage}, got {total_damage_in_db} in database"
-
+    assert (
+        total_damage_in_db == fireball_total_damage
+    ), f"AoE spell damage mismatch! Expected {fireball_total_damage}, got {total_damage_in_db} in database"
 
 
 def test_single_target_spell_damage_tracking():
@@ -166,11 +190,18 @@ def test_single_target_spell_damage_tracking():
         level=3,
         character_class="Cleric",
         race="Human",
-        ability_scores={'str': 10, 'dex': 12, 'con': 14, 'int': 10, 'wis': 16, 'cha': 12},
+        ability_scores={
+            "str": 10,
+            "dex": 12,
+            "con": 14,
+            "int": 10,
+            "wis": 16,
+            "cha": 12,
+        },
         hp=20,
         ac=16,
         proficiency_bonus=2,
-        spell_slots={1: 4, 2: 2}
+        spell_slots={1: 4, 2: 2},
     )
 
     # Load Guiding Bolt
@@ -184,7 +215,7 @@ def test_single_target_spell_damage_tracking():
         challenge_rating="1/4",
         hp=50,  # High HP so it doesn't die immediately
         ac=15,
-        ability_scores={'str': 8, 'dex': 14, 'con': 10, 'int': 10, 'wis': 8, 'cha': 8}
+        ability_scores={"str": 8, "dex": 14, "con": 10, "int": 10, "wis": 8, "cha": 8},
     )
 
     # Run combat
@@ -207,43 +238,57 @@ def test_single_target_spell_damage_tracking():
 
     # Build the combat result
     # Determine winner
-    alive_party = [p for p in combat.participants if hasattr(p, 'character_class') and p.is_alive()]
-    alive_monsters = [p for p in combat.participants if not hasattr(p, 'character_class') and p.is_alive()]
+    alive_party = [
+        p for p in combat.participants if hasattr(p, "character_class") and p.is_alive()
+    ]
+    alive_monsters = [
+        p
+        for p in combat.participants
+        if not hasattr(p, "character_class") and p.is_alive()
+    ]
 
     if not alive_party:
-        winner = 'monsters'
+        winner = "monsters"
     elif not alive_monsters:
-        winner = 'party'
+        winner = "party"
     else:
-        winner = 'unknown'
+        winner = "unknown"
 
     result = {
-        'winner': winner,
-        'rounds': combat.current_round,
-        'log': combat.get_combat_log(),
-        'participants': []
+        "winner": winner,
+        "rounds": combat.current_round,
+        "log": combat.get_combat_log(),
+        "participants": [],
     }
 
     for participant in combat.participants:
-        result['participants'].append({
-            'name': participant.name,
-            'hp': participant.hp,
-            'is_alive': participant.is_alive(),
-            'team': 'party' if hasattr(participant, 'character_class') else 'monsters'
-        })
+        result["participants"].append(
+            {
+                "name": participant.name,
+                "hp": participant.hp,
+                "is_alive": participant.is_alive(),
+                "team": (
+                    "party" if hasattr(participant, "character_class") else "monsters"
+                ),
+            }
+        )
 
     sim_id = db.save_simulation_result(session_id, result)
 
     # Query the combat_logs table
     import sqlite3
+
     conn = sqlite3.connect(db.db_path)
     cursor = conn.cursor()
 
-    cursor.execute('''
+    cursor.execute(
+        """
         SELECT COUNT(*)
         FROM combat_logs
         WHERE simulation_id = ? AND character_name = 'TestCleric'
-    ''', (sim_id,))
+    """,
+        (sim_id,),
+    )
 
     log_count = cursor.fetchone()[0]
     conn.close()

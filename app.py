@@ -17,8 +17,15 @@ from uuid import uuid4
 
 # Third-party imports
 from flask import (
-    Flask, Response, render_template, request, redirect,
-    url_for, session, jsonify, flash
+    Flask,
+    Response,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    session,
+    jsonify,
+    flash,
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -29,16 +36,20 @@ from controllers.batch_simulation_controller import BatchSimulationController
 from controllers.encounter_controller import EncounterController
 from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
-from models.arena_library import DEFAULT_MAP, ENCOUNTER_MAP, arena_choices, get_arena, resolve_arena_choice
-from models.db import DatabaseManager
-from utils.exceptions import (
-    AppError, ValidationError
+from models.arena_library import (
+    DEFAULT_MAP,
+    ENCOUNTER_MAP,
+    arena_choices,
+    get_arena,
+    resolve_arena_choice,
 )
+from models.db import DatabaseManager
+from utils.exceptions import AppError, ValidationError
 from utils.logging import log_exception
 from utils.party_loader import PartyLoader
 
 # Constants - Application Configuration
-DEFAULT_SECRET_KEY = 'dev-secret-key'
+DEFAULT_SECRET_KEY = "dev-secret-key"
 SESSION_LIFETIME_HOURS = 24
 
 # Constants - Rate Limiting
@@ -69,6 +80,7 @@ logger = logging.getLogger(__name__)
 # Initialize Flask application
 app = Flask(__name__)
 
+
 # Configure application
 def configure_app(app: Flask) -> None:
     """
@@ -79,7 +91,11 @@ def configure_app(app: Flask) -> None:
     """
     # Secret key configuration
     # FLASK_SECRET_KEY, or SECRET_KEY as the README, docs and docker-compose.yml set it
-    app.secret_key = os.environ.get('FLASK_SECRET_KEY') or os.environ.get('SECRET_KEY') or DEFAULT_SECRET_KEY
+    app.secret_key = (
+        os.environ.get("FLASK_SECRET_KEY")
+        or os.environ.get("SECRET_KEY")
+        or DEFAULT_SECRET_KEY
+    )
 
     # Warn if using default secret key
     if app.secret_key == DEFAULT_SECRET_KEY:
@@ -89,17 +105,24 @@ def configure_app(app: Flask) -> None:
                 "Set the SECRET_KEY (or FLASK_SECRET_KEY) environment variable in production!"
             )
         else:
-            logger.warning("Using default development secret key - DO NOT use in production!")
+            logger.warning(
+                "Using default development secret key - DO NOT use in production!"
+            )
 
     # Session Security
     # Disable SECURE cookie for local development (allows HTTP access from LAN)
     # In production, set FLASK_SESSION_COOKIE_SECURE=true environment variable
-    app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_SESSION_COOKIE_SECURE', 'false').lower() == 'true'
-    app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=SESSION_LIFETIME_HOURS)
+    app.config["SESSION_COOKIE_SECURE"] = (
+        os.environ.get("FLASK_SESSION_COOKIE_SECURE", "false").lower() == "true"
+    )
+    app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent JavaScript access
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=SESSION_LIFETIME_HOURS)
 
-    logger.info(f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}, session_cookie_secure={app.config['SESSION_COOKIE_SECURE']}")
+    logger.info(
+        f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}, session_cookie_secure={app.config['SESSION_COOKIE_SECURE']}"
+    )
+
 
 configure_app(app)
 
@@ -108,7 +131,7 @@ limiter = Limiter(
     app=app,
     key_func=get_remote_address,
     default_limits=[RATE_LIMIT_PER_DAY, RATE_LIMIT_PER_HOUR],
-    storage_uri="memory://"
+    storage_uri="memory://",
 )
 
 # Initialize controllers
@@ -120,10 +143,11 @@ results_controller = ResultsController()
 
 # Helper Functions
 
+
 def validate_input(
     data: Dict[str, Any],
     allowed_fields: Optional[List[str]] = None,
-    max_length: int = MAX_INPUT_LENGTH_DEFAULT
+    max_length: int = MAX_INPUT_LENGTH_DEFAULT,
 ) -> Dict[str, Any]:
     """
     Validate and sanitize input data.
@@ -151,19 +175,20 @@ def validate_input(
         if isinstance(value, str) and len(value) > max_length:
             raise ValidationError(f"Field {key} too long")
         if isinstance(value, str):
-            if key == 'cr':
+            if key == "cr":
                 # Allow numbers, fractions, and slash for CR
-                if not re.match(r'^[0-9/]+$', value):
+                if not re.match(r"^[0-9/]+$", value):
                     raise ValidationError(f"Invalid characters in field {key}")
-            elif key in ('template_name', 'batch_name'):
+            elif key in ("template_name", "batch_name"):
                 # Allow letters, numbers, spaces, apostrophes, and common punctuation for names
-                if not re.match(r'^[a-zA-Z0-9\s\'\-_.,!?()]+$', value):
+                if not re.match(r"^[a-zA-Z0-9\s\'\-_.,!?()]+$", value):
                     raise ValidationError(f"Invalid characters in field {key}")
             else:
-                if not re.match(r'^[a-zA-Z0-9\s\-_.,!?()]+$', value):
+                if not re.match(r"^[a-zA-Z0-9\s\-_.,!?()]+$", value):
                     raise ValidationError(f"Invalid characters in field {key}")
 
     return data
+
 
 def load_party_from_session() -> Tuple[List[Any], int]:
     """
@@ -176,38 +201,61 @@ def load_party_from_session() -> Tuple[List[Any], int]:
     Raises:
         ValidationError: If party data cannot be loaded
     """
-    selected_party_id = session.get('selected_party_id', DEFAULT_PARTY_ID)
-    selected_party_level = session.get('selected_party_level', DEFAULT_PARTY_LEVEL)
+    selected_party_id = session.get("selected_party_id", DEFAULT_PARTY_ID)
+    selected_party_level = session.get("selected_party_level", DEFAULT_PARTY_LEVEL)
 
     try:
-        party_obj = PartyLoader.get_party_with_level(selected_party_id, selected_party_level)
+        party_obj = PartyLoader.get_party_with_level(
+            selected_party_id, selected_party_level
+        )
     except ValidationError as e:
-        logger.error(f"Error loading party {selected_party_id} at level {selected_party_level}: {e}")
-        raise ValidationError(f"Could not load the selected party: {e}. Please choose a party again.")
+        logger.error(
+            f"Error loading party {selected_party_id} at level {selected_party_level}: {e}"
+        )
+        raise ValidationError(
+            f"Could not load the selected party: {e}. Please choose a party again."
+        )
 
-    party = party_obj.get('characters', [])
+    party = party_obj.get("characters", [])
     if not party:
-        raise ValidationError(f"Party {selected_party_id} has no characters. Please choose a party again.")
-    return party, party_obj.get('level', selected_party_level)
+        raise ValidationError(
+            f"Party {selected_party_id} has no characters. Please choose a party again."
+        )
+    return party, party_obj.get("level", selected_party_level)
+
 
 def load_arena_from_session() -> Optional[str]:
     """
     Name of the map to fight on, from the arena chosen on the encounter page: None for no arena,
     or for "the encounter's own map" the selected pre-built encounter's map.
     """
-    name = session.get('selected_encounter')
-    template = next((t for t in encounter_controller.templates if t.get('name') == name), None) if name else None
-    return resolve_arena_choice(session.get('arena'), template)
+    name = session.get("selected_encounter")
+    template = (
+        next((t for t in encounter_controller.templates if t.get("name") == name), None)
+        if name
+        else None
+    )
+    return resolve_arena_choice(session.get("arena"), template)
+
 
 def battlefield_context() -> Dict[str, Any]:
     """What the Battlefield picker (templates/_battlefield_picker.html) needs: the maps and the current choice."""
-    return {'arenas': arena_choices(), 'encounter_map': ENCOUNTER_MAP, 'default_map': DEFAULT_MAP,
-            'selected_arena': session.get('arena') or '', 'battlefield_map': load_arena_from_session() or ''}
+    return {
+        "arenas": arena_choices(),
+        "encounter_map": ENCOUNTER_MAP,
+        "default_map": DEFAULT_MAP,
+        "selected_arena": session.get("arena") or "",
+        "battlefield_map": load_arena_from_session() or "",
+    }
+
 
 def render_encounter_page(tab: Optional[str] = None) -> str:
     """The encounter page, with the arena choices and the current one."""
-    kwargs = {'tab': tab} if tab else {}
-    return render_template('encounter_selection.html', **battlefield_context(), **kwargs)
+    kwargs = {"tab": tab} if tab else {}
+    return render_template(
+        "encounter_selection.html", **battlefield_context(), **kwargs
+    )
+
 
 def load_monsters_from_session() -> List[Any]:
     """
@@ -216,9 +264,11 @@ def load_monsters_from_session() -> List[Any]:
     Returns:
         List of monster dictionaries
     """
-    return session.get('encounter_monsters', [])
+    return session.get("encounter_monsters", [])
+
 
 # Security Headers
+
 
 @app.after_request
 def add_security_headers(response: Response) -> Response:
@@ -231,11 +281,13 @@ def add_security_headers(response: Response) -> Response:
     Returns:
         Response with security headers added
     """
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    response.headers['Content-Security-Policy'] = (
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
+    response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
@@ -243,7 +295,9 @@ def add_security_headers(response: Response) -> Response:
     )
     return response
 
+
 # Session Management
+
 
 @app.before_request
 def ensure_session() -> None:
@@ -252,11 +306,11 @@ def ensure_session() -> None:
 
     Creates a new session ID and database session if one doesn't exist.
     """
-    if 'session_id' not in session:
+    if "session_id" not in session:
         session.permanent = True  # Make session persistent across requests
-        session['session_id'] = str(uuid4())
+        session["session_id"] = str(uuid4())
         try:
-            db.create_session(session['session_id'])
+            db.create_session(session["session_id"])
             logger.info(f"Created new session: {session['session_id']}")
         except Exception as e:
             logger.error(f"Failed to create database session: {e}")
@@ -264,16 +318,18 @@ def ensure_session() -> None:
     else:
         session.permanent = True  # Ensure existing sessions are also permanent
 
+
 def _session_owns(record: Optional[Dict[str, Any]]) -> bool:
     """Return True if a simulation/batch DB record belongs to the current session."""
-    return bool(record) and record.get('session_id') == session.get('session_id')
+    return bool(record) and record.get("session_id") == session.get("session_id")
+
 
 def latest_simulation_id() -> Optional[int]:
     """
     This session's latest simulation: the one the simulation controller just finished, or
     failing that the last one saved in the database.
     """
-    session_id = session['session_id']
+    session_id = session["session_id"]
     sim_id = simulation_controller.get_simulation_id(session_id)
     if not sim_id:
         try:
@@ -283,9 +339,11 @@ def latest_simulation_id() -> Optional[int]:
             log_exception(e)
     return sim_id
 
+
 # Main Routes
 
-@app.route('/')
+
+@app.route("/")
 def index() -> str:
     """
     Render the home page.
@@ -293,14 +351,16 @@ def index() -> str:
     Returns:
         Rendered HTML template
     """
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/favicon.ico')
+
+@app.route("/favicon.ico")
 def favicon() -> Response:
     """Return 204 No Content for favicon requests to prevent 404 errors."""
     return Response(status=204)
 
-@app.route('/party', methods=['GET', 'POST'])
+
+@app.route("/party", methods=["GET", "POST"])
 def party() -> str:
     """
     Handle party selection.
@@ -314,40 +374,49 @@ def party() -> str:
     parties = PartyLoader.load_parties()
     available_levels = PartyLoader.get_available_levels()
 
-    if request.method == 'POST':
+    if request.method == "POST":
         # Validate party selection: the party must exist and the level must be loadable
         try:
             party_data = validate_input(
-                request.form.to_dict(),
-                allowed_fields=['party_id', 'party_level']
+                request.form.to_dict(), allowed_fields=["party_id", "party_level"]
             )
             try:
-                selected_party_id = int(party_data.get('party_id', DEFAULT_PARTY_ID))
-                selected_party_level = int(party_data.get('party_level', DEFAULT_PARTY_LEVEL))
+                selected_party_id = int(party_data.get("party_id", DEFAULT_PARTY_ID))
+                selected_party_level = int(
+                    party_data.get("party_level", DEFAULT_PARTY_LEVEL)
+                )
             except (TypeError, ValueError):
                 raise ValidationError("party and level must be whole numbers")
             PartyLoader.get_party_with_level(selected_party_id, selected_party_level)
         except ValidationError as e:
             logger.warning(f"Invalid party selection {request.form.to_dict()}: {e}")
-            flash(f'Invalid party selection: {e}', 'danger')
-            return render_template(
-                'party.html', parties=parties, available_levels=available_levels
-            ), 400
+            flash(f"Invalid party selection: {e}", "danger")
+            return (
+                render_template(
+                    "party.html", parties=parties, available_levels=available_levels
+                ),
+                400,
+            )
 
-        session['selected_party_id'] = selected_party_id
-        session['selected_party_level'] = selected_party_level
+        session["selected_party_id"] = selected_party_id
+        session["selected_party_level"] = selected_party_level
 
         try:
-            db.create_session(session['session_id'], selected_party_id=selected_party_id)
+            db.create_session(
+                session["session_id"], selected_party_id=selected_party_id
+            )
         except Exception as e:
             logger.error(f"Error updating session in database: {e}")
             log_exception(e)
 
-        return redirect(url_for('encounter_selection'))
+        return redirect(url_for("encounter_selection"))
 
-    return render_template('party.html', parties=parties, available_levels=available_levels)
+    return render_template(
+        "party.html", parties=parties, available_levels=available_levels
+    )
 
-@app.route('/encounter', methods=['GET'])
+
+@app.route("/encounter", methods=["GET"])
 def encounter_selection() -> str:
     """
     Display encounter selection page.
@@ -357,7 +426,8 @@ def encounter_selection() -> str:
     """
     return render_encounter_page()
 
-@app.route('/encounter/custom', methods=['GET', 'POST'])
+
+@app.route("/encounter/custom", methods=["GET", "POST"])
 def encounter_custom() -> Any:
     """
     Handle custom encounter creation.
@@ -371,15 +441,19 @@ def encounter_custom() -> Any:
     Raises:
         ValidationError: If encounter data is invalid
     """
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = validate_input(
-                request.get_json() or {},
-                max_length=MAX_INPUT_LENGTH_JSON
+                request.get_json() or {}, max_length=MAX_INPUT_LENGTH_JSON
             )
-            monsters = data.get('monsters', [])
-            party_level = int(data.get('party_level', session.get('selected_party_level', DEFAULT_PARTY_LEVEL)))
-            party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
+            monsters = data.get("monsters", [])
+            party_level = int(
+                data.get(
+                    "party_level",
+                    session.get("selected_party_level", DEFAULT_PARTY_LEVEL),
+                )
+            )
+            party_size = int(data.get("party_size", DEFAULT_PARTY_SIZE))
 
             # Validate monster data (no field restriction - monsters have many varied fields)
             for monster in monsters:
@@ -392,9 +466,10 @@ def encounter_custom() -> Any:
         except (ValueError, TypeError) as e:
             raise ValidationError(f"Invalid input data: {e}")
 
-    return render_encounter_page('custom')
+    return render_encounter_page("custom")
 
-@app.route('/encounter/prebuilt', methods=['GET', 'POST'])
+
+@app.route("/encounter/prebuilt", methods=["GET", "POST"])
 def encounter_prebuilt() -> Any:
     """
     Handle prebuilt encounter selection.
@@ -408,12 +483,17 @@ def encounter_prebuilt() -> Any:
     Raises:
         ValidationError: If encounter data is invalid
     """
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
             data = validate_input(request.get_json() or {})
-            template_name = data.get('template_name')
-            party_level = int(data.get('party_level', session.get('selected_party_level', DEFAULT_PARTY_LEVEL)))
-            party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
+            template_name = data.get("template_name")
+            party_level = int(
+                data.get(
+                    "party_level",
+                    session.get("selected_party_level", DEFAULT_PARTY_LEVEL),
+                )
+            )
+            party_size = int(data.get("party_size", DEFAULT_PARTY_SIZE))
 
             if not template_name:
                 raise ValidationError("Template name is required")
@@ -425,9 +505,10 @@ def encounter_prebuilt() -> Any:
         except (ValueError, TypeError) as e:
             raise ValidationError(f"Invalid input data: {e}")
 
-    return render_encounter_page('prebuilt')
+    return render_encounter_page("prebuilt")
 
-@app.route('/encounter/arena', methods=['GET', 'POST'])
+
+@app.route("/encounter/arena", methods=["GET", "POST"])
 def encounter_arena() -> Tuple[Any, int]:
     """
     Choose the arena (battle map) for the next simulations: a map name, ENCOUNTER_MAP for each
@@ -437,34 +518,64 @@ def encounter_arena() -> Tuple[Any, int]:
     Returns:
         JSON response with the chosen arena, or an error for an unknown map
     """
-    if request.method == 'GET':
-        return jsonify({'arena': session.get('arena') or None, 'map': load_arena_from_session(),
-                        'encounter': session.get('selected_encounter')}), 200
+    if request.method == "GET":
+        return (
+            jsonify(
+                {
+                    "arena": session.get("arena") or None,
+                    "map": load_arena_from_session(),
+                    "encounter": session.get("selected_encounter"),
+                }
+            ),
+            200,
+        )
     data = request.get_json(silent=True)
-    name = (data.get('arena') if isinstance(data, dict) else None) or ''
+    name = (data.get("arena") if isinstance(data, dict) else None) or ""
     if not isinstance(name, str):
-        return jsonify({'error': 'arena must be a map name'}), 400
+        return jsonify({"error": "arena must be a map name"}), 400
     # The name must be one of the maps, which also rules out anything unsafe
-    if name and name != ENCOUNTER_MAP and name not in {a['name'] for a in arena_choices()}:
-        return jsonify({'error': f'Unknown arena: {name}'}), 400
+    if (
+        name
+        and name != ENCOUNTER_MAP
+        and name not in {a["name"] for a in arena_choices()}
+    ):
+        return jsonify({"error": f"Unknown arena: {name}"}), 400
     if name:
-        session['arena'] = name
+        session["arena"] = name
     else:
-        session.pop('arena', None)
+        session.pop("arena", None)
     logger.info(f"Arena set to {name or 'none'}")
-    return jsonify({'success': True, 'arena': name or None, 'map': load_arena_from_session()}), 200
+    return (
+        jsonify(
+            {"success": True, "arena": name or None, "map": load_arena_from_session()}
+        ),
+        200,
+    )
 
-@app.route('/api/arenas/<path:name>', methods=['GET'])
+
+@app.route("/api/arenas/<path:name>", methods=["GET"])
 def api_arena_drawing(name: str) -> Tuple[Any, int]:
     """A map's terrain and start zones, for drawing a preview of it."""
-    if name not in {a['name'] for a in arena_choices()}:
-        return jsonify({'error': f'Unknown arena: {name}'}), 404
+    if name not in {a["name"] for a in arena_choices()}:
+        return jsonify({"error": f"Unknown arena: {name}"}), 404
     arena = get_arena(name)
-    description = next(a['description'] for a in arena_choices() if a['name'] == name)
-    return jsonify({**arena.drawing(), 'description': description,
-                    'start_zones': {side: [list(sq) for sq in squares] for side, squares in arena.start_zones.items()}}), 200
+    description = next(a["description"] for a in arena_choices() if a["name"] == name)
+    return (
+        jsonify(
+            {
+                **arena.drawing(),
+                "description": description,
+                "start_zones": {
+                    side: [list(sq) for sq in squares]
+                    for side, squares in arena.start_zones.items()
+                },
+            }
+        ),
+        200,
+    )
 
-@app.route('/encounter/clear', methods=['POST'])
+
+@app.route("/encounter/clear", methods=["POST"])
 def encounter_clear() -> Tuple[Any, int]:
     """
     Clear encounter selection from session.
@@ -473,17 +584,19 @@ def encounter_clear() -> Tuple[Any, int]:
         JSON response indicating success or failure
     """
     try:
-        session.pop('encounter_monsters', None)
-        session.pop('selected_encounter', None)
+        session.pop("encounter_monsters", None)
+        session.pop("selected_encounter", None)
         logger.info("Cleared encounter selection from session")
-        return jsonify({'success': True, 'message': 'Encounter selection cleared'}), 200
+        return jsonify({"success": True, "message": "Encounter selection cleared"}), 200
     except Exception as e:
         log_exception(e)
-        return jsonify({'error': 'Failed to clear encounter selection'}), 500
+        return jsonify({"error": "Failed to clear encounter selection"}), 500
+
 
 # API Routes
 
-@app.route('/api/simulation/debug', methods=['GET'])
+
+@app.route("/api/simulation/debug", methods=["GET"])
 def api_simulation_debug() -> Tuple[Any, int]:
     """
     Debug endpoint to show current simulation state.
@@ -494,25 +607,26 @@ def api_simulation_debug() -> Tuple[Any, int]:
         JSON response with debug information
     """
     if not app.debug:
-        return jsonify({'error': 'Debug endpoints only available in debug mode'}), 403
+        return jsonify({"error": "Debug endpoints only available in debug mode"}), 403
 
     try:
-        session_id = session['session_id']
+        session_id = session["session_id"]
         sim_state = simulation_controller.simulation_states.get(session_id, {})
         sim_id = simulation_controller.get_simulation_id(session_id)
 
         debug_info = {
-            'session_id': session_id,
-            'simulation_id': sim_id,
-            'simulation_state': sim_state,
+            "session_id": session_id,
+            "simulation_id": sim_id,
+            "simulation_state": sim_state,
         }
 
         return jsonify(debug_info), 200
     except Exception as e:
         log_exception(e)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/api/encounter/debug', methods=['GET'])
+
+@app.route("/api/encounter/debug", methods=["GET"])
 def api_encounter_debug() -> Tuple[Any, int]:
     """
     Debug endpoint to show current encounter monsters in session.
@@ -523,44 +637,49 @@ def api_encounter_debug() -> Tuple[Any, int]:
         JSON response with debug information
     """
     if not app.debug:
-        return jsonify({'error': 'Debug endpoints only available in debug mode'}), 403
+        return jsonify({"error": "Debug endpoints only available in debug mode"}), 403
 
     try:
-        monsters = session.get('encounter_monsters', [])
-        selected_encounter = session.get('selected_encounter', None)
+        monsters = session.get("encounter_monsters", [])
+        selected_encounter = session.get("selected_encounter", None)
 
         debug_info = {
-            'selected_encounter': selected_encounter,
-            'monster_count': len(monsters),
-            'monsters': []
+            "selected_encounter": selected_encounter,
+            "monster_count": len(monsters),
+            "monsters": [],
         }
 
         for i, monster in enumerate(monsters):
             if isinstance(monster, dict):
-                debug_info['monsters'].append({
-                    'index': i,
-                    'type': 'dict',
-                    'name': monster.get('name', 'Unknown'),
-                    'cr': monster.get('cr', 'Unknown'),
-                    'hp': monster.get('hp', 'Unknown'),
-                    'ac': monster.get('ac', 'Unknown')
-                })
+                debug_info["monsters"].append(
+                    {
+                        "index": i,
+                        "type": "dict",
+                        "name": monster.get("name", "Unknown"),
+                        "cr": monster.get("cr", "Unknown"),
+                        "hp": monster.get("hp", "Unknown"),
+                        "ac": monster.get("ac", "Unknown"),
+                    }
+                )
             else:
-                debug_info['monsters'].append({
-                    'index': i,
-                    'type': str(type(monster)),
-                    'name': getattr(monster, 'name', 'Unknown'),
-                    'cr': getattr(monster, 'challenge_rating', 'Unknown'),
-                    'hp': getattr(monster, 'hp', 'Unknown'),
-                    'ac': getattr(monster, 'ac', 'Unknown')
-                })
+                debug_info["monsters"].append(
+                    {
+                        "index": i,
+                        "type": str(type(monster)),
+                        "name": getattr(monster, "name", "Unknown"),
+                        "cr": getattr(monster, "challenge_rating", "Unknown"),
+                        "hp": getattr(monster, "hp", "Unknown"),
+                        "ac": getattr(monster, "ac", "Unknown"),
+                    }
+                )
 
         return jsonify(debug_info), 200
     except Exception as e:
         log_exception(e)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/api/monsters', methods=['GET'])
+
+@app.route("/api/monsters", methods=["GET"])
 @limiter.limit(RATE_LIMIT_API_MONSTERS)
 def api_monsters() -> Any:
     """
@@ -575,16 +694,17 @@ def api_monsters() -> Any:
     Raises:
         ValidationError: If CR format is invalid
     """
-    cr = request.args.get('cr')
-    if cr and not re.match(r'^[0-9/]+$', cr):
+    cr = request.args.get("cr")
+    if cr and not re.match(r"^[0-9/]+$", cr):
         raise ValidationError("Invalid CR format")
 
     monsters = encounter_controller.builder.monster_data
     if cr:
-        monsters = [m for m in monsters if str(m.get('cr')) == str(cr)]
+        monsters = [m for m in monsters if str(m.get("cr")) == str(cr)]
     return jsonify(monsters)
 
-@app.route('/api/encounter/balance', methods=['POST'])
+
+@app.route("/api/encounter/balance", methods=["POST"])
 @limiter.limit(RATE_LIMIT_API_BALANCE)
 def api_encounter_balance() -> Any:
     """
@@ -598,12 +718,15 @@ def api_encounter_balance() -> Any:
     """
     try:
         data = validate_input(
-            request.get_json() or {},
-            max_length=MAX_INPUT_LENGTH_JSON
+            request.get_json() or {}, max_length=MAX_INPUT_LENGTH_JSON
         )
-        monsters = data.get('monsters', [])
-        party_level = int(data.get('party_level', session.get('selected_party_level', DEFAULT_PARTY_LEVEL)))
-        party_size = int(data.get('party_size', DEFAULT_PARTY_SIZE))
+        monsters = data.get("monsters", [])
+        party_level = int(
+            data.get(
+                "party_level", session.get("selected_party_level", DEFAULT_PARTY_LEVEL)
+            )
+        )
+        party_size = int(data.get("party_size", DEFAULT_PARTY_SIZE))
 
         # Validate monster data (no field restriction - monsters have many varied fields)
         for monster in monsters:
@@ -615,11 +738,12 @@ def api_encounter_balance() -> Any:
         warnings = encounter_controller.generate_encounter_warnings(
             monsters, party_level, party_size
         )
-        return jsonify({'balance': balance, 'warnings': warnings})
+        return jsonify({"balance": balance, "warnings": warnings})
     except (ValueError, TypeError) as e:
         raise ValidationError(f"Invalid input data: {e}")
 
-@app.route('/api/encounters/prebuilt', methods=['GET'])
+
+@app.route("/api/encounters/prebuilt", methods=["GET"])
 def api_prebuilt_encounters() -> Tuple[Any, int]:
     """
     Get list of prebuilt encounter templates.
@@ -629,7 +753,8 @@ def api_prebuilt_encounters() -> Tuple[Any, int]:
     """
     return jsonify(encounter_controller.templates), 200
 
-@app.route('/api/party/current', methods=['GET'])
+
+@app.route("/api/party/current", methods=["GET"])
 def api_current_party() -> Any:
     """
     Get current party information from session.
@@ -638,47 +763,55 @@ def api_current_party() -> Any:
         JSON response with party data
     """
     try:
-        selected_party_id = session.get('selected_party_id', DEFAULT_PARTY_ID)
-        selected_party_level = session.get('selected_party_level', DEFAULT_PARTY_LEVEL)
+        selected_party_id = session.get("selected_party_id", DEFAULT_PARTY_ID)
+        selected_party_level = session.get("selected_party_level", DEFAULT_PARTY_LEVEL)
         party = PartyLoader.get_party_by_id(selected_party_id)
 
         if party:
-            characters = party.get('characters', [])
+            characters = party.get("characters", [])
             # Report the level the simulation will actually use, which falls back to the
             # closest level with character data
             party_level = PartyLoader.resolve_level(selected_party_level)
             display_characters = []
             for char in characters:
                 char_copy = char.copy()
-                char_copy['level'] = party_level
+                char_copy["level"] = party_level
                 display_characters.append(char_copy)
 
-            return jsonify({
-                'party_id': selected_party_id,
-                'party_level': party_level,
-                'party_size': len(characters),
-                'characters': display_characters
-            })
+            return jsonify(
+                {
+                    "party_id": selected_party_id,
+                    "party_level": party_level,
+                    "party_size": len(characters),
+                    "characters": display_characters,
+                }
+            )
         else:
             logger.warning(f"Party {selected_party_id} not found, returning defaults")
-            return jsonify({
-                'party_id': DEFAULT_PARTY_ID,
-                'party_level': DEFAULT_PARTY_LEVEL,
-                'party_size': DEFAULT_PARTY_SIZE,
-                'characters': []
-            })
+            return jsonify(
+                {
+                    "party_id": DEFAULT_PARTY_ID,
+                    "party_level": DEFAULT_PARTY_LEVEL,
+                    "party_size": DEFAULT_PARTY_SIZE,
+                    "characters": [],
+                }
+            )
     except Exception as e:
         log_exception(e)
-        return jsonify({
-            'party_id': DEFAULT_PARTY_ID,
-            'party_level': DEFAULT_PARTY_LEVEL,
-            'party_size': DEFAULT_PARTY_SIZE,
-            'characters': []
-        })
+        return jsonify(
+            {
+                "party_id": DEFAULT_PARTY_ID,
+                "party_level": DEFAULT_PARTY_LEVEL,
+                "party_size": DEFAULT_PARTY_SIZE,
+                "characters": [],
+            }
+        )
+
 
 # Simulation Routes
 
-@app.route('/simulate', methods=['GET'])
+
+@app.route("/simulate", methods=["GET"])
 def simulate() -> Any:
     """
     Start or display combat simulation.
@@ -686,11 +819,13 @@ def simulate() -> Any:
     Returns:
         Rendered HTML template or redirect on error
     """
-    session_id = session['session_id']
+    session_id = session["session_id"]
 
     # Ensure session exists in database before starting simulation
     try:
-        db.create_session(session_id, selected_party_id=session.get('selected_party_id'))
+        db.create_session(
+            session_id, selected_party_id=session.get("selected_party_id")
+        )
     except Exception as e:
         logger.error(f"Failed to create database session: {e}")
         log_exception(e)
@@ -698,32 +833,36 @@ def simulate() -> Any:
     # Check if we need to start a new simulation
     # (either no state exists, or the previous simulation is done)
     existing_state = simulation_controller.simulation_states.get(session_id)
-    if not existing_state or existing_state.get('done', False):
+    if not existing_state or existing_state.get("done", False):
         # Load party and monsters from session
         try:
             party, party_level = load_party_from_session()
         except ValidationError as e:
-            flash(str(e), 'danger')
-            return redirect(url_for('party'))
+            flash(str(e), "danger")
+            return redirect(url_for("party"))
         monsters = load_monsters_from_session()
 
         try:
             simulation_controller.execute_simulation(
-                party, monsters, session_id, party_level=party_level,
-                arena_name=load_arena_from_session()
+                party,
+                monsters,
+                session_id,
+                party_level=party_level,
+                arena_name=load_arena_from_session(),
             )
         except ValidationError as e:
-            flash(f'Validation error: {str(e)}', 'danger')
-            return redirect(url_for('encounter_selection'))
+            flash(f"Validation error: {str(e)}", "danger")
+            return redirect(url_for("encounter_selection"))
         except Exception as e:
             logger.error(f"Failed to execute simulation: {e}")
             log_exception(e)
-            flash('Failed to start simulation', 'danger')
-            return redirect(url_for('encounter_selection'))
+            flash("Failed to start simulation", "danger")
+            return redirect(url_for("encounter_selection"))
 
-    return render_template('simulation.html', arena=load_arena_from_session())
+    return render_template("simulation.html", arena=load_arena_from_session())
 
-@app.route('/simulate/status', methods=['GET'])
+
+@app.route("/simulate/status", methods=["GET"])
 def simulate_status() -> Any:
     """
     Get simulation progress status.
@@ -731,13 +870,14 @@ def simulate_status() -> Any:
     Returns:
         JSON response with simulation status
     """
-    session_id = session.get('session_id', 'NO_SESSION_ID')
+    session_id = session.get("session_id", "NO_SESSION_ID")
     logger.debug(f"Status endpoint called for session_id: {session_id}")
     status = simulation_controller.handle_simulation_progress()
     logger.debug(f"Status endpoint returning: {status}")
     return jsonify(status)
 
-@app.route('/simulate/results', methods=['GET'])
+
+@app.route("/simulate/results", methods=["GET"])
 def simulate_results() -> Response:
     """
     Redirect to results page with simulation ID.
@@ -747,15 +887,17 @@ def simulate_results() -> Response:
     """
     sim_id = latest_simulation_id()
     if sim_id:
-        return redirect(url_for('results', sim_id=sim_id))
+        return redirect(url_for("results", sim_id=sim_id))
     else:
         # No simulation found, redirect to results page which will handle the error
         logger.warning("No simulation ID found for results redirect")
-        return redirect(url_for('results'))
+        return redirect(url_for("results"))
+
 
 # Batch Simulation Routes
 
-@app.route('/batch', methods=['GET'])
+
+@app.route("/batch", methods=["GET"])
 def batch_simulation() -> str:
     """
     Display batch simulation interface.
@@ -763,9 +905,14 @@ def batch_simulation() -> str:
     Returns:
         Rendered HTML template
     """
-    return render_template('batch_simulation.html', arena=load_arena_from_session(), **battlefield_context())
+    return render_template(
+        "batch_simulation.html",
+        arena=load_arena_from_session(),
+        **battlefield_context(),
+    )
 
-@app.route('/batch/start', methods=['POST'])
+
+@app.route("/batch/start", methods=["POST"])
 def batch_simulation_start() -> Tuple[Any, int]:
     """
     Start a batch simulation.
@@ -776,10 +923,10 @@ def batch_simulation_start() -> Tuple[Any, int]:
     try:
         data = validate_input(request.get_json() or {})
         try:
-            num_runs = int(data.get('num_runs', 10))
+            num_runs = int(data.get("num_runs", 10))
         except (TypeError, ValueError):
             raise ValidationError("Number of runs must be a whole number")
-        batch_name = data.get('batch_name', f'Batch {int(time.time())}')
+        batch_name = data.get("batch_name", f"Batch {int(time.time())}")
 
         if num_runs < MIN_BATCH_RUNS or num_runs > MAX_BATCH_RUNS:
             raise ValidationError(
@@ -787,7 +934,7 @@ def batch_simulation_start() -> Tuple[Any, int]:
             )
 
         # Load party and monsters from session
-        session_id = session['session_id']
+        session_id = session["session_id"]
         party, _ = load_party_from_session()
         monsters = load_monsters_from_session()
 
@@ -797,33 +944,51 @@ def batch_simulation_start() -> Tuple[Any, int]:
             )
 
         # Start batch simulation
-        logger.info(f"Starting batch simulation: {num_runs} runs, {len(party)} party members, {len(monsters)} monsters")
+        logger.info(
+            f"Starting batch simulation: {num_runs} runs, {len(party)} party members, {len(monsters)} monsters"
+        )
         try:
             batch_id = batch_simulation_controller.execute_batch_simulation(
-                party, monsters, num_runs, batch_name, session_id,
+                party,
+                monsters,
+                num_runs,
+                batch_name,
+                session_id,
                 arena_name=load_arena_from_session(),
-                compare_without_arena=bool(data.get('compare_without_arena'))
+                compare_without_arena=bool(data.get("compare_without_arena")),
             )
         except ValueError as e:  # the controller's input checks, e.g. an unknown map
             raise ValidationError(str(e))
 
         logger.info(f"Started batch simulation {batch_id} with {num_runs} runs")
-        return jsonify({
-            'success': True,
-            'message': 'Batch simulation started',
-            'batch_id': batch_id
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "Batch simulation started",
+                    "batch_id": batch_id,
+                }
+            ),
+            200,
+        )
     except ValidationError as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return _json_server_error(e)
+
 
 def _json_server_error(error: Exception) -> Tuple[Any, int]:
     """A 500 for the batch pages' fetch calls, without the exception's text."""
     log_exception(error)
-    return jsonify({'error': 'An unexpected error occurred.', 'type': error.__class__.__name__}), 500
+    return (
+        jsonify(
+            {"error": "An unexpected error occurred.", "type": error.__class__.__name__}
+        ),
+        500,
+    )
 
-@app.route('/batch/progress/<int:batch_id>', methods=['GET'])
+
+@app.route("/batch/progress/<int:batch_id>", methods=["GET"])
 def batch_simulation_progress(batch_id: int) -> Tuple[Any, int]:
     """
     Get batch simulation progress. 404 unless the batch belongs to this session.
@@ -837,28 +1002,41 @@ def batch_simulation_progress(batch_id: int) -> Tuple[Any, int]:
     try:
         batch = db.get_batch_simulation(batch_id)
         if not _session_owns(batch):
-            return jsonify({'error': f"Batch simulation {batch_id} not found"}), 404
+            return jsonify({"error": f"Batch simulation {batch_id} not found"}), 404
         progress = batch_simulation_controller.get_batch_progress(batch_id)
         if progress is None:
             progress = _finished_batch_progress(batch)
-        logger.debug(f"Batch {batch_id} progress: {progress.get('completed_runs', 0)}/{progress.get('total_runs', 0)} runs, {progress.get('progress', 0):.1f}% complete")
+        logger.debug(
+            f"Batch {batch_id} progress: {progress.get('completed_runs', 0)}/{progress.get('total_runs', 0)} runs, {progress.get('progress', 0):.1f}% complete"
+        )
         return jsonify(progress), 200
     except Exception as e:
         return _json_server_error(e)
+
 
 def _finished_batch_progress(batch: Dict[str, Any]) -> Dict[str, Any]:
     """
     Progress for a batch the controller no longer holds, because the server restarted. Its
     statistics are only saved once it finishes, so without them it was cut off part way.
     """
-    progress = {'progress': 100, 'completed_runs': batch['total_runs'], 'failed_runs': 0,
-                'total_runs': batch['total_runs'], 'party_wins': batch['party_wins'],
-                'monster_wins': batch['monster_wins'], 'done': True, 'error': None}
-    if not batch['total_runs']:
-        progress['error'] = 'This batch stopped before it finished, because the server was restarted.'
+    progress = {
+        "progress": 100,
+        "completed_runs": batch["total_runs"],
+        "failed_runs": 0,
+        "total_runs": batch["total_runs"],
+        "party_wins": batch["party_wins"],
+        "monster_wins": batch["monster_wins"],
+        "done": True,
+        "error": None,
+    }
+    if not batch["total_runs"]:
+        progress["error"] = (
+            "This batch stopped before it finished, because the server was restarted."
+        )
     return progress
 
-@app.route('/batch/results/<int:batch_id>', methods=['GET'])
+
+@app.route("/batch/results/<int:batch_id>", methods=["GET"])
 def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
     """
     Display batch simulation results.
@@ -870,11 +1048,17 @@ def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
         Rendered HTML template or error page
     """
     if not _session_owns(db.get_batch_simulation(batch_id)):
-        return render_template('error.html', error=f"Batch simulation {batch_id} not found"), 404
+        return (
+            render_template(
+                "error.html", error=f"Batch simulation {batch_id} not found"
+            ),
+            404,
+        )
     results = batch_simulation_controller.get_batch_results(batch_id)
-    return render_template('batch_results.html', results=results), 200
+    return render_template("batch_results.html", results=results), 200
 
-@app.route('/batch/history', methods=['GET'])
+
+@app.route("/batch/history", methods=["GET"])
 def batch_simulation_history() -> Tuple[str, int]:
     """
     Display batch simulation history.
@@ -882,10 +1066,11 @@ def batch_simulation_history() -> Tuple[str, int]:
     Returns:
         Rendered HTML template or error page
     """
-    history = batch_simulation_controller.get_batch_history(session['session_id'])
-    return render_template('batch_history.html', batches=history), 200
+    history = batch_simulation_controller.get_batch_history(session["session_id"])
+    return render_template("batch_history.html", batches=history), 200
 
-@app.route('/api/batch/history', methods=['GET'])
+
+@app.route("/api/batch/history", methods=["GET"])
 def api_batch_history() -> Tuple[Any, int]:
     """
     API endpoint for batch simulation history.
@@ -894,14 +1079,16 @@ def api_batch_history() -> Tuple[Any, int]:
         JSON response with batch history
     """
     try:
-        history = batch_simulation_controller.get_batch_history(session['session_id'])
+        history = batch_simulation_controller.get_batch_history(session["session_id"])
         return jsonify(history), 200
     except Exception as e:
         return _json_server_error(e)
 
+
 # Results Routes
 
-@app.route('/results')
+
+@app.route("/results")
 def results() -> str:
     """
     Display simulation results.
@@ -916,7 +1103,7 @@ def results() -> str:
         ValidationError: If simulation ID is invalid
     """
     # Prefer explicit sim_id from query string when provided; fall back to this session's latest
-    sim_id = request.args.get('sim_id', type=int)
+    sim_id = request.args.get("sim_id", type=int)
     if sim_id is not None and sim_id < 0:
         raise ValidationError("Invalid simulation ID")
     if not sim_id:
@@ -925,71 +1112,94 @@ def results() -> str:
             # No simulation found, return empty results
             logger.warning("No simulation found for results display")
             return render_template(
-                'results.html',
-                summary={'win_loss': 'No simulation found', 'party_status': 'No data'},
+                "results.html",
+                summary={"win_loss": "No simulation found", "party_status": "No data"},
                 statistics=[],
                 log=[],
-                sim_id=None
+                sim_id=None,
             )
 
     # sim_id can come from the query string, so only show simulations owned by this session
     record = db.get_simulation(sim_id)
     if not _session_owns(record):
-        logger.warning(f"/results: simulation {sim_id} not found for session {session['session_id']}")
-        return render_template(
-            'results.html',
-            summary={'win_loss': 'No simulation found', 'party_status': 'No data'},
-            statistics=[],
-            log=[],
-            sim_id=None
-        ), 404
+        logger.warning(
+            f"/results: simulation {sim_id} not found for session {session['session_id']}"
+        )
+        return (
+            render_template(
+                "results.html",
+                summary={"win_loss": "No simulation found", "party_status": "No data"},
+                statistics=[],
+                log=[],
+                sim_id=None,
+            ),
+            404,
+        )
 
     # Build page data
     try:
         summary = results_controller.format_simulation_results(sim_id)
         statistics = results_controller.generate_combat_statistics(sim_id)
-        log = [str(entry) for entry in summary['logs']]  # the template escapes it
-        replay = db.get_replay(sim_id) if record.get('arena') else None
+        log = [str(entry) for entry in summary["logs"]]  # the template escapes it
+        replay = db.get_replay(sim_id) if record.get("arena") else None
         # One line per action, in the order of the replay's frames (escaped by the page's script)
-        replay_log = [{'round': entry.get('round_number'), 'name': entry.get('character_name'),
-                       'target': entry.get('target'), 'text': entry.get('result')}
-                      for entry in summary['logs']] if replay else None
+        replay_log = (
+            [
+                {
+                    "round": entry.get("round_number"),
+                    "name": entry.get("character_name"),
+                    "target": entry.get("target"),
+                    "text": entry.get("result"),
+                }
+                for entry in summary["logs"]
+            ]
+            if replay
+            else None
+        )
 
         return render_template(
-            'results.html',
-            summary=summary.get('simulation', {}),
+            "results.html",
+            summary=summary.get("simulation", {}),
             statistics=statistics,
             log=log,
             sim_id=sim_id,
-            arena=record.get('arena'),
+            arena=record.get("arena"),
             replay=replay,
-            replay_log=replay_log
+            replay_log=replay_log,
         )
     except AppError as e:
         # Application errors (validation, database, etc.) should return 400
         logger.error(f"Failed to load results for simulation {sim_id}: {e}")
         log_exception(e)
-        return render_template('error.html', error=str(e)), 400
+        return render_template("error.html", error=str(e)), 400
     except Exception as e:
         # Unexpected errors should return 500
         logger.error(f"Unexpected error loading results for simulation {sim_id}: {e}")
         log_exception(e)
-        return render_template('error.html', error='An unexpected error occurred while loading results.'), 500
+        return (
+            render_template(
+                "error.html",
+                error="An unexpected error occurred while loading results.",
+            ),
+            500,
+        )
 
-@app.route('/results/export')
+
+@app.route("/results/export")
 @limiter.limit(RATE_LIMIT_RESULTS_EXPORT)
 def results_export() -> Any:
     """
     Export a simulation's results as JSON: the one in the sim_id query parameter, or this
     session's latest. Only simulations belonging to this session can be exported.
     """
-    sim_id = request.args.get('sim_id', type=int) or latest_simulation_id()
+    sim_id = request.args.get("sim_id", type=int) or latest_simulation_id()
     if not sim_id or not _session_owns(db.get_simulation(sim_id)):
-        return jsonify({'error': 'Simulation not found'}), 404
+        return jsonify({"error": "Simulation not found"}), 404
     summary = results_controller.format_simulation_results(sim_id)
-    return Response(json.dumps(summary), mimetype='application/json')
+    return Response(json.dumps(summary), mimetype="application/json")
 
-@app.route('/history')
+
+@app.route("/history")
 def history() -> str:
     """
     Display simulation history.
@@ -998,16 +1208,18 @@ def history() -> str:
         Rendered HTML template with simulation history
     """
     try:
-        sims = db.get_simulation_history(session['session_id'])
-        return render_template('history.html', simulations=sims)
+        sims = db.get_simulation_history(session["session_id"])
+        return render_template("history.html", simulations=sims)
     except Exception as e:
         logger.error(f"Failed to load simulation history: {e}")
         log_exception(e)
-        return render_template('history.html', simulations=[])
+        return render_template("history.html", simulations=[])
+
 
 # Health Check
 
-@app.route('/healthz')
+
+@app.route("/healthz")
 def healthz() -> Tuple[str, int]:
     """
     Health check endpoint for deployment monitoring.
@@ -1015,14 +1227,23 @@ def healthz() -> Tuple[str, int]:
     Returns:
         Simple 'ok' response with 200 status
     """
-    return 'ok', 200
+    return "ok", 200
+
 
 # Error Handlers
 
+
 def _wants_json() -> bool:
     """True for a fetch/AJAX request, which gets a JSON error rather than the error page."""
-    return (request.is_json or request.content_type == 'application/json' or
-            (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html))
+    return (
+        request.is_json
+        or request.content_type == "application/json"
+        or (
+            request.accept_mimetypes.accept_json
+            and not request.accept_mimetypes.accept_html
+        )
+    )
+
 
 @app.errorhandler(AppError)
 def handle_app_error(error: AppError) -> Tuple[Any, int]:
@@ -1037,8 +1258,9 @@ def handle_app_error(error: AppError) -> Tuple[Any, int]:
     """
     log_exception(error)
     if _wants_json():
-        return jsonify({'error': str(error), 'type': error.__class__.__name__}), 400
-    return render_template('error.html', error=error), 400
+        return jsonify({"error": str(error), "type": error.__class__.__name__}), 400
+    return render_template("error.html", error=error), 400
+
 
 @app.errorhandler(Exception)
 def handle_unexpected_error(error: Exception) -> Any:
@@ -1056,10 +1278,19 @@ def handle_unexpected_error(error: Exception) -> Any:
         return error
     log_exception(error)
     if _wants_json():
-        return jsonify({'error': 'An unexpected error occurred.', 'type': error.__class__.__name__}), 500
-    return render_template('error.html', error='An unexpected error occurred.'), 500
+        return (
+            jsonify(
+                {
+                    "error": "An unexpected error occurred.",
+                    "type": error.__class__.__name__,
+                }
+            ),
+            500,
+        )
+    return render_template("error.html", error="An unexpected error occurred."), 500
+
 
 # Application Entry Point
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
