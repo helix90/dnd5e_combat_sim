@@ -7,7 +7,7 @@ from models.db import DatabaseManager
 from models.spell_manager import SpellManager
 from models.character_builder import build_party
 from models.monster_builder import build_monsters
-from utils.exceptions import SimulationError, BatchSimulationError
+from utils.exceptions import BatchSimulationError
 from utils.logging import log_exception
 
 

@@ -4,7 +4,7 @@ Spell system for D&D 5e Combat Simulator.
 Defines the Spell class and SpellAction subclass for spell casting in combat.
 """
 
-from typing import Dict, List, Optional, Any, TYPE_CHECKING
+from typing import Dict, List, Optional, Any
 import copy
 import random
 import re
@@ -20,11 +20,6 @@ from models.rolls import (
     is_critical,
     roll_saving_throw,
 )
-
-if TYPE_CHECKING:
-    from models.character import Character
-    from models.monster import Monster
-
 
 # Save spells that still deal half damage on a successful save; the rest deal none
 HALF_ON_SAVE_SPELLS = {

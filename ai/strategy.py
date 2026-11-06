@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, List, Dict, Protocol, Callable, Optional
+from typing import Any, List, Dict, Protocol, Optional
 import logging
 import random
 

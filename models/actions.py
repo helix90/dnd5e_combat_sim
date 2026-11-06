@@ -4,7 +4,7 @@ Action system for D&D 5e Combat Simulator.
 Defines the Action base class and AttackAction subclass for use by characters and monsters.
 """
 
-from typing import Any, Dict, Optional, Sequence, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, Sequence, Tuple
 import random
 import re
 
@@ -27,10 +27,6 @@ from models.rolls import attack_hits, attack_roll, is_critical, roll_saving_thro
 
 # The conditions an attack's on_hit can apply
 ON_HIT_CONDITIONS = ("paralyzed", "prone", "infernal_wound", "mummy_rot", "hp_drain")
-
-if TYPE_CHECKING:
-    from models.character import Character
-    from models.monster import Monster
 
 
 class Action:
