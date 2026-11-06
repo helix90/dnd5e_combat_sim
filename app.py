@@ -6,6 +6,7 @@ between characters and monsters.
 """
 
 # Standard library imports
+import functools
 from collections import Counter
 import json
 import logging
@@ -288,17 +289,32 @@ def encounter_name_from_session() -> str:
 
 
 def current_setup() -> Dict[str, Any]:
-    """The party and encounter the next fight will use, for the pages that start fights."""
+    """
+    The party, encounter and battlefield the next fight will use, for the setup bar and the pages
+    that start fights. Until a party is chosen, fights use the default party at the default level.
+    """
     party_id = session.get("selected_party_id", DEFAULT_PARTY_ID)
     try:
         party_name = PartyLoader.get_party_by_id(party_id).get("name")
     except ValidationError:
         party_name = None
     return {
+        "party_chosen": "selected_party_id" in session,
         "party_name": party_name,
         "party_level": session.get("selected_party_level", DEFAULT_PARTY_LEVEL),
         "encounter_name": encounter_name_from_session(),
+        "battlefield": load_arena_from_session(),
     }
+
+
+@app.context_processor
+def setup_context() -> Dict[str, Any]:
+    """The setup bar (templates/base.html) on every page."""
+    try:
+        return {"setup": current_setup()}
+    except Exception as e:  # the bar is a convenience; never let it break a page
+        log_exception(e)
+        return {"setup": None}
 
 
 def fight_details(party: List[Any], party_level: int) -> Dict[str, Any]:
@@ -349,10 +365,11 @@ def add_security_headers(response: Response) -> Response:
         "max-age=31536000; includeSubDomains"
     )
     response.headers["Content-Security-Policy"] = (
+        # Everything is served from static/, Bootstrap included (static/vendor)
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "font-src 'self' https://cdn.jsdelivr.net data:; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "font-src 'self' data:; "
         # Bootstrap draws its menu button, dropdown arrows and checkbox ticks as data: images
         "img-src 'self' data:"
     )
@@ -408,13 +425,15 @@ def latest_simulation_id() -> Optional[int]:
 
 @app.route("/")
 def index() -> str:
-    """
-    Render the home page.
-
-    Returns:
-        Rendered HTML template
-    """
-    return render_template("index.html")
+    """The home page: the current setup, and this session's latest fights and batches."""
+    session_id = session["session_id"]
+    try:
+        fights = db.get_simulation_history(session_id)[:5]
+        batches = batch_simulation_controller.get_batch_history(session_id)[:5]
+    except Exception as e:  # the page still works, just without the lists
+        log_exception(e)
+        fights, batches = [], []
+    return render_template("index.html", fights=fights, batches=batches)
 
 
 @app.route("/favicon.ico")
@@ -423,8 +442,53 @@ def favicon() -> Response:
     return Response(status=204)
 
 
+@functools.lru_cache(maxsize=1)
+def party_rosters() -> Dict[int, Dict[int, List[Dict[str, Any]]]]:
+    """
+    Each party's characters at each level, for the party page's cards: name, class, race, AC and
+    HP, by party ID and then level. The party files don't change while the app runs.
+    """
+    return {
+        party["id"]: {
+            level: [
+                {
+                    "name": c.get("name"),
+                    "class": c.get("character_class") or c.get("class"),
+                    "race": c.get("race"),
+                    "ac": c.get("ac"),
+                    "hp": c.get("hp"),
+                }
+                for c in PartyLoader.get_party_with_level(party["id"], level)[
+                    "characters"
+                ]
+            ]
+            for level in PartyLoader.get_available_levels()
+        }
+        for party in PartyLoader.load_parties()
+    }
+
+
+def render_party_page(status: int = 200) -> Tuple[str, int]:
+    """The party page, with the session's party and level selected."""
+    levels = PartyLoader.get_available_levels()
+    level = session.get("selected_party_level")
+    if level not in levels:
+        level = DEFAULT_PARTY_LEVEL if DEFAULT_PARTY_LEVEL in levels else levels[-1]
+    return (
+        render_template(
+            "party.html",
+            parties=PartyLoader.load_parties(),
+            available_levels=levels,
+            rosters=party_rosters(),
+            selected_party_id=session.get("selected_party_id", DEFAULT_PARTY_ID),
+            selected_level=level,
+        ),
+        status,
+    )
+
+
 @app.route("/party", methods=["GET", "POST"])
-def party() -> str:
+def party() -> Any:
     """
     Handle party selection.
 
@@ -434,9 +498,6 @@ def party() -> str:
     Returns:
         Rendered HTML template or redirect response
     """
-    parties = PartyLoader.load_parties()
-    available_levels = PartyLoader.get_available_levels()
-
     if request.method == "POST":
         # Validate party selection: the party must exist and the level must be loadable
         try:
@@ -454,12 +515,7 @@ def party() -> str:
         except ValidationError as e:
             logger.warning(f"Invalid party selection {request.form.to_dict()}: {e}")
             flash(f"Invalid party selection: {e}", "danger")
-            return (
-                render_template(
-                    "party.html", parties=parties, available_levels=available_levels
-                ),
-                400,
-            )
+            return render_party_page(400)
 
         session["selected_party_id"] = selected_party_id
         session["selected_party_level"] = selected_party_level
@@ -474,9 +530,7 @@ def party() -> str:
 
         return redirect(url_for("encounter_selection"))
 
-    return render_template(
-        "party.html", parties=parties, available_levels=available_levels
-    )
+    return render_party_page()
 
 
 @app.route("/encounter", methods=["GET"])
@@ -972,7 +1026,6 @@ def batch_simulation() -> str:
     return render_template(
         "batch_simulation.html",
         arena=load_arena_from_session(),
-        setup=current_setup(),
         **battlefield_context(),
     )
 
@@ -1150,8 +1203,7 @@ def batch_simulation_history() -> Tuple[str, int]:
     Returns:
         Rendered HTML template or error page
     """
-    history = batch_simulation_controller.get_batch_history(session["session_id"])
-    return render_template("batch_history.html", batches=history), 200
+    return render_history_page("batches"), 200
 
 
 @app.route("/findings", methods=["GET"])
@@ -1309,13 +1361,19 @@ def history() -> str:
     Returns:
         Rendered HTML template with simulation history
     """
+    return render_history_page("fights")
+
+
+def render_history_page(tab: str) -> str:
+    """The history page, with this session's single fights and batches, open on tab."""
     try:
         sims = db.get_simulation_history(session["session_id"])
-        return render_template("history.html", simulations=sims)
     except Exception as e:
         logger.error(f"Failed to load simulation history: {e}")
         log_exception(e)
-        return render_template("history.html", simulations=[])
+        sims = []
+    batches = batch_simulation_controller.get_batch_history(session["session_id"])
+    return render_template("history.html", simulations=sims, batches=batches, tab=tab)
 
 
 # Health Check

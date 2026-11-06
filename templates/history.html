@@ -1,35 +1,165 @@
 {% extends 'base.html' %}
-{% from '_macros.html' import difficulty_badge, outcome_badge, encounter_label, party_label %}
+{% from '_macros.html' import difficulty_badge, outcome_badge, encounter_label, party_label, when %}
 {% block content %}
-<h2>Simulation History</h2>
-{% if simulations %}
-<div class="table-responsive">
-<table class="table table-striped table-hover align-middle">
-  <thead>
-    <tr>
-      <th>#</th><th>Encounter</th><th>Party</th><th>DMG Rating</th><th>Result</th>
-      <th class="text-end">Rounds</th><th class="text-end">Party HP Left</th><th>Battlefield</th><th>Date</th><th></th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for sim in simulations %}
-    <tr>
-      <td>{{ sim.id }}</td>
-      <td>{{ encounter_label(sim) }}</td>
-      <td>{{ party_label(sim) }}</td>
-      <td>{{ difficulty_badge(sim.predicted_difficulty) }}</td>
-      <td>{{ outcome_badge(sim.result) }}</td>
-      <td class="text-end">{{ sim.rounds }}</td>
-      <td class="text-end">{{ sim.party_hp_remaining }}</td>
-      <td>{{ sim.arena or 'No map' }}</td>
-      <td class="text-nowrap">{{ sim.created_at }}</td>
-      <td><a href="{{ url_for('results', sim_id=sim.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<h2>History</h2>
+
+<ul class="nav nav-tabs mt-3" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link{% if tab == 'fights' %} active{% endif %}" id="fights-tab" data-bs-toggle="tab"
+            data-bs-target="#fights" type="button" role="tab" aria-controls="fights"
+            aria-selected="{{ 'true' if tab == 'fights' else 'false' }}">
+      Single Fights <span class="badge text-bg-secondary ms-1">{{ simulations|length }}</span>
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link{% if tab == 'batches' %} active{% endif %}" id="batches-tab" data-bs-toggle="tab"
+            data-bs-target="#batches" type="button" role="tab" aria-controls="batches"
+            aria-selected="{{ 'true' if tab == 'batches' else 'false' }}">
+      Batches <span class="badge text-bg-secondary ms-1">{{ batches|length }}</span>
+    </button>
+  </li>
+</ul>
+
+{# Filters for both tabs: they hide the rows that don't match #}
+<div class="d-flex flex-wrap gap-2 align-items-end my-3" id="historyFilters">
+  <div>
+    <label for="historySearch" class="form-label small mb-1">Search</label>
+    <input type="search" id="historySearch" class="form-control form-control-sm" placeholder="Encounter, party or name">
+  </div>
+  <div>
+    <label for="historyRating" class="form-label small mb-1">DMG rating</label>
+    <select id="historyRating" class="form-select form-select-sm">
+      <option value="">All ratings</option>
+      {% for rating in DIFFICULTIES %}<option value="{{ rating }}">{{ rating|capitalize }}</option>{% endfor %}
+      <option value="none">Not recorded</option>
+    </select>
+  </div>
+  <div>
+    <label for="historyResult" class="form-label small mb-1">Result (single fights)</label>
+    <select id="historyResult" class="form-select form-select-sm">
+      <option value="">All results</option>
+      <option value="party">Party won</option>
+      <option value="monsters">Party lost</option>
+      <option value="unknown">No winner</option>
+    </select>
+  </div>
+  <small class="text-body-secondary ms-auto" id="historyCount" aria-live="polite"></small>
 </div>
-{% else %}
-<p>No simulations found.</p>
-{% endif %}
+
+<div class="tab-content">
+  <div class="tab-pane fade{% if tab == 'fights' %} show active{% endif %}" id="fights" role="tabpanel" aria-labelledby="fights-tab">
+    {% if simulations %}
+    <div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+      <thead>
+        <tr>
+          <th>#</th><th>Encounter</th><th>Party</th><th>DMG Rating</th><th>Result</th>
+          <th class="text-end">Rounds</th><th class="text-end">Party HP Left</th><th>Battlefield</th><th>Date</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sim in simulations %}
+        <tr class="history-row" data-rating="{{ sim.predicted_difficulty or 'none' }}" data-result="{{ sim.result }}"
+            data-search="{{ [sim.encounter_name, sim.party_name, sim.arena]|select|join(' ')|lower }}">
+          <td>{{ sim.id }}</td>
+          <td>{{ encounter_label(sim) }}</td>
+          <td>{{ party_label(sim) }}</td>
+          <td>{{ difficulty_badge(sim.predicted_difficulty) }}</td>
+          <td>{{ outcome_badge(sim.result) }}</td>
+          <td class="text-end">{{ sim.rounds }}</td>
+          <td class="text-end">{{ sim.party_hp_remaining }}</td>
+          <td>{{ sim.arena or 'No map' }}</td>
+          <td>{{ when(sim.created_at) }}</td>
+          <td><a href="{{ url_for('results', sim_id=sim.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p>No simulations found.</p>
+    {% endif %}
+  </div>
+
+  <div class="tab-pane fade{% if tab == 'batches' %} show active{% endif %}" id="batches" role="tabpanel" aria-labelledby="batches-tab">
+    {% if batches %}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Batch Name</th><th>Encounter</th><th>Party</th><th>DMG Rating</th><th>Battlefield</th>
+            <th class="text-end">Party Wins</th><th class="text-end">Avg. Rounds</th><th>Created</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for batch in batches %}
+          <tr class="history-row" data-rating="{{ batch.predicted_difficulty or 'none' }}"
+              data-search="{{ [batch.batch_name, batch.encounter_name, batch.party_name, batch.arena]|select|join(' ')|lower }}">
+            <td>{{ batch.batch_name }}</td>
+            <td>{{ encounter_label(batch) }}</td>
+            <td>{{ party_label(batch) }}</td>
+            <td>{{ difficulty_badge(batch.predicted_difficulty) }}</td>
+            <td>{{ batch.arena or 'No map' }}</td>
+            <td class="text-end text-nowrap">
+              {{ batch.party_wins }} of {{ batch.total_runs }}
+              {% if batch.total_runs > 0 %}
+                <span class="text-body-secondary">({{ (batch.party_wins / batch.total_runs * 100) | round | int }}%)</span>
+              {% endif %}
+            </td>
+            <td class="text-end">{{ "%.1f"|format(batch.average_rounds) if batch.average_rounds else '-' }}</td>
+            <td>{{ when(batch.created_at) }}</td>
+            <td>
+              <a href="{{ url_for('batch_simulation_results', batch_id=batch.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+      <h4>No Batch Simulations Yet</h4>
+      <p class="mb-0">You haven't run any batch simulations yet. <a href="{{ url_for('batch_simulation') }}" class="alert-link">Start your first one</a> to see results here.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const search = document.getElementById('historySearch');
+  const rating = document.getElementById('historyRating');
+  const result = document.getElementById('historyResult');
+  const count = document.getElementById('historyCount');
+
+  function apply() {
+    const query = search.value.trim().toLowerCase();
+    const pane = document.querySelector('.tab-pane.active');
+    let shown = 0, total = 0;
+    document.querySelectorAll('.history-row').forEach(row => {
+      const matches = (!query || row.dataset.search.includes(query)) &&
+        (!rating.value || row.dataset.rating === rating.value) &&
+        (!result.value || row.dataset.result === undefined || row.dataset.result === result.value);
+      row.classList.toggle('d-none', !matches);
+      if (pane && pane.contains(row)) {
+        total++;
+        if (matches) shown++;
+      }
+    });
+    count.textContent = total ? `Showing ${shown} of ${total}` : '';
+  }
+
+  [search, rating, result].forEach(input => input.addEventListener('input', apply));
+  document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(button => {
+    button.addEventListener('shown.bs.tab', () => {
+      // Keep the address in step with the tab, so reloading or sharing it opens the same one
+      history.replaceState(null, '', button.id === 'batches-tab' ? '{{ url_for("batch_simulation_history") }}' : '{{ url_for("history") }}');
+      apply();
+    });
+  });
+  apply();
+})();
+</script>
 {% endblock %}

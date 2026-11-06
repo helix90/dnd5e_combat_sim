@@ -190,13 +190,14 @@ def test_pages_have_a_menu_that_works_on_narrow_screens(client):
     page = client.get("/").get_data(as_text=True)
     assert 'name="viewport"' in page
     assert 'class="navbar-toggler"' in page and 'data-bs-target="#mainNav"' in page
-    assert 'href="/batch/history"' in page
+    assert 'class="nav-link" href="/history"' in page
+    assert 'class="nav-link" href="/findings"' in page
 
 
 def test_the_menu_marks_the_current_page(client):
     page = client.get("/history").get_data(as_text=True)
     assert 'class="nav-link active" href="/history"' in page
-    assert page.count("nav-link active") == 1
+    assert page.count('class="nav-link active" href=') == 1
 
 
 def test_the_error_page_has_the_menu(client):

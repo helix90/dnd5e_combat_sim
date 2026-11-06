@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from '_macros.html' import chart_card, difficulty_badge, encounter_label, interval, outcome_badge, party_label, percent %}
+{% from '_macros.html' import chart_card, difficulty_badge, encounter_label, interval, outcome_badge, party_label, percent, when %}
 {% block head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/charts.css') }}">
 {% endblock %}
@@ -11,7 +11,7 @@
 {% set win = results.win_rate %}
 <p class="text-muted">
   {{ batch.batch_name }} · {{ encounter_label(batch) }} against {{ party_label(batch) }}
-  · {{ batch.arena or 'No map' }} · {{ batch.created_at }}
+  · {{ batch.arena or 'No map' }} · {{ when(batch.created_at) }}
 </p>
 
 <div class="card mb-4" id="verdict">

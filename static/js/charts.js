@@ -118,6 +118,8 @@ const Charts = (function() {
     };
     redraw();
     new ResizeObserver(redraw).observe(plot);
+    // Colors are read when drawing, so draw again in the other theme
+    document.addEventListener('theme-change', () => { width = 0; redraw(); });
   }
 
   // The figure's "Show table" button: the table carries every value the chart does
