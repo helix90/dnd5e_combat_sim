@@ -1,0 +1,52 @@
+/* Charts on the batch results and Findings pages (static/js/charts.js). Colors are by role; the
+   party/monster pair is validated for color-vision deficiency and contrast on white. */
+:root {
+  --viz-surface: #ffffff;
+  --viz-ink: #0b0b0b;
+  --viz-ink-secondary: #52514e;
+  --viz-ink-muted: #898781;
+  --viz-grid: #e1e0d9;
+  --viz-axis: #c3c2b7;
+  --viz-series-1: #2a78d6;
+  --viz-party: #2a78d6;
+  --viz-monsters: #e34948;
+  --viz-wash: rgba(42, 120, 214, 0.12);
+}
+
+.viz { margin: 0; }
+.viz-title { font-weight: 600; }
+.viz-sub { color: var(--viz-ink-secondary); font-size: .875rem; }
+.viz-plot { position: relative; width: 100%; }
+.viz-plot svg { display: block; overflow: visible; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.viz-plot .tick { font-size: 12px; fill: var(--viz-ink-muted); font-variant-numeric: tabular-nums; }
+.viz-plot .value-label { font-size: 12px; fill: var(--viz-ink-secondary); }
+.viz-plot .axis-title { font-size: 12px; fill: var(--viz-ink-secondary); }
+.viz-plot [tabindex]:focus { outline: none; }
+.viz-plot [tabindex]:focus-visible .hit { stroke: var(--viz-ink); stroke-width: 1; }
+.viz-plot .mark { transition: opacity .1s; }
+.viz-plot .hover .mark { opacity: .75; }
+
+.viz-legend { display: flex; flex-wrap: wrap; gap: .25rem 1rem; font-size: .875rem; color: var(--viz-ink-secondary); }
+.viz-legend .key { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: .35rem; vertical-align: -1px; }
+.viz-legend .key.dot { border-radius: 50%; }
+.viz-legend .key.line { height: 2px; vertical-align: 4px; border-radius: 0; }
+.key-series-1 { background: var(--viz-series-1); }
+.key-party { background: var(--viz-party); }
+.key-monsters { background: var(--viz-monsters); }
+.key-ink { background: var(--viz-ink-secondary); }
+.key-wash { background: var(--viz-wash); }
+
+.viz-toggle { font-size: .8125rem; }
+.viz-table { font-variant-numeric: tabular-nums; }
+
+.viz-tooltip {
+  position: absolute; z-index: 1080; pointer-events: none; max-width: 18rem;
+  background: var(--viz-surface); color: var(--viz-ink); border: 1px solid rgba(11, 11, 11, .1);
+  border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, .12); padding: .4rem .6rem; font-size: .8125rem;
+}
+.viz-tooltip .tip-value { font-weight: 600; font-size: .9375rem; }
+.viz-tooltip .tip-line { color: var(--viz-ink-secondary); }
+.viz-tooltip .tip-key { display: inline-block; width: 10px; height: 2px; margin-right: .35rem; vertical-align: 3px; }
+
+/* The headline result on the batch results page */
+.hero-figure { font-size: 3rem; font-weight: 600; line-height: 1.1; }

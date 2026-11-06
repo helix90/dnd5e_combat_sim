@@ -45,6 +45,7 @@ from models.arena_library import (
     resolve_arena_choice,
 )
 from models.db import DatabaseManager
+from models.encounter_builder import DIFFICULTIES, DIFFICULTY_MEANINGS
 from utils.exceptions import AppError, ValidationError
 from utils.logging import log_exception
 from utils.party_loader import PartyLoader
@@ -69,6 +70,7 @@ MAX_INPUT_LENGTH_DEFAULT = 1000
 MAX_INPUT_LENGTH_JSON = 5000
 MIN_BATCH_RUNS = 1
 MAX_BATCH_RUNS = 1000
+BATCH_RUNS_PER_PAGE = 50  # rows of the batch results page's run table
 
 # Constants - Default Values
 DEFAULT_PARTY_ID = 1
@@ -80,6 +82,10 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask application
 app = Flask(__name__)
+# For the pages that show DMG ratings
+app.jinja_env.globals.update(
+    DIFFICULTIES=DIFFICULTIES, DIFFICULTY_MEANINGS=DIFFICULTY_MEANINGS
+)
 
 
 # Configure application
@@ -1120,7 +1126,20 @@ def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
             404,
         )
     results = batch_simulation_controller.get_batch_results(batch_id)
-    return render_template("batch_results.html", results=results), 200
+    runs = results["runs"]
+    pages = max(1, -(-len(runs) // BATCH_RUNS_PER_PAGE))
+    page = min(max(request.args.get("page", 1, type=int), 1), pages)
+    first = (page - 1) * BATCH_RUNS_PER_PAGE
+    return (
+        render_template(
+            "batch_results.html",
+            results=results,
+            page_runs=runs[first : first + BATCH_RUNS_PER_PAGE],
+            page=page,
+            pages=pages,
+        ),
+        200,
+    )
 
 
 @app.route("/batch/history", methods=["GET"])
@@ -1133,6 +1152,24 @@ def batch_simulation_history() -> Tuple[str, int]:
     """
     history = batch_simulation_controller.get_batch_history(session["session_id"])
     return render_template("batch_history.html", batches=history), 200
+
+
+@app.route("/findings", methods=["GET"])
+def findings() -> str:
+    """
+    The DMG's ratings against how the fights went: this session's batches with a rating,
+    optionally narrowed to one party level (?level=) and battlefield (?battlefield=none|map).
+    """
+    level = request.args.get("level", type=int)
+    battlefield = request.args.get("battlefield")
+    if battlefield not in ("none", "map"):
+        battlefield = None
+    data = batch_simulation_controller.get_findings(
+        session["session_id"], party_level=level, battlefield=battlefield
+    )
+    return render_template(
+        "findings.html", **data, level=level, battlefield=battlefield or ""
+    )
 
 
 @app.route("/api/batch/history", methods=["GET"])

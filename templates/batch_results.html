@@ -1,193 +1,237 @@
 {% extends 'base.html' %}
-{% from '_macros.html' import difficulty_badge, encounter_label, outcome_badge, party_label %}
+{% from '_macros.html' import chart_card, difficulty_badge, encounter_label, interval, outcome_badge, party_label, percent %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/charts.css') }}">
+{% endblock %}
 {% block content %}
-  <h2>Batch Simulation Results</h2>
-  
-  {% if results.batch %}
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Batch Summary</h5>
-        </div>
-        <div class="card-body">
-          <table class="table table-borderless table-sm mb-0">
-            <tr>
-              <td><strong>Batch Name:</strong></td>
-              <td>{{ results.batch.batch_name }}</td>
-            </tr>
-            <tr>
-              <td><strong>Total Runs:</strong></td>
-              <td>{{ results.batch.total_runs }}</td>
-            </tr>
-            <tr>
-              <td><strong>Encounter:</strong></td>
-              <td>{{ encounter_label(results.batch) }}</td>
-            </tr>
-            <tr>
-              <td><strong>Party:</strong></td>
-              <td>{{ party_label(results.batch) }}</td>
-            </tr>
-            <tr>
-              <td><strong>DMG Rating:</strong></td>
-              <td>{{ difficulty_badge(results.batch.predicted_difficulty, results.batch.encounter_xp) }}</td>
-            </tr>
-            <tr>
-              <td><strong>Battlefield:</strong></td>
-              <td>{{ results.batch.arena or 'No map' }}</td>
-            </tr>
-            <tr>
-              <td><strong>Created:</strong></td>
-              <td>{{ results.batch.created_at }}</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-    </div>
-    
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">
-          <h5>Statistics</h5>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-6">
-              <div class="text-center">
-                <h3 class="text-success">{{ results.statistics.win_rate }}%</h3>
-                <p class="text-muted">Party Win Rate</p>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="text-center">
-                <h3 class="text-danger">{{ results.statistics.loss_rate }}%</h3>
-                <p class="text-muted">Monster Win Rate</p>
-              </div>
-            </div>
-          </div>
-          <hr>
-          <div class="row">
-            <div class="col-6">
-              <div class="text-center">
-                <h4>{{ results.statistics.average_rounds }}</h4>
-                <p class="text-muted">Avg. Rounds</p>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="text-center">
-                <h4>{{ results.statistics.average_party_hp_remaining }}</h4>
-                <p class="text-muted">Avg. Party HP Remaining</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  {% if results.comparison %}
-  {% set comparison = results.comparison %}
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="card" id="arenaComparison">
-        <div class="card-header">
-          <h5 class="mb-0">With and Without the Arena</h5>
-        </div>
-        <div class="card-body">
-          <p class="text-muted mb-2">
-            The same encounter fought on {{ comparison.arena }} and without an arena, with the same number of runs.
-          </p>
-          <table class="table table-sm mb-2">
-            <thead>
-              <tr>
-                <th></th>
-                <th class="text-end">On {{ comparison.arena }}</th>
-                <th class="text-end">No arena</th>
-                <th class="text-end">Arena's effect</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in comparison.rows %}
-              <tr>
-                <td>{{ row.label }}</td>
-                <td class="text-end">{{ row.with_arena }}</td>
-                <td class="text-end">{{ row.without_arena }}</td>
-                <td class="text-end fw-semibold">{{ '%+.2f'|format(row.difference) }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% if results.batch.id == comparison.arena_batch_id %}
-          <a href="{{ url_for('batch_simulation_results', batch_id=comparison.baseline_batch_id) }}">Runs without the arena</a>
-          {% else %}
-          <a href="{{ url_for('batch_simulation_results', batch_id=comparison.arena_batch_id) }}">Runs on {{ comparison.arena }}</a>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
+<h2>Batch Simulation Results</h2>
 
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h5>Individual Run Results</h5>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped table-hover">
-              <thead>
-                <tr>
-                  <th>Run #</th>
-                  <th>Result</th>
-                  <th>Rounds</th>
-                  <th>Party HP Remaining</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for run in results.runs %}
-                <tr>
-                  <td>{{ run.run_number }}</td>
-                  <td>
-                    {{ outcome_badge(run.result) }}
-                  </td>
-                  <td>{{ run.rounds }}</td>
-                  <td>{{ run.party_hp_remaining }}</td>
-                  <td>
-                    <a href="{{ url_for('results', sim_id=run.simulation_id) }}" class="btn btn-sm btn-outline-primary">
-                      View Details
-                    </a>
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+{% if results.batch %}
+{% set batch = results.batch %}
+{% set win = results.win_rate %}
+<p class="text-muted">
+  {{ batch.batch_name }} · {{ encounter_label(batch) }} against {{ party_label(batch) }}
+  · {{ batch.arena or 'No map' }} · {{ batch.created_at }}
+</p>
+
+<div class="card mb-4" id="verdict">
+  <div class="card-body">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="small text-muted">Party won</div>
+        <div class="hero-figure">{{ percent(win.rate) }}</div>
+        <div>{{ win.wins }} of {{ win.runs }} fights</div>
+        <div class="small text-muted">95% confidence interval: {{ interval(win) }}</div>
+      </div>
+      <div class="col-md-8">
+        <div class="small text-muted">The DMG's rating of this encounter for {{ party_label(batch) }}</div>
+        <div class="fs-5">{{ difficulty_badge(batch.predicted_difficulty, batch.encounter_xp) }}</div>
+        {% if batch.predicted_difficulty %}
+        <p class="mb-2">{{ DIFFICULTY_MEANINGS[batch.predicted_difficulty] }}
+          <a href="{{ url_for('findings') }}" class="small ms-1">Compare with other batches</a></p>
+        {% endif %}
+        <div class="row row-cols-3 g-3 mt-1">
+          <div class="col">
+            <div class="small text-muted">Average rounds</div>
+            <div class="fs-4">{{ '%.1f'|format(batch.average_rounds) }}</div>
+          </div>
+          <div class="col">
+            <div class="small text-muted">Average party HP left</div>
+            <div class="fs-4">{{ '%.1f'|format(batch.average_party_hp_remaining) }}</div>
+          </div>
+          <div class="col">
+            <div class="small text-muted">Monster wins</div>
+            <div class="fs-4">{{ batch.monster_wins }}</div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  
-  <div class="row mt-4">
-    <div class="col-12">
-      <div class="d-flex justify-content-between">
-        <a href="{{ url_for('batch_simulation') }}" class="btn btn-primary">
-          New Batch Simulation
-        </a>
-        <a href="{{ url_for('batch_simulation_history') }}" class="btn btn-outline-secondary">
-          View All Batches
-        </a>
-      </div>
+</div>
+
+{% if results.comparison %}
+{% set comparison = results.comparison %}
+<div class="card mb-4" id="arenaComparison">
+  <div class="card-header">
+    <h5 class="mb-0">With and Without the Arena</h5>
+  </div>
+  <div class="card-body">
+    <p class="text-muted mb-2">
+      The same encounter fought on {{ comparison.arena }} and without an arena, with the same number of runs.
+    </p>
+    <table class="table table-sm mb-2">
+      <thead>
+        <tr>
+          <th></th>
+          <th class="text-end">On {{ comparison.arena }}</th>
+          <th class="text-end">No arena</th>
+          <th class="text-end">Arena's effect</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in comparison.rows %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td class="text-end">{{ row.with_arena }}</td>
+          <td class="text-end">{{ row.without_arena }}</td>
+          <td class="text-end fw-semibold">{{ '%+.2f'|format(row.difference) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if batch.id == comparison.arena_batch_id %}
+    <a href="{{ url_for('batch_simulation_results', batch_id=comparison.baseline_batch_id) }}">Runs without the arena</a>
+    {% else %}
+    <a href="{{ url_for('batch_simulation_results', batch_id=comparison.arena_batch_id) }}">Runs on {{ comparison.arena }}</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% set charts = results.charts %}
+{% if results.runs %}
+<div class="row">
+  <div class="col-lg-6">
+    {% call chart_card('roundsChart', 'How long the fights lasted', 'Fights by the number of rounds they took') %}
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Rounds</th><th class="text-end">Fights</th><th class="text-end">Share</th></tr></thead>
+      <tbody>
+        {% for bin in charts.rounds %}
+        <tr><td>{{ bin.label }}</td><td class="text-end">{{ bin.value }}</td>
+            <td class="text-end">{{ percent(bin.value / results.runs|length * 100) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endcall %}
+  </div>
+  <div class="col-lg-6">
+    {% call chart_card('hpChart', 'Party HP left at the end', 'Fights by the party\'s total HP when they ended; 0 means the party lost') %}
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Party HP left</th><th class="text-end">Fights</th><th class="text-end">Share</th></tr></thead>
+      <tbody>
+        {% for bin in charts.hp_left %}
+        <tr><td>{{ bin.label }}</td><td class="text-end">{{ bin.value }}</td>
+            <td class="text-end">{{ percent(bin.value / results.runs|length * 100) }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endcall %}
+  </div>
+</div>
+
+{% if charts.damage %}
+{% call chart_card('damageChart', 'Damage dealt per fight', 'On average, by each party member and each kind of monster together',
+                   legend=[('Party', 'key-party'), ('Monsters', 'key-monsters')]) %}
+<table class="table table-sm mb-0">
+  <thead><tr><th>Creature</th><th>Side</th><th class="text-end">Average damage per fight</th></tr></thead>
+  <tbody>
+    {% for row in charts.damage %}
+    <tr><td>{{ row.label }}</td><td>{{ 'Party' if row.side == 'party' else 'Monsters' }}</td>
+        <td class="text-end">{{ '%.1f'|format(row.value) }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endcall %}
+{% endif %}
+{% endif %}
+
+<div class="card mb-4" id="runs">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Individual Run Results</h5>
+    {% if pages > 1 %}<span class="small text-muted">Page {{ page }} of {{ pages }}</span>{% endif %}
+  </div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-striped table-hover table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Run #</th>
+            <th>Result</th>
+            <th class="text-end">Rounds</th>
+            <th class="text-end">Party HP Left</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in page_runs %}
+          <tr>
+            <td>{{ run.run_number }}</td>
+            <td>{{ outcome_badge(run.result) }}</td>
+            <td class="text-end">{{ run.rounds }}</td>
+            <td class="text-end">{{ run.party_hp_remaining }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('results', sim_id=run.simulation_id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+    {% if pages > 1 %}
+    <nav aria-label="Run pages">
+      <ul class="pagination pagination-sm flex-wrap mb-0">
+        <li class="page-item{% if page == 1 %} disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('batch_simulation_results', batch_id=batch.id, page=page - 1, _anchor='runs') }}">Previous</a>
+        </li>
+        {% for n in range(1, pages + 1) %}
+        <li class="page-item{% if n == page %} active{% endif %}">
+          <a class="page-link" href="{{ url_for('batch_simulation_results', batch_id=batch.id, page=n, _anchor='runs') }}"
+             {% if n == page %}aria-current="page"{% endif %}>{{ n }}</a>
+        </li>
+        {% endfor %}
+        <li class="page-item{% if page == pages %} disabled{% endif %}">
+          <a class="page-link" href="{{ url_for('batch_simulation_results', batch_id=batch.id, page=page + 1, _anchor='runs') }}">Next</a>
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
   </div>
-  
-  {% else %}
-  <div class="alert alert-warning">
-    <h4>No Results Found</h4>
-    <p>The batch simulation results could not be loaded.</p>
-    <a href="{{ url_for('batch_simulation') }}" class="btn btn-primary">Start New Batch</a>
-  </div>
-  {% endif %}
-{% endblock %} 
+</div>
+
+<div class="d-flex justify-content-between mb-4">
+  <a href="{{ url_for('batch_simulation') }}" class="btn btn-primary">New Batch Simulation</a>
+  <a href="{{ url_for('batch_simulation_history') }}" class="btn btn-outline-secondary">View All Batches</a>
+</div>
+
+{% else %}
+<div class="alert alert-warning">
+  <h4>No Results Found</h4>
+  <p>The batch simulation results could not be loaded.</p>
+  <a href="{{ url_for('batch_simulation') }}" class="btn btn-primary">Start New Batch</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if results.batch and results.runs %}
+<script type="application/json" id="chartData">{{ results.charts|tojson }}</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+(function() {
+  const charts = JSON.parse(document.getElementById('chartData').textContent);
+  const fights = charts.rounds.reduce((total, bin) => total + bin.value, 0);
+  const share = count => `${Math.round(count / fights * 100)}% of fights`;
+  const plural = (n, word) => `${n} ${word}${Number(n) === 1 ? '' : 's'}`;
+
+  Charts.columns(document.getElementById('roundsChart'), charts.rounds, {
+    xTitle: 'Rounds',
+    describe: d => [{value: plural(d.value, 'fight')}, {text: `${plural(d.label, 'round')} · ${share(d.value)}`}]
+  });
+  Charts.columns(document.getElementById('hpChart'), charts.hp_left, {
+    xTitle: 'Party HP left',
+    describe: d => [{value: plural(d.value, 'fight')}, {text: `${d.label} HP left · ${share(d.value)}`}]
+  });
+  const damage = document.getElementById('damageChart');
+  if (damage) {
+    const series = {party: {label: 'Party', role: 'party'}, monsters: {label: 'Monsters', role: 'monsters'}};
+    Charts.bars(damage, charts.damage, {
+      series,
+      format: v => v.toFixed(1),
+      describe: (d, key) => [{value: `${d.value.toFixed(1)} damage per fight`},
+                             {text: `${d.label} (${series[d.side].label.toLowerCase()})`, key}]
+    });
+  }
+})();
+</script>
+{% endif %}
+{% endblock %}

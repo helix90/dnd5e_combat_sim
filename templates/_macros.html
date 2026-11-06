@@ -44,3 +44,29 @@
   {%- if record.party_name %}{{ record.party_name }}, level {{ record.party_level }}
   {%- else %}Level {{ record.party_level }}{% endif -%}
 {%- endmacro %}
+
+{# A chart card for static/js/charts.js: a title, a "Show table" toggle, an optional legend of
+   (label, key classes) pairs, the plot, and the table the caller renders, which carries every
+   value the chart shows. #}
+{% macro chart_card(id, title, subtitle, legend=None) -%}
+<figure class="viz card mb-4" id="{{ id }}">
+  <figcaption class="card-header d-flex justify-content-between align-items-start gap-2">
+    <span><span class="viz-title d-block">{{ title }}</span><span class="viz-sub">{{ subtitle }}</span></span>
+    <button type="button" class="btn btn-sm btn-outline-secondary viz-toggle text-nowrap" aria-pressed="false">Show table</button>
+  </figcaption>
+  <div class="card-body">
+    {% if legend %}
+    <div class="viz-legend mb-2">
+      {% for label, key in legend %}<span><span class="key {{ key }}"></span>{{ label }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    <div class="viz-plot"></div>
+    <div class="viz-table table-responsive d-none">{{ caller() }}</div>
+  </div>
+</figure>
+{%- endmacro %}
+
+{% macro percent(value) -%}{{ '%.0f'|format(value) }}%{%- endmacro %}
+
+{# A win rate (see win_rate in controllers/batch_simulation_controller.py) with its interval #}
+{% macro interval(rate) -%}{{ '%.0f'|format(rate.low) }}–{{ '%.0f'|format(rate.high) }}%{%- endmacro %}

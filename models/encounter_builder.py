@@ -6,6 +6,19 @@ from utils.paths import data_path
 MONSTERS_FILE = data_path("monsters.json")
 
 # Standard 5e XP thresholds for 4 characters (per character: easy/med/hard/deadly)
+# The ratings calculate_encounter_difficulty gives, easiest first. "trivial" is below the DMG's
+# Easy threshold; the DMG has no name for it.
+DIFFICULTIES = ["trivial", "easy", "medium", "hard", "deadly"]
+
+# What the DMG says each rating means for the party, in short. It gives no win rates.
+DIFFICULTY_MEANINGS = {
+    "trivial": "Below the DMG's Easy threshold: hardly a fight.",
+    "easy": "No real threat; the party may spend a few resources but isn't in danger.",
+    "medium": "A scary moment or two, but the party should win with no one dying.",
+    "hard": "Could go badly: weaker characters may go down, with a slim chance of a death.",
+    "deadly": "Could be lethal for one or more characters.",
+}
+
 XP_THRESHOLDS = {
     1: [25, 50, 75, 100],
     2: [50, 100, 150, 200],
