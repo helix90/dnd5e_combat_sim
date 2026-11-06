@@ -811,6 +811,46 @@ class DatabaseManager:
             log_exception(e)
             raise DatabaseError(f"Failed to get batch runs: {e}")
 
+    def get_batch_damage(self, batch_id: int) -> Dict[str, int]:
+        """
+        Damage dealt by each creature over all of a batch's runs (healing is stored as negative
+        damage, so only positive damage counts), by name.
+        """
+        try:
+            with self._get_connection() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT cl.character_name AS name, SUM(cl.damage) AS total
+                    FROM combat_logs cl
+                    JOIN batch_simulation_runs bsr ON bsr.simulation_id = cl.simulation_id
+                    WHERE bsr.batch_id = ? AND cl.damage > 0
+                      AND cl.action_type IN ('attack', 'spell', 'special')
+                    GROUP BY cl.character_name
+                    """,
+                    (batch_id,),
+                ).fetchall()
+            return {row["name"]: row["total"] for row in rows}
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to get batch damage: {e}")
+
+    def get_rated_batches(self, session_id: str) -> List[Dict[str, Any]]:
+        """A session's finished batches that have a DMG rating, for the Findings page."""
+        try:
+            with self._get_connection() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT * FROM batch_simulations
+                    WHERE session_id = ? AND predicted_difficulty IS NOT NULL AND total_runs > 0
+                    ORDER BY id
+                    """,
+                    (session_id,),
+                ).fetchall()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to get rated batches: {e}")
+
     def get_batch_history(self, session_id: str) -> List[Dict[str, Any]]:
         """Get batch simulation history for a session."""
         try:

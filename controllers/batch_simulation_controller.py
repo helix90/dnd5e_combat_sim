@@ -1,14 +1,95 @@
 import copy
+import re
 import threading
+from collections import Counter, defaultdict
 from typing import List, Dict, Any, Optional
 from models.arena_library import get_arena
 from models.combat import Combat
 from models.db import DatabaseManager
+from models.encounter_builder import DIFFICULTIES
 from models.spell_manager import SpellManager
 from models.character_builder import build_party
 from models.monster_builder import build_monsters
 from utils.exceptions import BatchSimulationError
 from utils.logging import log_exception
+from utils.party_loader import PartyLoader
+from utils.stats import wilson_interval
+
+# Bin widths for the results page's histograms
+NICE_WIDTHS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000]
+
+
+def win_rate(wins: int, runs: int) -> Dict[str, Any]:
+    """The party's wins out of runs, as a percentage with its 95% confidence interval."""
+    low, high = wilson_interval(wins, runs)
+    return {
+        "wins": wins,
+        "runs": runs,
+        "rate": wins / runs * 100 if runs else 0.0,
+        "low": low,
+        "high": high,
+    }
+
+
+def histogram(
+    values: List[int], start: int, max_bins: int = 15
+) -> List[Dict[str, Any]]:
+    """
+    Counts of whole numbers >= start, in equal bins of a round width beginning at start, as
+    [{"label", "value"}]: one bin per number when they fit in max_bins.
+    """
+    if not values:
+        return []
+    span = max(values) - start + 1
+    width = next(
+        (w for w in NICE_WIDTHS if -(-span // w) <= max_bins), -(-span // max_bins)
+    )
+    counts = [0] * -(-span // width)
+    for value in values:
+        counts[(value - start) // width] += 1
+    return [
+        {
+            "label": (
+                str(start + i * width)
+                if width == 1
+                else f"{start + i * width}–{start + (i + 1) * width - 1}"
+            ),
+            "value": count,
+        }
+        for i, count in enumerate(counts)
+    ]
+
+
+def damage_rows(totals: Dict[str, int], runs: int) -> List[Dict[str, Any]]:
+    """
+    Average damage dealt per fight: each party member's, and each kind of monster's together
+    ("Goblin 1" to "Goblin 6" as "Goblin (6)"). Party members first, then monsters, most first.
+    """
+    if not runs:
+        return []
+    party_names = {
+        c.get("name")
+        for party in PartyLoader.load_parties()
+        for c in party.get("characters", [])
+    }
+    party, monsters, members = [], Counter(), Counter()
+    for name, total in totals.items():
+        if name in party_names:
+            party.append({"label": name, "value": total / runs, "side": "party"})
+        else:
+            kind = re.sub(r"\s+\d+$", "", name)
+            monsters[kind] += total
+            members[kind] += 1
+    monster_rows = [
+        {
+            "label": kind if members[kind] == 1 else f"{kind} ({members[kind]})",
+            "value": total / runs,
+            "side": "monsters",
+        }
+        for kind, total in monsters.items()
+    ]
+    by_value = lambda row: -row["value"]  # noqa: E731
+    return sorted(party, key=by_value) + sorted(monster_rows, key=by_value)
 
 
 class BatchSimulationController:
@@ -294,12 +375,30 @@ class BatchSimulationController:
                 raise BatchSimulationError(f"Batch simulation {batch_id} not found")
 
             runs = self.db.get_batch_runs(batch_id)
+            hp_left = [run["party_hp_remaining"] for run in runs]
 
             return {
                 "batch": batch,
                 "runs": runs,
                 "statistics": self._statistics(batch),
                 "comparison": self._comparison(batch),
+                "win_rate": win_rate(batch["party_wins"], batch["total_runs"]),
+                "charts": {
+                    "rounds": histogram(
+                        [run["rounds"] for run in runs],
+                        start=min((run["rounds"] for run in runs), default=0),
+                    ),
+                    # Fights the party lost end on 0, so 0 gets a bar of its own
+                    "hp_left": (
+                        [{"label": "0", "value": hp_left.count(0)}]
+                        + histogram([hp for hp in hp_left if hp > 0], start=1)
+                        if runs
+                        else []
+                    ),
+                    "damage": damage_rows(
+                        self.db.get_batch_damage(batch_id), len(runs)
+                    ),
+                },
             }
         except Exception as e:
             log_exception(e)
@@ -353,6 +452,81 @@ class BatchSimulationController:
                 }
                 for label, key, a, b, d in rows
             ],
+        }
+
+    def get_findings(
+        self,
+        session_id: str,
+        party_level: Optional[int] = None,
+        battlefield: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        A session's batches that have a DMG rating, each with its win rate, and for each rating
+        all of its fights together: what the Findings page compares. party_level and battlefield
+        ("none" for no map, "map" for any map) narrow the batches.
+        """
+        batches = self.db.get_rated_batches(session_id)
+        levels = sorted({b["party_level"] for b in batches})
+        batches = [
+            b
+            for b in batches
+            if (party_level is None or b["party_level"] == party_level)
+            and (battlefield != "none" or not b["arena"])
+            and (battlefield != "map" or b["arena"])
+        ]
+        for b in batches:
+            b["win_rate"] = win_rate(b["party_wins"], b["total_runs"])
+        order = {rating: i for i, rating in enumerate(DIFFICULTIES)}
+        batches.sort(
+            key=lambda b: (
+                order.get(b["predicted_difficulty"], len(DIFFICULTIES)),
+                b["win_rate"]["rate"],
+            )
+        )
+
+        by_rating = defaultdict(list)
+        for b in batches:
+            by_rating[b["predicted_difficulty"]].append(b)
+        summary = []
+        for rating in DIFFICULTIES:
+            group = by_rating.get(rating, [])
+            runs = sum(b["total_runs"] for b in group)
+            summary.append(
+                {
+                    "rating": rating,
+                    "batches": len(group),
+                    "win_rate": win_rate(sum(b["party_wins"] for b in group), runs),
+                    "average_rounds": (
+                        sum(b["average_rounds"] * b["total_runs"] for b in group) / runs
+                        if runs
+                        else None
+                    ),
+                }
+            )
+        chart = {
+            "ratings": [{"key": r, "label": r.capitalize()} for r in DIFFICULTIES],
+            "batches": [
+                {
+                    "rating": b["predicted_difficulty"],
+                    **b["win_rate"],
+                    "name": b["batch_name"],
+                    "encounter": b["encounter_name"],
+                    "party": b["party_name"],
+                    "level": b["party_level"],
+                    "battlefield": b["arena"] or "No map",
+                }
+                for b in batches
+            ],
+            "pooled": [
+                {"rating": row["rating"], "batches": row["batches"], **row["win_rate"]}
+                for row in summary
+            ],
+        }
+        return {
+            "batches": batches,
+            "summary": summary,
+            "levels": levels,
+            "chart": chart,
         }
 
     def get_batch_history(self, session_id: str) -> List[Dict[str, Any]]:

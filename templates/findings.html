@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import chart_card, difficulty_badge, encounter_label, interval, party_label, percent %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/charts.css') }}">
+{% endblock %}
+{% block content %}
+<h2>Findings</h2>
+<p class="text-muted" style="max-width: 50rem">
+  Does the DMG's rating of an encounter predict how the fight goes? Each dot is one of your batches, placed by the
+  DMG's rating of its encounter for its party and by how often the party won. The DMG gives no win rates, but its
+  ratings are an order: if CR and XP measured danger well, win rates would fall from Easy to Deadly, and batches
+  with the same rating would land close together.
+</p>
+
+<form method="get" class="d-flex flex-wrap gap-2 align-items-end mb-3" id="findingsFilters">
+  <div>
+    <label for="level" class="form-label small mb-1">Party level</label>
+    <select id="level" name="level" class="form-select form-select-sm">
+      <option value="">All levels</option>
+      {% for lvl in levels %}
+      <option value="{{ lvl }}" {% if lvl == level %}selected{% endif %}>Level {{ lvl }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="battlefield" class="form-label small mb-1">Battlefield</label>
+    <select id="battlefield" name="battlefield" class="form-select form-select-sm">
+      <option value="">All</option>
+      <option value="none" {% if battlefield == 'none' %}selected{% endif %}>No map</option>
+      <option value="map" {% if battlefield == 'map' %}selected{% endif %}>On a map</option>
+    </select>
+  </div>
+  <noscript><button type="submit" class="btn btn-sm btn-primary">Apply</button></noscript>
+</form>
+
+{% if not batches %}
+<div class="alert alert-info">
+  {% if level or battlefield %}
+  No batches match these filters.
+  {% else %}
+  No rated batches yet. <a href="{{ url_for('batch_simulation') }}" class="alert-link">Run a batch</a> to see how
+  its encounter compares with the DMG's rating. Batches run before ratings were recorded aren't included.
+  {% endif %}
+</div>
+{% else %}
+
+{% call chart_card('findingsChart', 'Party win rate by DMG rating',
+                   batches|length ~ ' batch' ~ ('es' if batches|length != 1 else '') ~ ', ' ~ batches|sum(attribute='total_runs') ~ ' fights',
+                   legend=[('One batch', 'dot key-series-1'), ("All of a rating's fights together", 'line key-ink'),
+                           ('Its 95% confidence interval', 'key-wash')]) %}
+<table class="table table-sm mb-0">
+  <thead>
+    <tr><th>DMG Rating</th><th>Batch</th><th>Encounter</th><th>Party</th><th>Battlefield</th>
+        <th class="text-end">Party Won</th><th class="text-end">95% CI</th></tr>
+  </thead>
+  <tbody>
+    {% for b in batches %}
+    <tr>
+      <td>{{ difficulty_badge(b.predicted_difficulty) }}</td>
+      <td><a href="{{ url_for('batch_simulation_results', batch_id=b.id) }}">{{ b.batch_name }}</a></td>
+      <td>{{ encounter_label(b) }}</td>
+      <td>{{ party_label(b) }}</td>
+      <td>{{ b.arena or 'No map' }}</td>
+      <td class="text-end text-nowrap">{{ percent(b.win_rate.rate) }} <span class="text-muted">({{ b.party_wins }} of {{ b.total_runs }})</span></td>
+      <td class="text-end text-nowrap">{{ interval(b.win_rate) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endcall %}
+
+<div class="card mb-4" id="ratingSummary">
+  <div class="card-header"><h5 class="mb-0">Each rating's fights together</h5></div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr><th>DMG Rating</th><th>What the DMG says</th><th class="text-end">Batches</th><th class="text-end">Fights</th>
+              <th class="text-end">Party Won</th><th class="text-end">95% CI</th><th class="text-end">Avg. Rounds</th></tr>
+        </thead>
+        <tbody>
+          {% for row in summary %}
+          <tr{% if not row.batches %} class="text-muted"{% endif %}>
+            <td>{{ difficulty_badge(row.rating) }}</td>
+            <td class="small">{{ DIFFICULTY_MEANINGS[row.rating] }}</td>
+            <td class="text-end">{{ row.batches }}</td>
+            <td class="text-end">{{ row.win_rate.runs }}</td>
+            {% if row.batches %}
+            <td class="text-end">{{ percent(row.win_rate.rate) }}</td>
+            <td class="text-end text-nowrap">{{ interval(row.win_rate) }}</td>
+            <td class="text-end">{{ '%.1f'|format(row.average_rounds) }}</td>
+            {% else %}
+            <td class="text-end">-</td><td class="text-end">-</td><td class="text-end">-</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="small text-muted mt-2 mb-0">
+      A batch fought on a map with "also run without the arena" is two batches here, one on each battlefield; use the
+      Battlefield filter to see one kind at a time. Only batches run in this browser session are included.
+    </p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('#findingsFilters select').forEach(select => {
+  select.addEventListener('change', () => select.form.submit());
+});
+</script>
+{% if batches %}
+<script type="application/json" id="findingsData">{{ chart|tojson }}</script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+(function() {
+  const data = JSON.parse(document.getElementById('findingsData').textContent);
+  const pct = v => `${Math.round(v)}%`;
+  const range = d => `95% CI ${Math.round(d.low)}–${Math.round(d.high)}%`;
+  const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+  Charts.dots(document.getElementById('findingsChart'), data, {
+    poolLabel: p => `${pct(p.rate)} of ${p.runs}`,
+    describeBatch: b => [
+      {value: `Party won ${pct(b.rate)}`},
+      {text: `${b.wins} of ${b.runs} fights · ${range(b)}`},
+      {text: b.name},
+      {text: `${b.encounter || 'Encounter not recorded'} · ${b.battlefield}`},
+      {text: `${b.party ? b.party + ', ' : ''}level ${b.level} · ${capitalize(b.rating)}`}
+    ],
+    describePooled: p => [
+      {value: `Party won ${pct(p.rate)}`},
+      {text: `All ${p.runs} ${capitalize(p.rating)} fights, from ${p.batches} batch${p.batches === 1 ? '' : 'es'}`},
+      {text: range(p)}
+    ]
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
