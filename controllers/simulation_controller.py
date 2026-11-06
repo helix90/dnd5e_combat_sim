@@ -31,15 +31,13 @@ class SimulationController:
         """Initialize the simulation controller with caching and thread safety."""
         self.db = DatabaseManager()
         self.spell_manager = SpellManager()
-        self.simulation_states: Dict[str, Dict[str, Any]] = {}   # session_id -> state dict
+        self.simulation_states: Dict[str, Dict[str, Any]] = (
+            {}
+        )  # session_id -> state dict
         self.state_lock = threading.Lock()  # Thread safety for shared state
 
     def _validate_simulation_inputs(
-        self,
-        party: List[Any],
-        monsters: List[Any],
-        session_id: str,
-        party_level: int
+        self, party: List[Any], monsters: List[Any], session_id: str, party_level: int
     ) -> None:
         """
         Validate simulation inputs before execution.
@@ -75,7 +73,9 @@ class SimulationController:
         if not isinstance(party_level, int):
             raise ValidationError("party_level must be an integer")
         if party_level < MIN_PARTY_LEVEL or party_level > MAX_PARTY_LEVEL:
-            raise ValidationError(f"party_level must be between {MIN_PARTY_LEVEL} and {MAX_PARTY_LEVEL}")
+            raise ValidationError(
+                f"party_level must be between {MIN_PARTY_LEVEL} and {MAX_PARTY_LEVEL}"
+            )
 
     def _run_simulation_thread(
         self,
@@ -83,7 +83,7 @@ class SimulationController:
         monsters: List[Any],
         session_id: str,
         party_level: int,
-        arena: Optional[Any] = None
+        arena: Optional[Any] = None,
     ) -> None:
         """
         Run the simulation in a background thread.
@@ -96,13 +96,17 @@ class SimulationController:
             arena: Arena to fight on, or None
         """
         try:
-            logger.info(f"Starting simulation thread for session {session_id}, party level {party_level}")
+            logger.info(
+                f"Starting simulation thread for session {session_id}, party level {party_level}"
+            )
 
             # Convert party and monsters to objects
             character_objects = build_party(party, self.spell_manager)
             monster_objects = build_monsters(monsters)
 
-            logger.debug(f"Simulation setup: {len(character_objects)} characters vs {len(monster_objects)} monsters")
+            logger.debug(
+                f"Simulation setup: {len(character_objects)} characters vs {len(monster_objects)} monsters"
+            )
 
             # Create combat with proper objects
             combat = Combat(character_objects + monster_objects, arena=arena)
@@ -112,7 +116,9 @@ class SimulationController:
                 # it's saved and has a simulation_id to go to (set below)
                 with self.state_lock:
                     if session_id in self.simulation_states:
-                        self.simulation_states[session_id].update({k: v for k, v in state.items() if k != 'done'})
+                        self.simulation_states[session_id].update(
+                            {k: v for k, v in state.items() if k != "done"}
+                        )
 
             # Run combat simulation
             result = combat.run(progress_callback=progress_callback)
@@ -120,7 +126,7 @@ class SimulationController:
             # The full log is saved to the DB; the status only needs the progress
             with self.state_lock:
                 if session_id in self.simulation_states:
-                    self.simulation_states[session_id]['log'] = []
+                    self.simulation_states[session_id]["log"] = []
 
             # Save results to database
             sim_id = self.save_simulation_results(result, session_id)
@@ -129,10 +135,14 @@ class SimulationController:
             # Mark as done
             with self.state_lock:
                 if session_id in self.simulation_states:
-                    self.simulation_states[session_id]['done'] = True
-                    logger.debug(f"Marked simulation as done for session {session_id}. Final state: {self.simulation_states[session_id]}")
+                    self.simulation_states[session_id]["done"] = True
+                    logger.debug(
+                        f"Marked simulation as done for session {session_id}. Final state: {self.simulation_states[session_id]}"
+                    )
                 else:
-                    logger.warning(f"Cannot mark as done - session {session_id} not in simulation_states")
+                    logger.warning(
+                        f"Cannot mark as done - session {session_id} not in simulation_states"
+                    )
 
         except Exception as e:
             log_exception(e)
@@ -140,10 +150,10 @@ class SimulationController:
             # Store error in state (don't raise - thread is detached)
             with self.state_lock:
                 self.simulation_states[session_id] = {
-                    'error': str(e),
-                    'done': True,
-                    'progress': 0,
-                    'log': []
+                    "error": str(e),
+                    "done": True,
+                    "progress": 0,
+                    "log": [],
                 }
 
     def execute_simulation(
@@ -152,7 +162,7 @@ class SimulationController:
         monsters: List[Any],
         session_id: str,
         party_level: int = DEFAULT_PARTY_LEVEL,
-        arena_name: Optional[str] = None
+        arena_name: Optional[str] = None,
     ) -> None:
         """
         Execute a combat simulation in a background thread.
@@ -174,21 +184,23 @@ class SimulationController:
         except ValueError as e:
             raise ValidationError(str(e))
 
-        logger.info(f"Executing simulation for session {session_id}: {len(party)} party members at level {party_level} vs {len(monsters)} monsters")
+        logger.info(
+            f"Executing simulation for session {session_id}: {len(party)} party members at level {party_level} vs {len(monsters)} monsters"
+        )
 
         # Initialize state before starting thread (prevents race condition)
         with self.state_lock:
             # Replace any earlier simulation's state for this session
             self.simulation_states[session_id] = {
-                'progress': 0,
-                'log': [],
-                'done': False
+                "progress": 0,
+                "log": [],
+                "done": False,
             }
 
         # Create and start thread
         t = threading.Thread(
             target=self._run_simulation_thread,
-            args=(party, monsters, session_id, party_level, arena)
+            args=(party, monsters, session_id, party_level, arena),
         )
         t.daemon = True  # Allow program to exit even if thread is running
         t.start()
@@ -205,7 +217,7 @@ class SimulationController:
         """
         with self.state_lock:
             if session_id in self.simulation_states:
-                return self.simulation_states[session_id].get('simulation_id')
+                return self.simulation_states[session_id].get("simulation_id")
         return None
 
     def handle_simulation_progress(self) -> Dict[str, Any]:
@@ -218,14 +230,14 @@ class SimulationController:
         Raises:
             KeyError: If session_id not in Flask session
         """
-        session_id = session['session_id']
+        session_id = session["session_id"]
         with self.state_lock:
-            logger.debug(f"handle_simulation_progress: session_id={session_id}, available_sessions={list(self.simulation_states.keys())}")
-            state = self.simulation_states.get(session_id, {
-                'progress': 0,
-                'log': [],
-                'done': False
-            })
+            logger.debug(
+                f"handle_simulation_progress: session_id={session_id}, available_sessions={list(self.simulation_states.keys())}"
+            )
+            state = self.simulation_states.get(
+                session_id, {"progress": 0, "log": [], "done": False}
+            )
             logger.debug(f"handle_simulation_progress: returning state={state}")
             return state.copy()  # Return copy to prevent external modifications
 
@@ -248,12 +260,14 @@ class SimulationController:
             self.db.create_session(session_id)
 
             sim_id = self.db.save_simulation_result(session_id, result)
-            logger.info(f"Saved simulation results as ID {sim_id} for session {session_id}")
+            logger.info(
+                f"Saved simulation results as ID {sim_id} for session {session_id}"
+            )
 
             # Store the simulation ID in the session state for easy access
             with self.state_lock:
                 if session_id in self.simulation_states:
-                    self.simulation_states[session_id]['simulation_id'] = sim_id
+                    self.simulation_states[session_id]["simulation_id"] = sim_id
 
             return sim_id
         except Exception as e:

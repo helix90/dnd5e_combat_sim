@@ -15,7 +15,7 @@ from models.buffs import BuffManager
 class Monster:
     """
     A D&D 5e monster with combat-relevant attributes and methods.
-    
+
     Attributes:
         name (str): The monster's name
         challenge_rating (str): The monster's challenge rating (e.g., '1/4', '1', '5')
@@ -25,7 +25,7 @@ class Monster:
         damage_resistances (List[str]): List of damage types the monster resists
         actions (List[Action]): List of available actions
     """
-    
+
     def __init__(
         self,
         name: str,
@@ -41,11 +41,11 @@ class Monster:
         actions: Optional[List] = None,
         regeneration: Optional[Dict[str, Any]] = None,
         damage_vulnerabilities: Optional[List[str]] = None,
-        size: str = 'medium',
+        size: str = "medium",
         speed: Optional[Dict[str, Any]] = None,
         creature_type: Optional[str] = None,
         saving_throws: Optional[Dict[str, int]] = None,
-        condition_immunities: Optional[List[str]] = None
+        condition_immunities: Optional[List[str]] = None,
     ) -> None:
         """
         Initialize a new Monster instance.
@@ -73,7 +73,7 @@ class Monster:
         Raises:
             ValueError: If ability scores, size or speed are invalid
         """
-        required_abilities = {'str', 'dex', 'con', 'int', 'wis', 'cha'}
+        required_abilities = {"str", "dex", "con", "int", "wis", "cha"}
         if not all(ability in ability_scores for ability in required_abilities):
             raise ValueError(f"Ability scores must include: {required_abilities}")
         if any(score < 1 or score > 30 for score in ability_scores.values()):
@@ -94,7 +94,7 @@ class Monster:
         size_in_squares(size)
         self.size = size.lower()
         self.speed = normalize_speed(speed)
-        self.creature_type = (creature_type or '').lower() or None
+        self.creature_type = (creature_type or "").lower() or None
         self.saving_throws = dict(saving_throws or {})
         self.condition_immunities = [str(c).lower() for c in condition_immunities or []]
         # Results of abilities triggered outside the monster's own turn (e.g. Undead Fortitude),
@@ -111,29 +111,29 @@ class Monster:
                     description="Swipe with sharp claws.",
                     weapon_name="Claw",
                     damage_dice="1d6",
-                    damage_type="slashing"
+                    damage_type="slashing",
                 )
             ]
-    
+
     def ability_modifier(self, ability: str) -> int:
         """
         Calculate the modifier for a given ability score.
-        
+
         Args:
             ability: The ability name ('str', 'dex', 'con', 'int', 'wis', 'cha')
-            
+
         Returns:
             The ability modifier (score - 10) // 2
-            
+
         Raises:
             ValueError: If ability is not a valid ability name
         """
         if ability not in self.ability_scores:
             raise ValueError(f"Invalid ability: {ability}")
-        
+
         score = self.ability_scores[ability]
         return (score - 10) // 2
-    
+
     def saving_throw_bonus(self, ability: str) -> int:
         """The monster's bonus to a saving throw: its listed bonus if proficient, else the ability modifier."""
         if ability in self.saving_throws:
@@ -143,10 +143,10 @@ class Monster:
     def attack_bonus(self, weapon_type: str = "melee") -> int:
         """
         Calculate the attack bonus for a weapon attack.
-        
+
         Args:
             weapon_type: Type of weapon ('melee' or 'thrown' use STR, 'ranged' DEX, 'finesse' the higher)
-            
+
         Returns:
             The attack bonus (ability modifier + proficiency bonus based on CR)
         """
@@ -156,23 +156,24 @@ class Monster:
 
         # For simplicity, assume melee weapons use Strength and ranged use Dexterity
         if weapon_type == "ranged":
-            ability_mod = self.ability_modifier('dex')
+            ability_mod = self.ability_modifier("dex")
         elif weapon_type == "finesse":
             # Finesse weapons can use either Str or Dex, use the higher one
-            str_mod = self.ability_modifier('str')
-            dex_mod = self.ability_modifier('dex')
+            str_mod = self.ability_modifier("str")
+            dex_mod = self.ability_modifier("dex")
             ability_mod = max(str_mod, dex_mod)
         else:  # melee and thrown weapons
-            ability_mod = self.ability_modifier('str')
-        
+            ability_mod = self.ability_modifier("str")
+
         return ability_mod + proficiency_bonus
-    
+
     def roll_initiative(self) -> int:
         """
         Roll initiative: 1d20 + dex modifier.
         """
         import random
-        return random.randint(1, 20) + self.ability_modifier('dex')
+
+        return random.randint(1, 20) + self.ability_modifier("dex")
 
     @property
     def hp(self) -> int:
@@ -195,55 +196,59 @@ class Monster:
         Returns True if hp <= 0 (not dead/death saves for now).
         """
         return self.hp <= 0
-    
+
     def _parse_challenge_rating(self) -> float:
         """
         Parse the challenge rating string into a numeric value.
-        
+
         Returns:
             The challenge rating as a float
-            
+
         Raises:
             ValueError: If challenge rating format is invalid
         """
         cr = self.challenge_rating.lower()
-        
+
         if cr == "0":
             return 0
         elif cr == "1/8":
-            return 1/8
+            return 1 / 8
         elif cr == "1/4":
-            return 1/4
+            return 1 / 4
         elif cr == "1/2":
-            return 1/2
+            return 1 / 2
         else:
             try:
                 return float(cr)
             except ValueError:
-                raise ValueError(f"Invalid challenge rating format: {self.challenge_rating}")
-    
+                raise ValueError(
+                    f"Invalid challenge rating format: {self.challenge_rating}"
+                )
+
     def is_resistant_to(self, damage_type: str) -> bool:
         """
         Check if the monster is resistant to a specific damage type.
-        
+
         Args:
             damage_type: The damage type to check
-            
+
         Returns:
             True if the monster is resistant to the damage type, False otherwise
         """
         return damage_type.lower() in [d.lower() for d in self.damage_resistances]
-    
+
     def __str__(self) -> str:
         """Return a string representation of the monster."""
         return f"{self.name} (CR {self.challenge_rating})"
-    
+
     def __repr__(self) -> str:
         """Return a detailed string representation of the monster."""
-        return (f"Monster(name='{self.name}', challenge_rating='{self.challenge_rating}', "
-                f"hp={self.hp}, ac={self.ac}, ability_scores={self.ability_scores}, "
-                f"damage_resistances={self.damage_resistances}, "
-                f"damage_immunities={self.damage_immunities}, "
-                f"special_abilities={self.special_abilities}, "
-                f"legendary_actions={self.legendary_actions}, "
-                f"multiattack={self.multiattack})")
+        return (
+            f"Monster(name='{self.name}', challenge_rating='{self.challenge_rating}', "
+            f"hp={self.hp}, ac={self.ac}, ability_scores={self.ability_scores}, "
+            f"damage_resistances={self.damage_resistances}, "
+            f"damage_immunities={self.damage_immunities}, "
+            f"special_abilities={self.special_abilities}, "
+            f"legendary_actions={self.legendary_actions}, "
+            f"multiattack={self.multiattack})"
+        )

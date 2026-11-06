@@ -25,12 +25,15 @@ class Buff:
         concentration: Whether this buff requires concentration
         metadata: Additional buff-specific data
     """
+
     name: str
     source: str
     duration_rounds: int = -1  # -1 = until end of combat
     bonus_dice: Optional[str] = None  # e.g., "1d4", "1d6", "1d8"
     bonus_static: int = 0
-    affects: List[str] = field(default_factory=list)  # ['attack_rolls', 'saving_throws', etc.]
+    affects: List[str] = field(
+        default_factory=list
+    )  # ['attack_rolls', 'saving_throws', etc.]
     concentration: bool = False
     metadata: Dict[str, Any] = field(default_factory=dict)
     rounds_remaining: int = field(init=False)
@@ -45,8 +48,8 @@ class Buff:
         if self.bonus_dice:
             # Parse dice notation (e.g., "1d4", "2d6")
             dice_str = self.bonus_dice.lower()
-            if 'd' in dice_str:
-                num, die = dice_str.split('d')
+            if "d" in dice_str:
+                num, die = dice_str.split("d")
                 num = int(num)
                 die = int(die)
                 rolls = [random.randint(1, die) for _ in range(num)]
@@ -80,6 +83,7 @@ class BuffManager:
     """
     Manages active buffs on a character or monster.
     """
+
     def __init__(self):
         self.active_buffs: List[Buff] = []
 
@@ -98,8 +102,7 @@ class BuffManager:
     def remove_concentration_buffs(self, caster: str) -> None:
         """Remove all concentration buffs from a specific caster."""
         self.active_buffs = [
-            b for b in self.active_buffs
-            if not (b.concentration and b.source == caster)
+            b for b in self.active_buffs if not (b.concentration and b.source == caster)
         ]
 
     def get_buffs_for(self, roll_type: str) -> List[Buff]:
@@ -145,7 +148,10 @@ class BuffManager:
 
     def get_condition(self, condition: str) -> Optional[Buff]:
         """Return the active buff representing a condition (e.g. 'paralyzed'), if any."""
-        return next((b for b in self.active_buffs if b.metadata.get('condition') == condition), None)
+        return next(
+            (b for b in self.active_buffs if b.metadata.get("condition") == condition),
+            None,
+        )
 
     def has_condition(self, condition: str) -> bool:
         """Check if a condition (e.g. 'paralyzed') is active."""
@@ -176,7 +182,7 @@ def create_bless_buff(caster_name: str, duration: int = 10) -> Buff:
         bonus_dice="1d4",
         affects=["attack_rolls", "saving_throws"],
         concentration=True,
-        metadata={"spell_level": 1}
+        metadata={"spell_level": 1},
     )
 
 
@@ -198,7 +204,7 @@ def create_bardic_inspiration_buff(bard_name: str, die_size: int = 6) -> Buff:
         bonus_dice=f"1d{die_size}",
         affects=["attack_rolls", "saving_throws", "ability_checks"],
         concentration=False,
-        metadata={"one_use": True, "die_size": die_size}
+        metadata={"one_use": True, "die_size": die_size},
     )
 
 
@@ -215,7 +221,7 @@ def create_guidance_buff(caster_name: str) -> Buff:
         bonus_dice="1d4",
         affects=["ability_checks"],
         concentration=True,
-        metadata={"one_use": True}
+        metadata={"one_use": True},
     )
 
 
@@ -232,7 +238,7 @@ def create_shield_of_faith_buff(caster_name: str) -> Buff:
         bonus_static=2,
         affects=["armor_class"],
         concentration=True,
-        metadata={"spell_level": 1}
+        metadata={"spell_level": 1},
     )
 
 
@@ -249,7 +255,7 @@ def create_haste_buff(caster_name: str) -> Buff:
         bonus_static=2,
         affects=["armor_class", "extra_action"],
         concentration=True,
-        metadata={"spell_level": 3, "advantage": ["saving_throws:dex"]}
+        metadata={"spell_level": 3, "advantage": ["saving_throws:dex"]},
     )
 
 
@@ -266,11 +272,13 @@ def create_heroism_buff(caster_name: str, caster_mod: int = 3) -> Buff:
         bonus_static=caster_mod,  # Temp HP each turn
         affects=["immunity_frightened", "temp_hp"],
         concentration=True,
-        metadata={"spell_level": 1, "temp_hp_per_round": caster_mod}
+        metadata={"spell_level": 1, "temp_hp_per_round": caster_mod},
     )
 
 
-def create_paralyzed_condition(source: str, save_type: str, save_dc: int, duration: int = 10) -> Buff:
+def create_paralyzed_condition(
+    source: str, save_type: str, save_dc: int, duration: int = 10
+) -> Buff:
     """
     Create the Paralyzed condition (e.g. from a ghoul's attack).
 
@@ -290,15 +298,15 @@ def create_paralyzed_condition(source: str, save_type: str, save_dc: int, durati
             "save_type": save_type,
             "save_dc": save_dc,
             "advantage": ["attacks_against"],
-        }
+        },
     )
 
 
 def is_paralyzed(creature: Any) -> bool:
     """True if the creature currently has the Paralyzed condition."""
-    buffs = getattr(creature, 'buffs', None)
+    buffs = getattr(creature, "buffs", None)
     # isinstance guards against test doubles whose auto-created attributes are truthy
-    return isinstance(buffs, BuffManager) and buffs.has_condition('paralyzed')
+    return isinstance(buffs, BuffManager) and buffs.has_condition("paralyzed")
 
 
 def create_stunned_condition(source: str) -> Buff:
@@ -317,7 +325,7 @@ def create_stunned_condition(source: str) -> Buff:
             "advantage": ["attacks_against"],
             "ends_after_turn_of": source,
             "turns_left": 2,  # the rest of the monk's current turn, then its next one
-        }
+        },
     )
 
 
@@ -330,7 +338,7 @@ def create_turned_condition(source: str, duration: int = 10) -> Buff:
         name="Turned",
         source=source,
         duration_rounds=duration,
-        metadata={"condition": "turned", "ends_on_damage": True}
+        metadata={"condition": "turned", "ends_on_damage": True},
     )
 
 
@@ -344,12 +352,20 @@ def create_unconscious_condition(source: str, duration: int = 10) -> Buff:
         name="Asleep",
         source=source,
         duration_rounds=duration,
-        metadata={"condition": "unconscious", "incapacitated": True, "fails_str_dex": True,
-                  "melee_crits": True, "ends_on_damage": True, "advantage": ["attacks_against"]}
+        metadata={
+            "condition": "unconscious",
+            "incapacitated": True,
+            "fails_str_dex": True,
+            "melee_crits": True,
+            "ends_on_damage": True,
+            "advantage": ["attacks_against"],
+        },
     )
 
 
-def create_restrained_condition(source: str, spell: str, escape_dc: int, duration: int = 10) -> Buff:
+def create_restrained_condition(
+    source: str, spell: str, escape_dc: int, duration: int = 10
+) -> Buff:
     """
     Restrained by Entangle or Web while the caster concentrates: speed 0, attacks against it have
     advantage, and it has disadvantage on attacks and DEX saves. It can use its action for a STR
@@ -360,8 +376,14 @@ def create_restrained_condition(source: str, spell: str, escape_dc: int, duratio
         source=source,
         duration_rounds=duration,
         concentration=True,
-        metadata={"condition": "restrained", "spell": spell, "escape_dc": escape_dc, "speed_zero": True,
-                  "advantage": ["attacks_against"], "disadvantage": ["attack_rolls", "saving_throws:dex"]}
+        metadata={
+            "condition": "restrained",
+            "spell": spell,
+            "escape_dc": escape_dc,
+            "speed_zero": True,
+            "advantage": ["attacks_against"],
+            "disadvantage": ["attack_rolls", "saving_throws:dex"],
+        },
     )
 
 
@@ -375,8 +397,13 @@ def create_hypnotized_condition(source: str, duration: int = 10) -> Buff:
         source=source,
         duration_rounds=duration,
         concentration=True,
-        metadata={"condition": "hypnotized", "charmed": True, "incapacitated": True, "speed_zero": True,
-                  "ends_on_damage": True}
+        metadata={
+            "condition": "hypnotized",
+            "charmed": True,
+            "incapacitated": True,
+            "speed_zero": True,
+            "ends_on_damage": True,
+        },
     )
 
 
@@ -386,14 +413,22 @@ def create_prone_condition(source: str) -> Buff:
     disadvantage from farther away (see rolls.attack_roll), and its own attacks have disadvantage.
     It lasts until the creature stands up at the start of its turn, which costs half its speed.
     """
-    return Buff(name="Prone", source=source, duration_rounds=-1,
-                metadata={"condition": "prone", "disadvantage": ["attack_rolls"]})
+    return Buff(
+        name="Prone",
+        source=source,
+        duration_rounds=-1,
+        metadata={"condition": "prone", "disadvantage": ["attack_rolls"]},
+    )
 
 
 def create_stood_up_effect() -> Buff:
     """Standing up from prone used half the creature's movement this turn."""
-    return Buff(name="Stood Up", source="", duration_rounds=1,
-                metadata={"half_speed": True, "until_own_turn_end": True})
+    return Buff(
+        name="Stood Up",
+        source="",
+        duration_rounds=1,
+        metadata={"half_speed": True, "until_own_turn_end": True},
+    )
 
 
 def create_infernal_wound(source: str, dice: str) -> Buff:
@@ -401,8 +436,12 @@ def create_infernal_wound(source: str, dice: str) -> Buff:
     A horned devil's infernal wound: the creature loses hit points (dice) at the start of each of
     its turns. Each further hit from the tail adds to it, and magical healing closes it.
     """
-    return Buff(name="Infernal Wound", source=source, duration_rounds=-1,
-                metadata={"condition": "infernal_wound", "wound_dice": [dice]})
+    return Buff(
+        name="Infernal Wound",
+        source=source,
+        duration_rounds=-1,
+        metadata={"condition": "infernal_wound", "wound_dice": [dice]},
+    )
 
 
 def create_poisoned_condition(source: str) -> Buff:
@@ -410,8 +449,16 @@ def create_poisoned_condition(source: str) -> Buff:
     Poisoned by a ghast's Stench until the start of the creature's next turn: disadvantage on
     its attack rolls.
     """
-    return Buff(name="Poisoned", source=source, duration_rounds=-1,
-                metadata={"condition": "poisoned", "disadvantage": ["attack_rolls"], "until_turn_start": True})
+    return Buff(
+        name="Poisoned",
+        source=source,
+        duration_rounds=-1,
+        metadata={
+            "condition": "poisoned",
+            "disadvantage": ["attack_rolls"],
+            "until_turn_start": True,
+        },
+    )
 
 
 def create_mummy_rot(source: str) -> Buff:
@@ -419,34 +466,46 @@ def create_mummy_rot(source: str) -> Buff:
     Cursed with mummy rot: the creature can't regain hit points (its maximum also withers every 24
     hours, which never matters within a fight). Only Remove Curse ends it.
     """
-    return Buff(name="Mummy Rot", source=source, duration_rounds=-1,
-                metadata={"condition": "mummy_rot", "no_healing": True})
+    return Buff(
+        name="Mummy Rot",
+        source=source,
+        duration_rounds=-1,
+        metadata={"condition": "mummy_rot", "no_healing": True},
+    )
 
 
 def cannot_regain_hp(creature: Any) -> bool:
     """True if the creature can't regain hit points (mummy rot)."""
-    return has_flag(creature, 'no_healing')
+    return has_flag(creature, "no_healing")
 
 
 def is_prone(creature: Any) -> bool:
     """True if the creature is prone."""
-    return _has(creature, 'prone')
+    return _has(creature, "prone")
 
 
 def close_wounds(creature: Any) -> List[str]:
     """Magical healing closes infernal wounds. Returns the names of the effects ended."""
-    buffs = getattr(creature, 'buffs', None)
+    buffs = getattr(creature, "buffs", None)
     if not isinstance(buffs, BuffManager):
         return []
-    closed = [b.name for b in buffs.active_buffs if b.metadata.get('condition') == 'infernal_wound']
+    closed = [
+        b.name
+        for b in buffs.active_buffs
+        if b.metadata.get("condition") == "infernal_wound"
+    ]
     if closed:
-        buffs.active_buffs = [b for b in buffs.active_buffs if b.metadata.get('condition') != 'infernal_wound']
+        buffs.active_buffs = [
+            b
+            for b in buffs.active_buffs
+            if b.metadata.get("condition") != "infernal_wound"
+        ]
     return closed
 
 
 def has_condition(creature: Any, condition: str) -> bool:
     """True if the creature has the named condition ('restrained', 'poisoned', ...)."""
-    buffs = getattr(creature, 'buffs', None)
+    buffs = getattr(creature, "buffs", None)
     return isinstance(buffs, BuffManager) and buffs.has_condition(condition)
 
 
@@ -455,61 +514,77 @@ _has = has_condition
 
 def is_stunned(creature: Any) -> bool:
     """True if the creature currently has the Stunned condition."""
-    return _has(creature, 'stunned')
+    return _has(creature, "stunned")
 
 
 def is_turned(creature: Any) -> bool:
     """True if the creature is turned (Turn Undead)."""
-    return _has(creature, 'turned')
+    return _has(creature, "turned")
 
 
 def has_flag(creature: Any, flag: str) -> bool:
     """True if any active effect on the creature sets this metadata flag."""
-    buffs = getattr(creature, 'buffs', None)
-    return isinstance(buffs, BuffManager) and any(b.metadata.get(flag) for b in buffs.active_buffs)
+    buffs = getattr(creature, "buffs", None)
+    return isinstance(buffs, BuffManager) and any(
+        b.metadata.get(flag) for b in buffs.active_buffs
+    )
 
 
 def is_incapacitated(creature: Any) -> bool:
     """Paralyzed, stunned, asleep (Sleep) and hypnotized creatures are incapacitated: no actions
     or reactions."""
-    return is_paralyzed(creature) or is_stunned(creature) or has_flag(creature, 'incapacitated')
+    return (
+        is_paralyzed(creature)
+        or is_stunned(creature)
+        or has_flag(creature, "incapacitated")
+    )
 
 
 def fails_str_dex_saves(creature: Any) -> bool:
     """Paralyzed, stunned and unconscious creatures automatically fail STR and DEX saves."""
-    return is_paralyzed(creature) or is_stunned(creature) or has_flag(creature, 'fails_str_dex')
+    return (
+        is_paralyzed(creature)
+        or is_stunned(creature)
+        or has_flag(creature, "fails_str_dex")
+    )
 
 
 def melee_hits_crit(creature: Any) -> bool:
     """Hits from within 5 ft against a paralyzed or unconscious creature are critical hits."""
-    return is_paralyzed(creature) or has_flag(creature, 'melee_crits')
+    return is_paralyzed(creature) or has_flag(creature, "melee_crits")
 
 
 def is_spellbound(creature: Any) -> bool:
     """Out of the fight until it takes damage (turned, asleep, hypnotized): best left alone while
     there are other enemies."""
-    return has_flag(creature, 'ends_on_damage')
+    return has_flag(creature, "ends_on_damage")
 
 
 def cannot_move(creature: Any) -> bool:
     """Restrained or hypnotized: speed 0."""
-    return has_flag(creature, 'speed_zero')
+    return has_flag(creature, "speed_zero")
 
 
 def end_on_damage(creature: Any) -> List[str]:
     """Damage ends turning, magical sleep and Hypnotic Pattern. Returns the names of the effects ended."""
-    buffs = getattr(creature, 'buffs', None)
+    buffs = getattr(creature, "buffs", None)
     if not isinstance(buffs, BuffManager):
         return []
-    ended = [b.name for b in buffs.active_buffs if b.metadata.get('ends_on_damage')]
+    ended = [b.name for b in buffs.active_buffs if b.metadata.get("ends_on_damage")]
     if ended:
-        buffs.active_buffs = [b for b in buffs.active_buffs if not b.metadata.get('ends_on_damage')]
+        buffs.active_buffs = [
+            b for b in buffs.active_buffs if not b.metadata.get("ends_on_damage")
+        ]
     return ended
 
 
 def metadata_total(creature: Any, key: str) -> int:
     """Sum of a numeric metadata value over the creature's active effects (Magic Weapon's +1)."""
-    buffs = getattr(creature, 'buffs', None)
+    buffs = getattr(creature, "buffs", None)
     if not isinstance(buffs, BuffManager):
         return 0
-    return sum(b.metadata.get(key, 0) for b in buffs.active_buffs if isinstance(b.metadata.get(key, 0), int))
+    return sum(
+        b.metadata.get(key, 0)
+        for b in buffs.active_buffs
+        if isinstance(b.metadata.get(key, 0), int)
+    )

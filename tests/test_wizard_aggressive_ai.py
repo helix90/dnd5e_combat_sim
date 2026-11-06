@@ -1,6 +1,7 @@
 """
 Test that wizards use offensive spells aggressively in early rounds.
 """
+
 from models.character import Character
 from models.monster import Monster
 from models.spells import Spell
@@ -18,11 +19,18 @@ class TestWizardAggressiveAI:
             level=5,
             character_class="Wizard",
             race="Elf",
-            ability_scores={'str': 8, 'dex': 14, 'con': 12, 'int': 18, 'wis': 12, 'cha': 10},
+            ability_scores={
+                "str": 8,
+                "dex": 14,
+                "con": 12,
+                "int": 18,
+                "wis": 12,
+                "cha": 10,
+            },
             hp=28,
             ac=13,
             proficiency_bonus=3,
-            spell_slots={'1': 4, '2': 3, '3': 2}
+            spell_slots={"1": 4, "2": 3, "3": 2},
         )
 
         # Add offensive spells
@@ -33,10 +41,10 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="150 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': True},
+            components={"verbal": True, "somatic": True, "material": True},
             damage_dice="8d6",
             damage_type="fire",
-            save_type="dex"
+            save_type="dex",
         )
 
         scorching_ray = Spell(
@@ -46,10 +54,10 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="120 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="6d6",
             damage_type="fire",
-            is_attack_spell=True
+            is_attack_spell=True,
         )
 
         magic_missile = Spell(
@@ -59,9 +67,9 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="120 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="3d4",
-            damage_type="force"
+            damage_type="force",
         )
 
         fire_bolt = Spell(
@@ -71,10 +79,10 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="120 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="2d10",
             damage_type="fire",
-            is_attack_spell=True
+            is_attack_spell=True,
         )
 
         wizard.add_spell(fireball)
@@ -88,7 +96,14 @@ class TestWizardAggressiveAI:
             challenge_rating="1",
             hp=15,
             ac=13,
-            ability_scores={'str': 16, 'dex': 12, 'con': 16, 'int': 7, 'wis': 11, 'cha': 10}
+            ability_scores={
+                "str": 16,
+                "dex": 12,
+                "con": 16,
+                "int": 7,
+                "wis": 11,
+                "cha": 10,
+            },
         )
 
         # Create AI strategy
@@ -96,26 +111,30 @@ class TestWizardAggressiveAI:
 
         # Test rounds 1-5 (early combat)
         for round_num in range(1, 6):
-            combat_state = {
-                'allies': [],
-                'enemies': [enemy],
-                'round': round_num
-            }
+            combat_state = {"allies": [], "enemies": [enemy], "round": round_num}
 
             action = ai.choose_action(wizard, combat_state)
 
             # Wizard should cast a leveled spell (not a cantrip)
-            assert action['type'] == 'cast_spell', f"Round {round_num}: Expected cast_spell, got {action['type']}"
+            assert (
+                action["type"] == "cast_spell"
+            ), f"Round {round_num}: Expected cast_spell, got {action['type']}"
 
-            spell_action = action['spell']
+            spell_action = action["spell"]
             spell = spell_action.spell
 
             # Should be a leveled damage spell, not a cantrip
-            assert spell.level > 0, f"Round {round_num}: Wizard used cantrip {spell.name} instead of leveled spell"
-            assert spell.damage_dice is not None, f"Round {round_num}: Spell {spell.name} has no damage"
+            assert (
+                spell.level > 0
+            ), f"Round {round_num}: Wizard used cantrip {spell.name} instead of leveled spell"
+            assert (
+                spell.damage_dice is not None
+            ), f"Round {round_num}: Spell {spell.name} has no damage"
 
             # Choosing doesn't spend a slot, so the highest-level spell is always on offer
-            assert spell.name == 'Fireball', f"Round {round_num}: Should use Fireball, used {spell.name}"
+            assert (
+                spell.name == "Fireball"
+            ), f"Round {round_num}: Should use Fireball, used {spell.name}"
 
     def test_wizard_falls_back_to_cantrips_after_early_rounds(self):
         """Test that wizards conserve spell slots after round 5."""
@@ -124,11 +143,18 @@ class TestWizardAggressiveAI:
             level=5,
             character_class="Wizard",
             race="Elf",
-            ability_scores={'str': 8, 'dex': 14, 'con': 12, 'int': 18, 'wis': 12, 'cha': 10},
+            ability_scores={
+                "str": 8,
+                "dex": 14,
+                "con": 12,
+                "int": 18,
+                "wis": 12,
+                "cha": 10,
+            },
             hp=28,
             ac=13,
             proficiency_bonus=3,
-            spell_slots={'1': 4, '2': 3, '3': 2}
+            spell_slots={"1": 4, "2": 3, "3": 2},
         )
 
         # Add spells
@@ -139,10 +165,10 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="150 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': True},
+            components={"verbal": True, "somatic": True, "material": True},
             damage_dice="8d6",
             damage_type="fire",
-            save_type="dex"
+            save_type="dex",
         )
 
         fire_bolt = Spell(
@@ -152,10 +178,10 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="120 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="2d10",
             damage_type="fire",
-            is_attack_spell=True
+            is_attack_spell=True,
         )
 
         wizard.add_spell(fireball)
@@ -163,13 +189,14 @@ class TestWizardAggressiveAI:
 
         # Add Fire Bolt as an action (so it can be selected as cantrip)
         from models.actions import AttackAction
+
         fire_bolt_action = AttackAction(
             name="Fire Bolt",
             description="Ranged spell attack",
             weapon_name="Fire Bolt",
             damage_dice="2d10",
             damage_type="fire",
-            weapon_type="ranged"
+            weapon_type="ranged",
         )
         wizard.actions.append(fire_bolt_action)
 
@@ -178,23 +205,26 @@ class TestWizardAggressiveAI:
             challenge_rating="1",
             hp=15,
             ac=13,
-            ability_scores={'str': 16, 'dex': 12, 'con': 16, 'int': 7, 'wis': 11, 'cha': 10}
+            ability_scores={
+                "str": 16,
+                "dex": 12,
+                "con": 16,
+                "int": 7,
+                "wis": 11,
+                "cha": 10,
+            },
         )
 
         ai = PartyAIStrategy()
 
         # Test round 6 (after aggressive phase)
-        combat_state = {
-            'allies': [],
-            'enemies': [enemy],
-            'round': 6
-        }
+        combat_state = {"allies": [], "enemies": [enemy], "round": 6}
 
         action = ai.choose_action(wizard, combat_state)
 
         # Should cast the Fire Bolt cantrip to conserve spell slots
-        assert action['type'] == 'cast_spell'
-        assert action['spell'].spell.name == 'Fire Bolt'
+        assert action["type"] == "cast_spell"
+        assert action["spell"].spell.name == "Fire Bolt"
 
     def test_cleric_not_affected_by_aggressive_strategy(self):
         """Test that clerics (who have healing) don't use aggressive spell strategy."""
@@ -203,11 +233,18 @@ class TestWizardAggressiveAI:
             level=5,
             character_class="Cleric",
             race="Human",
-            ability_scores={'str': 14, 'dex': 10, 'con': 14, 'int': 10, 'wis': 18, 'cha': 12},
+            ability_scores={
+                "str": 14,
+                "dex": 10,
+                "con": 14,
+                "int": 10,
+                "wis": 18,
+                "cha": 12,
+            },
             hp=38,
             ac=18,
             proficiency_bonus=3,
-            spell_slots={'1': 4, '2': 3, '3': 2}
+            spell_slots={"1": 4, "2": 3, "3": 2},
         )
 
         # Add both healing and offensive spells
@@ -218,9 +255,9 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="Touch",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="1d8",
-            healing=True
+            healing=True,
         )
 
         sacred_flame = Spell(
@@ -230,10 +267,10 @@ class TestWizardAggressiveAI:
             casting_time="1 action",
             range="60 feet",
             duration="Instantaneous",
-            components={'verbal': True, 'somatic': True, 'material': False},
+            components={"verbal": True, "somatic": True, "material": False},
             damage_dice="2d8",
             damage_type="radiant",
-            save_type="dex"
+            save_type="dex",
         )
 
         cleric.add_spell(cure_wounds)
@@ -241,13 +278,14 @@ class TestWizardAggressiveAI:
 
         # Add Sacred Flame as an action
         from models.actions import AttackAction
+
         sacred_flame_action = AttackAction(
             name="Sacred Flame",
             description="Ranged spell attack",
             weapon_name="Sacred Flame",
             damage_dice="2d8",
             damage_type="radiant",
-            weapon_type="ranged"
+            weapon_type="ranged",
         )
         cleric.actions.append(sacred_flame_action)
 
@@ -256,21 +294,24 @@ class TestWizardAggressiveAI:
             challenge_rating="1",
             hp=15,
             ac=13,
-            ability_scores={'str': 16, 'dex': 12, 'con': 16, 'int': 7, 'wis': 11, 'cha': 10}
+            ability_scores={
+                "str": 16,
+                "dex": 12,
+                "con": 16,
+                "int": 7,
+                "wis": 11,
+                "cha": 10,
+            },
         )
 
         ai = PartyAIStrategy()
 
         # Test round 1 (early combat)
-        combat_state = {
-            'allies': [],
-            'enemies': [enemy],
-            'round': 1
-        }
+        combat_state = {"allies": [], "enemies": [enemy], "round": 1}
 
         action = ai.choose_action(cleric, combat_state)
 
         # Cleric should NOT use aggressive strategy (has healing spells)
         # Should cast the Sacred Flame cantrip instead of a levelled spell
-        assert action['type'] == 'cast_spell'
-        assert action['spell'].spell.name == 'Sacred Flame'
+        assert action["type"] == "cast_spell"
+        assert action["spell"].spell.name == "Sacred Flame"

@@ -6,6 +6,7 @@ lines from the creature's edge toward each enemy, from where it stands or a squa
 to) and scores each by the damage it's expected to do to enemies, minus damage to allies, which
 count for more. See docs/arena-plan.md.
 """
+
 import math
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -30,38 +31,44 @@ CONTROL_WEIGHT = 0.5
 # Sleep's average pool of hit points (5d8)
 SLEEP_AVERAGE_POOL = 22.5
 # Conditions control spells give, and the immunity that stops each one
-CONTROL_EFFECTS = {'sleep': ('unconscious', 'charmed'), 'restrain': ('restrained', 'restrained'),
-                   'hypnotic_pattern': ('hypnotized', 'charmed')}
+CONTROL_EFFECTS = {
+    "sleep": ("unconscious", "charmed"),
+    "restrain": ("restrained", "restrained"),
+    "hypnotic_pattern": ("hypnotized", "charmed"),
+}
 
 
 @dataclass
 class Aim:
     """Where to stand and how to place an area, what it catches and what that's worth."""
+
     value: float
     square: Square
     origin: Point
     toward: Optional[Point]
-    hits: List[Tuple[Any, str]] = field(default_factory=list)  # (creature, cover from the origin)
+    hits: List[Tuple[Any, str]] = field(
+        default_factory=list
+    )  # (creature, cover from the origin)
 
     def plan_fields(self) -> Dict[str, Any]:
-        aim = {'origin': list(self.origin)}
+        aim = {"origin": list(self.origin)}
         if self.toward is not None:
-            aim['toward'] = [round(v, 3) for v in self.toward]
-        return {'aim': aim, 'target': [creature for creature, _ in self.hits]}
+            aim["toward"] = [round(v, 3) for v in self.toward]
+        return {"aim": aim, "target": [creature for creature, _ in self.hits]}
 
 
 class _Effect:
     """The damage and save of an area action or spell, for estimating what it does."""
 
     def __init__(self, creature: Any, action: Any) -> None:
-        spell = getattr(action, 'spell', None)
+        spell = getattr(action, "spell", None)
         if spell is not None:
             self.dice = spell.damage_dice
             self.damage_type = spell.damage_type
             self.save_type = spell.save_type
             self.dc = spell.get_save_dc(creature) if spell.save_type else None
             self.half_on_save = spell.name in HALF_ON_SAVE_SPELLS
-            self.control = CONTROL_EFFECTS.get(getattr(spell, 'effect', None))
+            self.control = CONTROL_EFFECTS.get(getattr(spell, "effect", None))
         else:
             self.dice = action.damage_dice
             self.damage_type = action.damage_type
@@ -72,21 +79,31 @@ class _Effect:
         self.average = _average(self.dice)
 
     def _saves(self, target: Any, cover: str) -> float:
-        bonus = target.saving_throw_bonus(self.save_type) if hasattr(target, 'saving_throw_bonus') else 0
-        if self.save_type == 'dex':
+        bonus = (
+            target.saving_throw_bonus(self.save_type)
+            if hasattr(target, "saving_throw_bonus")
+            else 0
+        )
+        if self.save_type == "dex":
             bonus += COVER_AC_BONUS.get(cover, 0)
         return min(0.95, max(0.05, (21 + bonus - self.dc) / 20))
 
     def _controlled(self, target: Any, cover: str) -> float:
         """What a control spell is worth against a creature: the chance it's affected times part of its HP."""
         condition, immunity = self.control
-        buffs = getattr(target, 'buffs', None)
-        if immunity in (getattr(target, 'condition_immunities', None) or []) or \
-                (hasattr(buffs, 'has_condition') and buffs.has_condition(condition)):
+        buffs = getattr(target, "buffs", None)
+        if immunity in (getattr(target, "condition_immunities", None) or []) or (
+            hasattr(buffs, "has_condition") and buffs.has_condition(condition)
+        ):
             return 0.0
-        hp = max(getattr(target, 'hp', 0), 0)
-        if condition == 'unconscious':
-            return CONTROL_WEIGHT * hp if hp <= SLEEP_AVERAGE_POOL and getattr(target, 'creature_type', None) != 'undead' else 0.0
+        hp = max(getattr(target, "hp", 0), 0)
+        if condition == "unconscious":
+            return (
+                CONTROL_WEIGHT * hp
+                if hp <= SLEEP_AVERAGE_POOL
+                and getattr(target, "creature_type", None) != "undead"
+                else 0.0
+            )
         return CONTROL_WEIGHT * hp * (1 - self._saves(target, cover))
 
     def expected(self, target: Any, cover: str) -> float:
@@ -99,11 +116,11 @@ class _Effect:
         if self.save_type and self.dc:
             saves = self._saves(target, cover)
             damage *= (1 - saves) + (0.5 * saves if self.half_on_save else 0)
-        if self.damage_type in getattr(target, 'damage_immunities', []):
+        if self.damage_type in getattr(target, "damage_immunities", []):
             return 0.0
-        if self.damage_type in getattr(target, 'damage_resistances', []):
+        if self.damage_type in getattr(target, "damage_resistances", []):
             damage /= 2
-        return min(damage, max(getattr(target, 'hp', damage), 0))
+        return min(damage, max(getattr(target, "hp", damage), 0))
 
 
 def _average(dice: Optional[str]) -> float:
@@ -126,7 +143,9 @@ def _turned(origin: Point, toward: Point, angle: float) -> Point:
     return (origin[0] + dx * cos - dy * sin, origin[1] + dx * sin + dy * cos)
 
 
-def _score(bf: Battlefield, creature: Any, effect: _Effect, hits: List[Tuple[Any, str]]) -> float:
+def _score(
+    bf: Battlefield, creature: Any, effect: _Effect, hits: List[Tuple[Any, str]]
+) -> float:
     value = 0.0
     for target, cover in hits:
         damage = effect.expected(target, cover)
@@ -134,22 +153,34 @@ def _score(bf: Battlefield, creature: Any, effect: _Effect, hits: List[Tuple[Any
     return value
 
 
-def _placed_aims(bf: Battlefield, creature: Any, area: Area, enemies: List[Any]) -> List[Point]:
+def _placed_aims(
+    bf: Battlefield, creature: Any, area: Area, enemies: List[Any]
+) -> List[Point]:
     """Sphere centres or cube corners worth trying: around each enemy's squares."""
     points = set()
     for enemy in enemies:
         for x, y in bf.placements[enemy].squares():
-            if area.shape == 'cube':
+            if area.shape == "cube":
                 n = area.size // 5
-                points |= {(float(x - i), float(y - j)) for i in range(n) for j in range(n)}
+                points |= {
+                    (float(x - i), float(y - j)) for i in range(n) for j in range(n)
+                }
             else:
-                points |= {(float(x + i), float(y + j)) for i in range(-SPHERE_SPREAD, SPHERE_SPREAD + 2)
-                           for j in range(-SPHERE_SPREAD, SPHERE_SPREAD + 2)}
+                points |= {
+                    (float(x + i), float(y + j))
+                    for i in range(-SPHERE_SPREAD, SPHERE_SPREAD + 2)
+                    for j in range(-SPHERE_SPREAD, SPHERE_SPREAD + 2)
+                }
     return sorted(points)
 
 
-def aim_area(bf: Battlefield, creature: Any, action: Any, squares: Dict[Square, int],
-             penalty: Optional[Callable[[Square], float]] = None) -> Optional[Aim]:
+def aim_area(
+    bf: Battlefield,
+    creature: Any,
+    action: Any,
+    squares: Dict[Square, int],
+    penalty: Optional[Callable[[Square], float]] = None,
+) -> Optional[Aim]:
     """
     The best way to use an area action or spell this turn, standing where the creature is or
     on one of `squares` (reachable squares and their movement cost). `penalty(square)` is taken
@@ -165,8 +196,13 @@ def aim_area(bf: Battlefield, creature: Any, action: Any, squares: Dict[Square, 
     here = bf.position(creature)
     best: Optional[Aim] = None
 
-    def consider(value: float, square: Square, origin: Point, toward: Optional[Point],
-                 hits: List[Tuple[Any, str]]) -> None:
+    def consider(
+        value: float,
+        square: Square,
+        origin: Point,
+        toward: Optional[Point],
+        hits: List[Tuple[Any, str]],
+    ) -> None:
         nonlocal best
         if not any(bf.is_enemy(creature, t) for t, _ in hits):
             return
@@ -181,20 +217,31 @@ def aim_area(bf: Battlefield, creature: Any, action: Any, squares: Dict[Square, 
         def nearest_enemy(square: Square) -> float:
             placement = bf.placement(creature, square)
             return min(bf.arena.distance(placement, bf.placements[e]) for e in enemies)
-        options = sorted((s for s in squares if s != here), key=lambda s: (nearest_enemy(s), squares[s], s))
+
+        options = sorted(
+            (s for s in squares if s != here),
+            key=lambda s: (nearest_enemy(s), squares[s], s),
+        )
         for square in [here] + options[:CONE_SQUARES]:
             if nearest_enemy(square) > area.size:
                 continue
             edges = bf.arena.edge_points(bf.placement(creature, square))
             for enemy in enemies:
-                if bf.arena.distance(bf.placement(creature, square), bf.placements[enemy]) > area.size:
+                if (
+                    bf.arena.distance(
+                        bf.placement(creature, square), bf.placements[enemy]
+                    )
+                    > area.size
+                ):
                     continue
                 target = _center(min(bf.placements[enemy].squares()))
                 origin = min(edges, key=lambda p: (math.dist(p, target), p))
                 for angle in CONE_TURNS:
                     toward = _turned(origin, target, angle)
                     hits = bf.area_hits(creature, area, origin, toward, at=square)
-                    consider(_score(bf, creature, effect, hits), square, origin, toward, hits)
+                    consider(
+                        _score(bf, creature, effect, hits), square, origin, toward, hits
+                    )
         return best
 
     # Spheres and cubes: score each placement from where the creature stands (its own position
@@ -212,7 +259,11 @@ def aim_area(bf: Battlefield, creature: Any, action: Any, squares: Dict[Square, 
         if bf.can_aim(creature, area, range_feet, origin):
             consider(value, here, origin, None, hits)
         else:
-            within = [s for s in squares if bf.can_aim(creature, area, range_feet, origin, at=s)]
+            within = [
+                s
+                for s in squares
+                if bf.can_aim(creature, area, range_feet, origin, at=s)
+            ]
             if within:
                 square = min(within, key=lambda s: (squares[s], s))
                 hits = bf.area_hits(creature, area, origin, at=square)

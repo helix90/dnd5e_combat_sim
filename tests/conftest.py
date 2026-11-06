@@ -7,6 +7,7 @@ Test-wide setup:
   decide the dice of the tests after it;
 - `client` is a test client for the app.
 """
+
 import os
 import random
 import tempfile
@@ -15,8 +16,10 @@ import pytest
 
 # Set before anything imports utils.logging, which opens the log file on import, or creates a
 # DatabaseManager, which reads DATABASE_URL
-os.environ.setdefault('LOG_DIR', tempfile.mkdtemp(prefix='dnd5e-test-logs-'))
-os.environ['DATABASE_URL'] = 'sqlite:///' + os.path.join(tempfile.mkdtemp(prefix='dnd5e-test-db-'), 'test.db')
+os.environ.setdefault("LOG_DIR", tempfile.mkdtemp(prefix="dnd5e-test-logs-"))
+os.environ["DATABASE_URL"] = "sqlite:///" + os.path.join(
+    tempfile.mkdtemp(prefix="dnd5e-test-db-"), "test.db"
+)
 
 from ai import errors  # noqa: E402
 
@@ -33,6 +36,7 @@ def restore_random_state():
 @pytest.fixture
 def client():
     from app import app as flask_app
-    flask_app.config['TESTING'] = True
+
+    flask_app.config["TESTING"] = True
     with flask_app.test_client() as client:
         yield client

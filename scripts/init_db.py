@@ -13,5 +13,5 @@ def init_db(db_path=None):
     print(f"Database ready at {db_path}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     init_db()

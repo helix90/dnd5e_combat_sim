@@ -1,4 +1,5 @@
 """Test buff and status effect system."""
+
 from models.buffs import Buff, BuffManager, create_bless_buff
 from models.character import Character
 from models.spell_manager import SpellManager
@@ -14,7 +15,7 @@ class TestBuffSystem:
             source="Caster",
             duration_rounds=5,
             bonus_dice="1d4",
-            affects=["attack_rolls"]
+            affects=["attack_rolls"],
         )
         assert buff.name == "Test Buff"
         assert buff.source == "Caster"
@@ -26,7 +27,7 @@ class TestBuffSystem:
             name="Static Buff",
             source="Caster",
             bonus_static=2,
-            affects=["attack_rolls"]
+            affects=["attack_rolls"],
         )
         assert buff.roll_bonus() == 2
 
@@ -35,7 +36,7 @@ class TestBuffSystem:
             name="Dice Buff",
             source="Caster",
             bonus_dice="1d4",
-            affects=["attack_rolls"]
+            affects=["attack_rolls"],
         )
         for _ in range(10):
             bonus = dice_buff.roll_bonus()
@@ -56,10 +57,7 @@ class TestBuffSystem:
 
         # Add a static bonus buff
         buff1 = Buff(
-            name="Buff 1",
-            source="Caster1",
-            bonus_static=2,
-            affects=["attack_rolls"]
+            name="Buff 1", source="Caster1", bonus_static=2, affects=["attack_rolls"]
         )
         manager.add_buff(buff1)
 
@@ -76,7 +74,7 @@ class TestBuffSystem:
             source="Caster",
             duration_rounds=2,
             bonus_static=1,
-            affects=["attack_rolls"]
+            affects=["attack_rolls"],
         )
         manager.add_buff(buff)
         assert len(manager) == 1
@@ -98,7 +96,7 @@ class TestBuffSystem:
             source="Wizard",
             concentration=True,
             bonus_static=1,
-            affects=["attack_rolls"]
+            affects=["attack_rolls"],
         )
         manager.add_buff(buff1)
         assert manager.has_buff("Concentration Buff 1")
@@ -109,7 +107,7 @@ class TestBuffSystem:
             source="Wizard",
             concentration=True,
             bonus_static=2,
-            affects=["saving_throws"]
+            affects=["saving_throws"],
         )
         manager.add_buff(buff2)
 
@@ -137,11 +135,18 @@ class TestBuffSystem:
             level=1,
             character_class="Fighter",
             race="Human",
-            ability_scores={'str': 16, 'dex': 14, 'con': 14, 'int': 10, 'wis': 10, 'cha': 10},
+            ability_scores={
+                "str": 16,
+                "dex": 14,
+                "con": 14,
+                "int": 10,
+                "wis": 10,
+                "cha": 10,
+            },
             hp=12,
             ac=16,
-            proficiency_bonus=2
+            proficiency_bonus=2,
         )
 
-        assert hasattr(character, 'buffs')
+        assert hasattr(character, "buffs")
         assert isinstance(character.buffs, BuffManager)
