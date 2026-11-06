@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
+{% from '_macros.html' import difficulty_badge, encounter_label, outcome_badge, party_label %}
 {% block content %}
-<div class="container">
   <h2>Batch Simulation Results</h2>
   
   {% if results.batch %}
@@ -11,7 +11,7 @@
           <h5>Batch Summary</h5>
         </div>
         <div class="card-body">
-          <table class="table table-borderless">
+          <table class="table table-borderless table-sm mb-0">
             <tr>
               <td><strong>Batch Name:</strong></td>
               <td>{{ results.batch.batch_name }}</td>
@@ -21,16 +21,20 @@
               <td>{{ results.batch.total_runs }}</td>
             </tr>
             <tr>
-              <td><strong>Party Level:</strong></td>
-              <td>{{ results.batch.party_level }}</td>
+              <td><strong>Encounter:</strong></td>
+              <td>{{ encounter_label(results.batch) }}</td>
             </tr>
             <tr>
-              <td><strong>Encounter Type:</strong></td>
-              <td>{{ results.batch.encounter_type }}</td>
+              <td><strong>Party:</strong></td>
+              <td>{{ party_label(results.batch) }}</td>
             </tr>
             <tr>
-              <td><strong>Arena:</strong></td>
-              <td>{{ results.batch.arena or 'None' }}</td>
+              <td><strong>DMG Rating:</strong></td>
+              <td>{{ difficulty_badge(results.batch.predicted_difficulty, results.batch.encounter_xp) }}</td>
+            </tr>
+            <tr>
+              <td><strong>Battlefield:</strong></td>
+              <td>{{ results.batch.arena or 'No map' }}</td>
             </tr>
             <tr>
               <td><strong>Created:</strong></td>
@@ -147,13 +151,7 @@
                 <tr>
                   <td>{{ run.run_number }}</td>
                   <td>
-                    {% if run.result == 'party' %}
-                      <span class="badge bg-success">Party Win</span>
-                    {% elif run.result == 'monsters' %}
-                      <span class="badge bg-danger">Monster Win</span>
-                    {% else %}
-                      <span class="badge bg-secondary">{{ run.result }}</span>
-                    {% endif %}
+                    {{ outcome_badge(run.result) }}
                   </td>
                   <td>{{ run.rounds }}</td>
                   <td>{{ run.party_hp_remaining }}</td>
@@ -176,10 +174,10 @@
     <div class="col-12">
       <div class="d-flex justify-content-between">
         <a href="{{ url_for('batch_simulation') }}" class="btn btn-primary">
-          <i class="fas fa-plus"></i> New Batch Simulation
+          New Batch Simulation
         </a>
         <a href="{{ url_for('batch_simulation_history') }}" class="btn btn-outline-secondary">
-          <i class="fas fa-history"></i> View All Batches
+          View All Batches
         </a>
       </div>
     </div>
@@ -192,5 +190,4 @@
     <a href="{{ url_for('batch_simulation') }}" class="btn btn-primary">Start New Batch</a>
   </div>
   {% endif %}
-</div>
 {% endblock %} 

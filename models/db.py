@@ -88,7 +88,24 @@ class DatabaseManager:
         ("batch_simulations", "arena", "TEXT"),
         ("simulations", "replay", "BLOB"),
         ("batch_simulations", "baseline_batch_id", "INTEGER"),
+    ] + [
+        (table, column, kind)
+        for table in ("simulations", "batch_simulations")
+        for column, kind in (
+            ("encounter_name", "TEXT"),
+            ("party_name", "TEXT"),
+            ("predicted_difficulty", "TEXT"),
+            ("encounter_xp", "INTEGER"),
+        )
     ]
+
+    # What was fought, saved with each fight and batch (see fight_details in app.py)
+    FIGHT_DETAILS = (
+        "encounter_name",
+        "party_name",
+        "predicted_difficulty",
+        "encounter_xp",
+    )
 
     def _add_missing_columns(self, conn: sqlite3.Connection) -> None:
         for table, column, kind in self.ADDED_COLUMNS:
@@ -481,8 +498,8 @@ class DatabaseManager:
         cursor = conn.execute(
             """
             INSERT INTO simulations (session_id, party_level, encounter_type, result, rounds, party_hp_remaining, arena,
-                                     replay)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                     replay, encounter_name, party_name, predicted_difficulty, encounter_xp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 session_id,
@@ -493,6 +510,7 @@ class DatabaseManager:
                 result.get("party_hp_remaining", 0),
                 result.get("arena"),
                 self._pack_replay(result.get("replay")),
+                *(result.get(column) for column in self.FIGHT_DETAILS),
             ),
         )
         sim_id = cursor.lastrowid
@@ -671,18 +689,22 @@ class DatabaseManager:
         encounter_type: str,
         arena: Optional[str] = None,
         baseline_batch_id: Optional[int] = None,
+        details: Optional[Dict[str, Any]] = None,
     ) -> int:
         """
         Create a new batch simulation record (arena: map name, or None for no arena;
-        baseline_batch_id: the batch fighting the same encounter without the arena).
+        baseline_batch_id: the batch fighting the same encounter without the arena;
+        details: what's fought, as in FIGHT_DETAILS).
         """
+        details = details or {}
         try:
             start_time = time.time()
             with self._get_connection() as conn:
                 cursor = conn.execute(
                     """
-                    INSERT INTO batch_simulations (session_id, batch_name, party_level, encounter_type, total_runs, party_wins, monster_wins, average_rounds, average_party_hp_remaining, arena, baseline_batch_id)
-                    VALUES (?, ?, ?, ?, 0, 0, 0, 0.0, 0.0, ?, ?)
+                    INSERT INTO batch_simulations (session_id, batch_name, party_level, encounter_type, total_runs, party_wins, monster_wins, average_rounds, average_party_hp_remaining, arena, baseline_batch_id,
+                                                   encounter_name, party_name, predicted_difficulty, encounter_xp)
+                    VALUES (?, ?, ?, ?, 0, 0, 0, 0.0, 0.0, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         session_id,
@@ -691,6 +713,7 @@ class DatabaseManager:
                         encounter_type,
                         arena,
                         baseline_batch_id,
+                        *(details.get(column) for column in self.FIGHT_DETAILS),
                     ),
                 )
                 batch_id = cursor.lastrowid

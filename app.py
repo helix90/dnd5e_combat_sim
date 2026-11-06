@@ -6,6 +6,7 @@ between characters and monsters.
 """
 
 # Standard library imports
+from collections import Counter
 import json
 import logging
 import os
@@ -267,6 +268,60 @@ def load_monsters_from_session() -> List[Any]:
     return session.get("encounter_monsters", [])
 
 
+def describe_monsters(monsters: List[Dict[str, Any]]) -> str:
+    """A custom encounter's monsters, e.g. "6× Goblin · 1× Bugbear"."""
+    counts = Counter(m.get("name", "Unknown") for m in monsters)
+    return " · ".join(f"{count}× {name}" for name, count in counts.items())
+
+
+def encounter_name_from_session() -> str:
+    """The selected pre-built encounter's name, or a custom encounter's monsters."""
+    return session.get("selected_encounter") or describe_monsters(
+        load_monsters_from_session()
+    )
+
+
+def current_setup() -> Dict[str, Any]:
+    """The party and encounter the next fight will use, for the pages that start fights."""
+    party_id = session.get("selected_party_id", DEFAULT_PARTY_ID)
+    try:
+        party_name = PartyLoader.get_party_by_id(party_id).get("name")
+    except ValidationError:
+        party_name = None
+    return {
+        "party_name": party_name,
+        "party_level": session.get("selected_party_level", DEFAULT_PARTY_LEVEL),
+        "encounter_name": encounter_name_from_session(),
+    }
+
+
+def fight_details(party: List[Any], party_level: int) -> Dict[str, Any]:
+    """
+    What's being fought, saved with each fight and batch: whether the encounter is pre-built or
+    custom, its name, the party's name, and the DMG's difficulty rating of the encounter for
+    this party (from its XP).
+    """
+    # The party was loaded from the session already, so it exists
+    party_id = session.get("selected_party_id", DEFAULT_PARTY_ID)
+    party_name = PartyLoader.get_party_by_id(party_id).get("name")
+    monsters = load_monsters_from_session()
+    # No rating rather than a wrong one if a monster's CR is missing
+    rating = (
+        encounter_controller.builder.calculate_encounter_difficulty(
+            monsters, party_level, len(party)
+        )
+        if all("cr" in m for m in monsters)
+        else {}
+    )
+    return {
+        "encounter_type": "prebuilt" if session.get("selected_encounter") else "custom",
+        "encounter_name": encounter_name_from_session(),
+        "party_name": party_name,
+        "predicted_difficulty": rating.get("difficulty"),
+        "encounter_xp": rating.get("total_xp"),
+    }
+
+
 # Security Headers
 
 
@@ -291,7 +346,9 @@ def add_security_headers(response: Response) -> Response:
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-        "font-src 'self' https://cdn.jsdelivr.net data:"
+        "font-src 'self' https://cdn.jsdelivr.net data:; "
+        # Bootstrap draws its menu button, dropdown arrows and checkbox ticks as data: images
+        "img-src 'self' data:"
     )
     return response
 
@@ -849,6 +906,7 @@ def simulate() -> Any:
                 session_id,
                 party_level=party_level,
                 arena_name=load_arena_from_session(),
+                details=fight_details(party, party_level),
             )
         except ValidationError as e:
             flash(f"Validation error: {str(e)}", "danger")
@@ -908,6 +966,7 @@ def batch_simulation() -> str:
     return render_template(
         "batch_simulation.html",
         arena=load_arena_from_session(),
+        setup=current_setup(),
         **battlefield_context(),
     )
 
@@ -926,7 +985,12 @@ def batch_simulation_start() -> Tuple[Any, int]:
             num_runs = int(data.get("num_runs", 10))
         except (TypeError, ValueError):
             raise ValidationError("Number of runs must be a whole number")
-        batch_name = data.get("batch_name", f"Batch {int(time.time())}")
+        # Named after the encounter unless given a name
+        batch_name = (
+            data.get("batch_name")
+            or encounter_name_from_session()
+            or f"Batch {int(time.time())}"
+        )
 
         if num_runs < MIN_BATCH_RUNS or num_runs > MAX_BATCH_RUNS:
             raise ValidationError(
@@ -935,7 +999,7 @@ def batch_simulation_start() -> Tuple[Any, int]:
 
         # Load party and monsters from session
         session_id = session["session_id"]
-        party, _ = load_party_from_session()
+        party, party_level = load_party_from_session()
         monsters = load_monsters_from_session()
 
         if not party or not monsters:
@@ -956,6 +1020,7 @@ def batch_simulation_start() -> Tuple[Any, int]:
                 session_id,
                 arena_name=load_arena_from_session(),
                 compare_without_arena=bool(data.get("compare_without_arena")),
+                details=fight_details(party, party_level),
             )
         except ValueError as e:  # the controller's input checks, e.g. an unknown map
             raise ValidationError(str(e))

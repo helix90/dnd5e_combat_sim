@@ -1,39 +1,66 @@
 {% extends 'base.html' %}
+{% from '_macros.html' import difficulty_badge, outcome_class, outcome_headline, encounter_label, party_label %}
 {% block content %}
+{% if not sim_id %}
 <h2>Simulation Results</h2>
-{% if sim_id %}
 <div class="alert alert-info">
-  <strong>Simulation ID:</strong> {{ sim_id }}
-  <span class="ms-3"><strong>Arena:</strong> {{ arena or 'None' }}</span>
+  No simulation found. <a href="{{ url_for('encounter_selection') }}" class="alert-link">Choose an encounter</a> and run one.
 </div>
-{% endif %}
-<div class="mb-3">
-  <h4 id="win-loss">{{ summary.win_loss or 'No result data' }}</h4>
-  <div>Party Status: {{ summary.party_status or 'No data' }}</div>
+{% else %}
+<div class="card mb-3 border-{{ outcome_class(summary.result) }}" data-simulation-id="{{ sim_id }}">
+  <div class="card-body">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+      <div>
+        <h2 class="mb-1 text-{{ outcome_class(summary.result) }}" id="win-loss">{{ outcome_headline(summary.result, summary.rounds) }}</h2>
+        <div class="text-muted">{{ encounter_label(summary) }} against {{ party_label(summary) }}</div>
+      </div>
+      <div class="text-end small text-muted">Simulation #{{ sim_id }}<br>{{ summary.created_at }}</div>
+    </div>
+    <div class="row row-cols-2 row-cols-md-4 g-3 mt-1">
+      <div class="col">
+        <div class="small text-muted">DMG rating</div>
+        <div>{{ difficulty_badge(summary.predicted_difficulty, summary.encounter_xp) }}</div>
+      </div>
+      <div class="col">
+        <div class="small text-muted">Rounds</div>
+        <div class="fs-5">{{ summary.rounds }}</div>
+      </div>
+      <div class="col">
+        <div class="small text-muted">Party HP left</div>
+        <div class="fs-5">{{ summary.party_hp_remaining }}</div>
+      </div>
+      <div class="col">
+        <div class="small text-muted">Battlefield</div>
+        <div>{{ arena or 'No map' }}</div>
+      </div>
+    </div>
+  </div>
 </div>
-<div class="mb-3">
-  <button id="statsButton" class="btn btn-primary mb-2">Show Detailed Statistics</button>
-  <div id="statsContent" class="d-none">
-    <!-- Statistics table -->
+
+<div class="card mb-3">
+  <div class="card-header"><h5 class="mb-0">Statistics</h5></div>
+  <div class="card-body">
     {% if statistics and statistics|length > 0 %}
-    <table class="table table-striped">
-      <thead><tr><th>Character</th><th>Damage Dealt</th><th>Damage Taken</th><th>Spells Cast</th><th>Crits</th><th>Misses</th><th>Healing</th></tr></thead>
-      <tbody>
-      {% for stat in statistics %}
-        <tr>
-          <td>{{ stat.name }}</td>
-          <td>{{ stat.damage_dealt }}</td>
-          <td>{{ stat.damage_taken }}</td>
-          <td>{{ stat.spells_cast }}</td>
-          <td>{{ stat.crits }}</td>
-          <td>{{ stat.misses }}</td>
-          <td>{{ stat.healing }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-sm table-striped mb-0">
+        <thead><tr><th>Creature</th><th class="text-end">Damage Dealt</th><th class="text-end">Damage Taken</th><th class="text-end">Spells Cast</th><th class="text-end">Crits</th><th class="text-end">Misses</th><th class="text-end">Healing</th></tr></thead>
+        <tbody>
+        {% for stat in statistics %}
+          <tr>
+            <td>{{ stat.name }}</td>
+            <td class="text-end">{{ stat.damage_dealt }}</td>
+            <td class="text-end">{{ stat.damage_taken }}</td>
+            <td class="text-end">{{ stat.spells_cast }}</td>
+            <td class="text-end">{{ stat.crits }}</td>
+            <td class="text-end">{{ stat.misses }}</td>
+            <td class="text-end">{{ stat.healing }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% else %}
-    <div>No statistics available.</div>
+    <div class="text-muted">No statistics available.</div>
     {% endif %}
   </div>
 </div>
@@ -69,51 +96,29 @@
 {% endif %}
 
 <div class="mb-3">
-  <button id="logButton" class="btn btn-primary mb-2">Show Detailed Combat Log</button>
-  <div id="logContent" class="d-none">
-    <pre style="height: 300px; overflow-y: scroll;">{% for entry in log %}{{ entry }}
+  <button id="logButton" class="btn btn-outline-secondary mb-2" type="button" data-bs-toggle="collapse"
+          data-bs-target="#logContent" aria-expanded="false" aria-controls="logContent">Show Detailed Combat Log</button>
+  <div id="logContent" class="collapse">
+    <pre class="bg-light border rounded p-2" style="height: 300px; overflow-y: scroll;">{% for entry in log %}{{ entry }}
 {% endfor %}</pre>
   </div>
 </div>
-<div class="mb-3">
+<div class="d-flex flex-wrap gap-2 mb-4">
   <a href="{{ url_for('encounter_selection') }}" class="btn btn-primary">New Encounter</a>
   <a href="{{ url_for('party') }}" class="btn btn-secondary">New Party</a>
   <a href="{{ url_for('results_export', sim_id=sim_id) }}" class="btn btn-outline-success">Export Results</a>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  const statsButton = document.getElementById('statsButton');
+const logContent = document.getElementById('logContent');
+if (logContent) {
   const logButton = document.getElementById('logButton');
-  const statsContent = document.getElementById('statsContent');
-  const logContent = document.getElementById('logContent');
-  
-  if (statsButton && statsContent) {
-    statsButton.addEventListener('click', function() {
-      if (statsContent.classList.contains('d-none')) {
-        statsContent.classList.remove('d-none');
-        statsButton.textContent = 'Hide Detailed Statistics';
-      } else {
-        statsContent.classList.add('d-none');
-        statsButton.textContent = 'Show Detailed Statistics';
-      }
-    });
-  }
-  
-  if (logButton && logContent) {
-    logButton.addEventListener('click', function() {
-      if (logContent.classList.contains('d-none')) {
-        logContent.classList.remove('d-none');
-        logButton.textContent = 'Hide Detailed Combat Log';
-      } else {
-        logContent.classList.add('d-none');
-        logButton.textContent = 'Show Detailed Combat Log';
-      }
-    });
-  }
-});
+  logContent.addEventListener('show.bs.collapse', () => { logButton.textContent = 'Hide Detailed Combat Log'; });
+  logContent.addEventListener('hide.bs.collapse', () => { logButton.textContent = 'Show Detailed Combat Log'; });
+}
 </script>
 {% if replay %}
 <script src="{{ url_for('static', filename='js/arena_map.js') }}"></script>

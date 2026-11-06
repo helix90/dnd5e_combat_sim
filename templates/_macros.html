@@ -1,0 +1,46 @@
+{# Shared pieces for the results and history pages #}
+
+{% set DIFFICULTY_CLASSES = {'trivial': 'bg-secondary', 'easy': 'bg-success', 'medium': 'bg-info text-dark',
+                             'hard': 'bg-warning text-dark', 'deadly': 'bg-danger'} %}
+
+{# The DMG's rating of the encounter for the party, with its adjusted XP. Fights saved before
+   ratings were recorded have none. #}
+{% macro difficulty_badge(difficulty, xp=None) -%}
+  {%- if difficulty -%}
+    <span class="badge {{ DIFFICULTY_CLASSES.get(difficulty, 'bg-secondary') }}">{{ difficulty|capitalize }}</span>
+    {%- if xp is not none %} <small class="text-muted">{{ xp }} XP</small>{% endif %}
+  {%- else -%}
+    <span class="text-muted">Not recorded</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{# A fight's result as stored: 'party', 'monsters', or 'unknown' when it hit the round limit #}
+{% macro outcome_class(result) -%}
+  {{ {'party': 'success', 'monsters': 'danger'}.get(result, 'secondary') }}
+{%- endmacro %}
+
+{% macro outcome_badge(result) -%}
+  <span class="badge bg-{{ outcome_class(result) }}">
+    {{- {'party': 'Party won', 'monsters': 'Party lost'}.get(result, 'No winner') -}}
+  </span>
+{%- endmacro %}
+
+{% macro outcome_headline(result, rounds) -%}
+  {%- set rounds_text = rounds ~ (' round' if rounds == 1 else ' rounds') -%}
+  {%- if result == 'party' -%}Party victory in {{ rounds_text }}
+  {%- elif result == 'monsters' -%}Party defeated in {{ rounds_text }}
+  {%- else -%}No winner after {{ rounds_text }}
+  {%- endif -%}
+{%- endmacro %}
+
+{# The encounter's name; fights saved before names were recorded only have "custom" #}
+{% macro encounter_label(record) -%}
+  {%- if record.encounter_name -%}{{ record.encounter_name }}
+  {%- else -%}<span class="text-muted">Not recorded</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro party_label(record) -%}
+  {%- if record.party_name %}{{ record.party_name }}, level {{ record.party_level }}
+  {%- else %}Level {{ record.party_level }}{% endif -%}
+{%- endmacro %}

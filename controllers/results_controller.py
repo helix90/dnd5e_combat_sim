@@ -22,6 +22,14 @@ class ResultsController:
                     "party_level": sim.get("party_level", 0),
                     "created_at": sim.get("created_at", ""),
                     "id": sim.get("id", 0),
+                    "result": sim.get("result"),
+                    "rounds": sim.get("rounds", 0),
+                    "party_hp_remaining": sim.get("party_hp_remaining", 0),
+                    "arena": sim.get("arena"),
+                    **{
+                        column: sim.get(column)
+                        for column in DatabaseManager.FIGHT_DETAILS
+                    },
                 }
             else:
                 formatted_sim = {
