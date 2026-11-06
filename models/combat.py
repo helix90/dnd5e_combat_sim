@@ -113,8 +113,6 @@ class Combat:
                 self.ai_strategy_map[p] = MonsterAIStrategy()
         # Cache for initiative rolls and other calculations
         self._initiative_cache = {}
-        self._alive_participants_cache = None
-        self._last_alive_check = 0
         self.tactical = TacticalAnalyzer()
         # True while the creature taking its turn has Disengaged (no opportunity attacks)
         self._disengaged = False
@@ -192,13 +190,8 @@ class Combat:
         }
 
     def _get_alive_participants(self) -> List[Any]:
-        """Get alive participants with caching for efficiency."""
-        if self._alive_participants_cache is None or self._last_alive_check != self.current_round:
-            self._alive_participants_cache = [
-                p for p in self.participants if p.is_alive() or self._will_regenerate(p)
-            ]
-            self._last_alive_check = self.current_round
-        return self._alive_participants_cache
+        """Participants still in the fight: alive, or down but about to regenerate."""
+        return [p for p in self.participants if p.is_alive() or self._will_regenerate(p)]
 
     def _will_regenerate(self, participant: Any) -> bool:
         """True for a creature at 0 HP that will get back up at the start of its next turn."""
@@ -232,7 +225,6 @@ class Combat:
                 stopped = types & {t.lower() for t in creature.regeneration.get('suppressed_by', [])}
                 if stopped:
                     self._regen_suppressed.setdefault(creature, set()).update(stopped)
-                    self._alive_participants_cache = None
 
     @staticmethod
     def _damage_dealt_to(result: Dict[str, Any], creature: Any) -> int:
@@ -264,7 +256,6 @@ class Combat:
         else:
             healed = regain_hp(participant, int(regen.get('hp', 0)), magical=False)
             description = f"regenerates {healed} HP" + (" and gets back up" if was_down else "")
-        self._alive_participants_cache = None
         return {
             'action': 'Regeneration',
             'type': 'condition',
@@ -296,8 +287,6 @@ class Combat:
         self.initiative_order = [x[3] for x in rolls]
         self.current_turn = 0
         self.current_round = 1
-        # Clear alive cache since initiative order changed
-        self._alive_participants_cache = None
 
     def next_turn(self) -> Optional[Any]:
         """
@@ -325,7 +314,6 @@ class Combat:
                 if start + i >= n:
                     self.current_round += 1
                     self.logger.log_round_start(self.current_round)
-                    self._alive_participants_cache = None
                     # Tick buffs on all alive participants at the start of each round
                     for p in alive_set:
                         if hasattr(p, 'buffs'):
@@ -426,7 +414,6 @@ class Combat:
         self._note_regeneration_damage(hp_before, result)
         self.logger.log_action(caster, result, self.current_round)
         self._log_pending_entries()
-        self._alive_participants_cache = None
         return not participant.is_alive()
 
     def _infernal_wound(self, participant: Any) -> bool:
@@ -448,7 +435,6 @@ class Combat:
             'action': 'Infernal Wound', 'type': 'condition', 'condition': 'infernal_wound', 'hp_lost': lost,
             'description': f"loses {lost} HP to an infernal wound" + ('' if participant.is_alive() else ' and goes down'),
         }, self.current_round)
-        self._alive_participants_cache = None
         return not participant.is_alive()
 
     def _stench(self, participant: Any) -> None:
@@ -632,7 +618,6 @@ class Combat:
                 for entry in entries:
                     self.logger.log_action(creature, entry, self.current_round)
                 entries.clear()
-                self._alive_participants_cache = None
 
     def _has_active_ally(self, participant: Any, target: Any = None) -> bool:
         """
@@ -873,8 +858,6 @@ class Combat:
         result.update({'action': f"Cast {name}", 'spell': name, 'type': 'spell',
                        'target': getattr(target, 'name', str(target)), 'bonus_action_spell': True})
         self._note_regeneration_damage(hp_before, result)
-        if result.get('damage', 0) > 0:
-            self._alive_participants_cache = None
         self.logger.log_action(participant, result, self.current_round)
         self._log_pending_entries()
         return name
@@ -951,8 +934,6 @@ class Combat:
         if sneak_dice and self._can_sneak_attack(attacker, action, result, target):
             self._add_sneak_attack(result, target, sneak_dice)
         result['reaction'] = 'Opportunity Attack'
-        if result.get('damage', 0) > 0:
-            self._alive_participants_cache = None
         self._note_regeneration_damage(hp_before, result)
         self.logger.log_action(attacker, result, self.current_round)
         self._log_pending_entries()
@@ -1079,11 +1060,6 @@ class Combat:
                 result.update(notes)
             else:
                 result = self._attack(participant, action, target, {})
-            # Clear alive cache after damage-dealing action
-            # Check both 'damage' (single-target) and 'total_damage' (AoE like dragon breath)
-            damage = result.get('total_damage', result.get('damage', 0))
-            if damage > 0:
-                self._alive_participants_cache = None
             return result
         elif action_type == 'cast_spell':
             spell = action_plan['spell']
@@ -1095,8 +1071,6 @@ class Combat:
                 result = self._execute_area(participant, spell, action_plan,
                                             lambda targets, bonuses: spell.execute(participant, targets,
                                                                                    save_bonuses=bonuses))
-                if result.get('total_damage', result.get('damage', 0)) > 0:
-                    self._alive_participants_cache = None
                 return result
             if self.battlefield is not None and not getattr(spell.spell, 'area_effect', False):
                 if isinstance(target, list):
@@ -1124,12 +1098,6 @@ class Combat:
                 options['other_targets'] = self._projectile_targets(participant, spell.spell, target)
             result = spell.execute(participant, target, **options)
             result.update(notes)
-            # Clear alive cache after spell action
-            # Check both 'damage' (single-target) and 'total_damage' (AoE)
-            damage = result.get('total_damage', result.get('damage', 0))
-            healing = result.get('healing', 0)
-            if damage > 0 or healing > 0:
-                self._alive_participants_cache = None
             return result
         elif action_type == 'special':
             # Handle special actions
@@ -1141,9 +1109,6 @@ class Combat:
             if action_name.lower() == 'multiattack' and hasattr(participant, 'actions'):
                 # Execute multiattack: perform multiple individual attacks
                 result = self._execute_multiattack(participant, target, action)
-                # Clear alive cache after damage-dealing action
-                if result.get('total_damage', 0) > 0:
-                    self._alive_participants_cache = None
                 return result
             else:
                 # Other special actions (not yet implemented)
@@ -1158,8 +1123,6 @@ class Combat:
                 return {'action': 'Turn Undead', 'type': 'wait', 'success': False, 'reason': 'out of range',
                         'description': 'has no undead within 30 ft to turn'}
             result = feature_rules.turn_undead(participant, undead)
-            if result['destroyed']:
-                self._alive_participants_cache = None
             return result
         elif action_type == 'defend':
             return {
@@ -1277,8 +1240,6 @@ class Combat:
                 feature_rules.stunning_strike(participant, attack, target)
                 stunned = attack['stunning_strike']['stunned']
                 self._note_feature(f"Stunning Strike: {target.name} " + ('is stunned' if stunned else 'resists'))
-        if attack.get('damage', 0) > 0:
-            self._alive_participants_cache = None
         return attack
 
     @staticmethod
