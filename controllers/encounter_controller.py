@@ -4,7 +4,7 @@ import json
 import copy
 import logging
 from typing import Dict, List, Any, Optional
-from utils.exceptions import ValidationError, APIError
+from utils.exceptions import ValidationError
 from utils.logging import log_exception
 from utils.paths import data_path
 
@@ -177,7 +177,6 @@ class EncounterController:
 
         Raises:
             ValidationError: If validation or encounter creation fails
-            APIError: If template file cannot be accessed
         """
         # Input validation
         self._validate_encounter_inputs(party_level, party_size)
