@@ -70,3 +70,11 @@
 
 {# A win rate (see win_rate in controllers/batch_simulation_controller.py) with its interval #}
 {% macro interval(rate) -%}{{ '%.0f'|format(rate.low) }}–{{ '%.0f'|format(rate.high) }}%{%- endmacro %}
+
+{# A stored timestamp (UTC, "YYYY-MM-DD HH:MM:SS"), shown in the reader's time zone by base.html's
+   script, or in UTC without it #}
+{% macro when(value) -%}
+  {%- if value -%}
+  <time class="local-time text-nowrap" datetime="{{ value|string|replace(' ', 'T') }}Z">{{ (value|string)[:16] }} UTC</time>
+  {%- endif -%}
+{%- endmacro %}

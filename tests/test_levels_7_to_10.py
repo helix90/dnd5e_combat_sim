@@ -386,7 +386,7 @@ def test_the_party_page_offers_levels_up_to_10():
     flask_app.config["TESTING"] = True
     with flask_app.test_client() as client:
         page = client.get("/party").get_data(as_text=True)
-        assert '<option value="10"' in page and '<option value="11"' not in page
+        assert 'id="level-10"' in page and 'id="level-11"' not in page
         client.post("/party", data={"party_id": "2", "party_level": "9"})
         with client.session_transaction() as s:
             assert s["selected_party_level"] == 9

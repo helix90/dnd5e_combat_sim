@@ -1,0 +1,116 @@
+/* The app's look on top of Bootstrap 5.3: parchment pages, white cards, crimson for actions, serif
+   headings, and a dark theme (data-bs-theme="dark" on <html>, chosen in base.html). Party blue
+   and monster red, for data, are in charts.css and arena_map.js. */
+
+:root,
+[data-bs-theme="light"] {
+  --app-crimson: #8e1b2c;
+  --app-crimson-dark: #6b1421;
+  --app-card-bg: #fffdf8;
+
+  --bs-body-bg: #f7f3ea;
+  --bs-body-bg-rgb: 247, 243, 234;
+  --bs-tertiary-bg: #efe9dc;
+  --bs-tertiary-bg-rgb: 239, 233, 220;
+  --bs-primary: var(--app-crimson);
+  --bs-primary-rgb: 142, 27, 44;
+  --bs-primary-text-emphasis: #5a1019;
+  --bs-primary-bg-subtle: #f6e0e3;
+  --bs-primary-border-subtle: #e2a9b2;
+  --bs-link-color: var(--app-crimson);
+  --bs-link-color-rgb: 142, 27, 44;
+  --bs-link-hover-color: var(--app-crimson-dark);
+  --bs-link-hover-color-rgb: 107, 20, 33;
+  --bs-focus-ring-color: rgba(142, 27, 44, .25);
+}
+
+[data-bs-theme="dark"] {
+  --app-crimson: #c43a4f;
+  --app-crimson-dark: #a32c3f;
+  --app-card-bg: #1d1c1a;
+
+  --bs-body-bg: #151413;
+  --bs-body-bg-rgb: 21, 20, 19;
+  --bs-tertiary-bg: #26241f;
+  --bs-tertiary-bg-rgb: 38, 36, 31;
+  --bs-primary: #e0727f;
+  --bs-primary-rgb: 224, 114, 127;
+  --bs-primary-text-emphasis: #eea2ab;
+  --bs-primary-bg-subtle: #2e1015;
+  --bs-primary-border-subtle: #7a2433;
+  --bs-link-color: #ec8f9a;
+  --bs-link-color-rgb: 236, 143, 154;
+  --bs-link-hover-color: #f4b3ba;
+  --bs-link-hover-color-rgb: 244, 179, 186;
+  --bs-focus-ring-color: rgba(224, 114, 127, .3);
+}
+
+/* Type: serif headings; everything else, numbers included, stays in the system sans */
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6, .navbar-brand {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+}
+h1, h2, .h1, .h2 { font-weight: 600; letter-spacing: -.01em; }
+
+/* Cards and tables sit on white (dark: a step up from the page) */
+.card { --bs-card-bg: var(--app-card-bg); }
+.table { --bs-table-bg: transparent; }
+.modal { --bs-modal-bg: var(--app-card-bg); }
+
+/* The menu bar: dark in both themes */
+.app-nav { background: #2a1d1a; border-bottom: 3px solid var(--app-crimson); }
+.app-nav .navbar-brand { color: #f3e6c8; font-weight: 600; }
+.theme-toggle { --bs-btn-color: #e9dfcc; --bs-btn-border-color: rgba(233, 223, 204, .35);
+                --bs-btn-hover-bg: rgba(233, 223, 204, .12); --bs-btn-hover-color: #fff;
+                --bs-btn-hover-border-color: rgba(233, 223, 204, .5); }
+
+/* Crimson actions */
+.btn-primary {
+  --bs-btn-bg: var(--app-crimson); --bs-btn-border-color: var(--app-crimson);
+  --bs-btn-hover-bg: var(--app-crimson-dark); --bs-btn-hover-border-color: var(--app-crimson-dark);
+  --bs-btn-active-bg: var(--app-crimson-dark); --bs-btn-active-border-color: var(--app-crimson-dark);
+  --bs-btn-disabled-bg: var(--app-crimson); --bs-btn-disabled-border-color: var(--app-crimson);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--bs-primary); --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg: var(--app-crimson); --bs-btn-hover-border-color: var(--app-crimson); --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: var(--app-crimson); --bs-btn-active-border-color: var(--app-crimson); --bs-btn-active-color: #fff;
+  --bs-btn-disabled-color: var(--bs-primary); --bs-btn-disabled-border-color: var(--bs-primary);
+  --bs-btn-focus-shadow-rgb: var(--bs-primary-rgb);
+}
+.form-check-input:checked { background-color: var(--app-crimson); border-color: var(--app-crimson); }
+.form-control:focus, .form-select:focus, .form-check-input:focus {
+  border-color: var(--bs-primary-border-subtle); box-shadow: 0 0 0 .25rem var(--bs-focus-ring-color);
+}
+.form-range::-webkit-slider-thumb { background-color: var(--app-crimson); }
+.form-range::-moz-range-thumb { background-color: var(--app-crimson); }
+.progress { --bs-progress-bar-bg: var(--app-crimson); }
+.pagination {
+  --bs-pagination-color: var(--bs-link-color); --bs-pagination-hover-color: var(--bs-link-hover-color);
+  --bs-pagination-focus-color: var(--bs-link-hover-color); --bs-pagination-focus-box-shadow: 0 0 0 .25rem var(--bs-focus-ring-color);
+  --bs-pagination-active-bg: var(--app-crimson); --bs-pagination-active-border-color: var(--app-crimson);
+}
+.nav-tabs .nav-link.active { font-weight: 600; }
+
+/* The setup bar under the menu: where the next fight's party, encounter and battlefield come from */
+.setup-bar { background: var(--bs-tertiary-bg); border-bottom: 1px solid var(--bs-border-color); font-size: .875rem; }
+.setup-step { display: inline-flex; align-items: baseline; gap: .4rem; padding: .1rem .55rem; border-radius: 999px;
+              color: var(--bs-body-color); text-decoration: none; border: 1px solid transparent; }
+a.setup-step:hover { background: var(--bs-body-bg); border-color: var(--bs-border-color); }
+.setup-step.current { background: var(--bs-body-bg); border-color: var(--bs-primary-border-subtle); }
+.setup-step .step-number { display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: 50%;
+                           font-size: .75rem; font-weight: 600; background: var(--bs-secondary-bg); color: var(--bs-secondary-color); }
+.setup-step.done .step-number { background: var(--app-crimson); color: #fff; }
+.setup-step .step-value { font-weight: 600; }
+.setup-step .step-missing { color: var(--bs-secondary-color); font-style: italic; }
+.setup-arrow { color: var(--bs-secondary-color); }
+
+/* Selectable cards (party page): the whole card is the radio's label */
+.choice-card { cursor: pointer; transition: border-color .1s, box-shadow .1s; }
+.choice-card:hover { border-color: var(--bs-primary-border-subtle); }
+.btn-check:checked + .choice-card { border-color: var(--bs-primary); box-shadow: 0 0 0 .15rem rgba(var(--bs-primary-rgb), .3); }
+.btn-check:focus-visible + .choice-card { box-shadow: 0 0 0 .25rem var(--bs-focus-ring-color); }
+.btn-check + .btn-outline-secondary.level-choice { min-width: 2.5rem; }
+.btn-check:checked + .level-choice { --bs-btn-active-bg: var(--app-crimson); --bs-btn-active-border-color: var(--app-crimson); --bs-btn-active-color: #fff; }
+
+.stat-label { font-size: .8125rem; color: var(--bs-secondary-color); }
