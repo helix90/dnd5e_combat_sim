@@ -28,6 +28,7 @@ class BatchSimulationController:
         session_id: str,
         arena_name: str = None,
         compare_without_arena: bool = False,
+        details: Optional[Dict[str, Any]] = None,
     ):
         """
         Start a batch combat simulation in a background thread, on the named arena (a map in
@@ -36,6 +37,9 @@ class BatchSimulationController:
         With an arena and compare_without_arena, each run is fought again without the arena,
         saved as a second batch (the "baseline") that the first one points to, so the results
         page can show what the map changed.
+
+        details: what's fought, saved with the batches and every run: encounter_type and
+        FIGHT_DETAILS in models/db.py.
         """
         from utils.logging import logger
 
@@ -68,14 +72,19 @@ class BatchSimulationController:
             )
             for char in party
         )
-        encounter_type = "custom"  # Could be enhanced to detect prebuilt encounters
+        details = details or {}
+        encounter_type = details.get("encounter_type", "custom")
         logger.debug(
             f"Creating batch simulation record: party_level={party_level}, encounter_type={encounter_type}"
         )
         baseline_id = None
         if arena is not None and compare_without_arena:
             baseline_id = self.db.create_batch_simulation(
-                session_id, f"{batch_name} (no arena)", party_level, encounter_type
+                session_id,
+                f"{batch_name} (no arena)",
+                party_level,
+                encounter_type,
+                details=details,
             )
         batch_id = self.db.create_batch_simulation(
             session_id,
@@ -84,6 +93,7 @@ class BatchSimulationController:
             encounter_type,
             arena=arena_name or None,
             baseline_batch_id=baseline_id,
+            details=details,
         )
         logger.info(
             f"Created batch simulation with ID: {batch_id}"
@@ -156,6 +166,7 @@ class BatchSimulationController:
                                 character_objects + monster_objects, arena=fight_arena
                             )
                             result = combat.run()
+                            result.update(details)
                             logger.debug(
                                 f"Batch {target_id} run {run_number}: winner={result.get('winner', 'unknown')}, rounds={result.get('rounds', 0)}"
                             )

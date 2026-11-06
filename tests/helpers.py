@@ -33,4 +33,4 @@ def results_page(client) -> str:
 
 
 def shows_simulation(page: str, sim_id: int) -> bool:
-    return f"<strong>Simulation ID:</strong> {sim_id}" in page
+    return f'data-simulation-id="{sim_id}"' in page

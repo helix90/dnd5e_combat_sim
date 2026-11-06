@@ -84,6 +84,7 @@ class SimulationController:
         session_id: str,
         party_level: int,
         arena: Optional[Any] = None,
+        details: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Run the simulation in a background thread.
@@ -94,6 +95,7 @@ class SimulationController:
             session_id: Session identifier
             party_level: Level for the party
             arena: Arena to fight on, or None
+            details: What's fought, saved with the result (see fight_details in app.py)
         """
         try:
             logger.info(
@@ -129,6 +131,7 @@ class SimulationController:
                     self.simulation_states[session_id]["log"] = []
 
             # Save results to database
+            result.update(details or {})
             sim_id = self.save_simulation_results(result, session_id)
             logger.info(f"Simulation completed successfully, saved as ID {sim_id}")
 
@@ -163,6 +166,7 @@ class SimulationController:
         session_id: str,
         party_level: int = DEFAULT_PARTY_LEVEL,
         arena_name: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Execute a combat simulation in a background thread.
@@ -173,6 +177,7 @@ class SimulationController:
             session_id: Session identifier for tracking
             party_level: Level to use for all party members
             arena_name: Name of a map in data/arenas.json, or None to fight without positions
+            details: What's fought, saved with the result: encounter_type and FIGHT_DETAILS in models/db.py
 
         Raises:
             ValidationError: If input validation fails
@@ -200,7 +205,7 @@ class SimulationController:
         # Create and start thread
         t = threading.Thread(
             target=self._run_simulation_thread,
-            args=(party, monsters, session_id, party_level, arena),
+            args=(party, monsters, session_id, party_level, arena, details),
         )
         t.daemon = True  # Allow program to exit even if thread is running
         t.start()
