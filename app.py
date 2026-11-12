@@ -188,8 +188,9 @@ def validate_input(
                 if not re.match(r"^[0-9/]+$", value):
                     raise ValidationError(f"Invalid characters in field {key}")
             elif key in ("template_name", "batch_name"):
-                # Allow letters, numbers, spaces, apostrophes, and common punctuation for names
-                if not re.match(r"^[a-zA-Z0-9\s\'\-_.,!?()]+$", value):
+                # Names are free text (custom encounters are named like "6× Goblin · 1× Bugbear"),
+                # but not markup or control characters
+                if not value.isprintable() or re.search(r"[<>]", value):
                     raise ValidationError(f"Invalid characters in field {key}")
             else:
                 if not re.match(r"^[a-zA-Z0-9\s\-_.,!?()]+$", value):

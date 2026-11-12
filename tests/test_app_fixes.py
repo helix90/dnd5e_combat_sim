@@ -193,6 +193,15 @@ def test_batch_names_can_have_apostrophes(ready):
     assert batch.call_args.args[3] == "Wolf's test"
 
 
+def test_batch_names_can_be_a_custom_encounters_makeup(ready):
+    with patch(
+        "app.batch_simulation_controller.execute_batch_simulation", return_value=1
+    ) as batch:
+        name = "6× Goblin · 1× Bugbear"
+        assert start(ready, batch_name=name).status_code == 200
+    assert batch.call_args.args[3] == name
+
+
 def test_batch_names_still_reject_markup(ready):
     assert start(ready, batch_name="<b>bold</b>").status_code == 400
 
