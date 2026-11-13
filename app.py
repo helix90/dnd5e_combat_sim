@@ -1238,6 +1238,27 @@ def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
     )
 
 
+@app.route("/batch/results/<int:batch_id>/csv", methods=["GET"])
+@limiter.limit(RATE_LIMIT_RESULTS_EXPORT)
+def batch_results_csv(batch_id: int) -> Any:
+    """Download a batch's runs as CSV. 404 unless the batch belongs to this session."""
+    batch = db.get_batch_simulation(batch_id)
+    if not _session_owns(batch):
+        return (
+            render_template(
+                "error.html", error=f"Batch simulation {batch_id} not found"
+            ),
+            404,
+        )
+    name = re.sub(r"[^A-Za-z0-9]+", "-", batch["batch_name"] or "").strip("-").lower()
+    filename = f"batch-{batch_id}{'-' + name[:60] if name else ''}.csv"
+    return Response(
+        batch_simulation_controller.batch_csv(batch_id),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.route("/batch/history", methods=["GET"])
 def batch_simulation_history() -> Tuple[str, int]:
     """
