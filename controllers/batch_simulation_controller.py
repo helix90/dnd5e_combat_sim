@@ -18,6 +18,15 @@ from utils.stats import wilson_interval
 # Bin widths for the results page's histograms
 NICE_WIDTHS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000]
 
+# Batches running at once, for one visitor and for the whole server. Every batch shares the
+# server's one process (see the Dockerfile), so each one more slows them all.
+MAX_RUNNING_BATCHES_PER_USER = 2
+MAX_RUNNING_BATCHES = 4
+
+
+class TooManyBatches(Exception):
+    """A batch can't start until one already running finishes."""
+
 
 def win_rate(wins: int, runs: int) -> Dict[str, Any]:
     """The party's wins out of runs, as a percentage with its 95% confidence interval."""
@@ -99,6 +108,7 @@ class BatchSimulationController:
         self.batch_threads = {}  # batch_id -> thread
         self.batch_states = {}  # batch_id -> state dict
         self.state_lock = threading.Lock()  # Thread safety for shared state
+        self.running = Counter()  # session_id -> its batches running now
 
     def execute_batch_simulation(
         self,
@@ -143,6 +153,58 @@ class BatchSimulationController:
         arena = get_arena(arena_name)  # ValueError for an unknown map
 
         logger.debug("Input validation passed")
+
+        self._claim_batch_slot(session_id)
+        try:
+            return self._start_batch(
+                party,
+                monsters,
+                num_runs,
+                batch_name,
+                session_id,
+                arena_name,
+                arena,
+                compare_without_arena,
+                details,
+            )
+        except BaseException:
+            self._release_batch_slot(session_id)
+            raise
+
+    def _claim_batch_slot(self, session_id: str) -> None:
+        """Count a batch as running for session_id, or raise TooManyBatches."""
+        with self.state_lock:
+            if self.running[session_id] >= MAX_RUNNING_BATCHES_PER_USER:
+                raise TooManyBatches(
+                    f"You already have {MAX_RUNNING_BATCHES_PER_USER} batches running. "
+                    "Start another when one finishes."
+                )
+            if sum(self.running.values()) >= MAX_RUNNING_BATCHES:
+                raise TooManyBatches(
+                    "The server is busy running other batches. Try again in a few minutes."
+                )
+            self.running[session_id] += 1
+
+    def _release_batch_slot(self, session_id: str) -> None:
+        with self.state_lock:
+            self.running[session_id] -= 1
+            if self.running[session_id] <= 0:
+                del self.running[session_id]
+
+    def _start_batch(
+        self,
+        party,
+        monsters,
+        num_runs: int,
+        batch_name: str,
+        session_id: str,
+        arena_name: Optional[str],
+        arena,
+        compare_without_arena: bool,
+        details: Optional[Dict[str, Any]],
+    ) -> int:
+        """Save the batch's records and start its thread, which frees its slot when done."""
+        from utils.logging import logger
 
         # Create batch simulation record first
         party_level = max(
@@ -340,6 +402,8 @@ class BatchSimulationController:
                         "failed_runs": 0,
                         "total_runs": num_runs,
                     }
+            finally:
+                self._release_batch_slot(session_id)
 
         logger.debug(f"Batch {batch_id}: Starting background thread")
         t = threading.Thread(target=run)

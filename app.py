@@ -35,7 +35,10 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Local imports
-from controllers.batch_simulation_controller import BatchSimulationController
+from controllers.batch_simulation_controller import (
+    BatchSimulationController,
+    TooManyBatches,
+)
 from controllers.encounter_controller import EncounterController
 from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
@@ -63,10 +66,13 @@ SESSION_LIFETIME_HOURS = 24
 # Constants - Rate Limiting
 RATE_LIMIT_PER_DAY = "100000 per day"
 RATE_LIMIT_PER_HOUR = "10000 per hour"
-RATE_LIMIT_PARTY = "10 per minute"
-RATE_LIMIT_ENCOUNTER = "20 per minute"
+# Per visitor's address, on each route. Starting fights and batches costs the server's CPU;
+# choosing a party or an encounter is cheap, but limited too, as nobody needs to do it faster.
+# The pages' progress polls only have the defaults.
+RATE_LIMIT_PARTY = "30 per minute"
+RATE_LIMIT_ENCOUNTER = "60 per minute"
 RATE_LIMIT_SIMULATE = "10 per minute"
-RATE_LIMIT_STATUS = "30 per minute"
+RATE_LIMIT_BATCH_START = "10 per minute;60 per hour"
 RATE_LIMIT_API_MONSTERS = "100 per minute"
 RATE_LIMIT_API_BALANCE = "50 per minute"
 RATE_LIMIT_RESULTS_EXPORT = "20 per minute"
@@ -517,6 +523,7 @@ def render_party_page(status: int = 200) -> Tuple[str, int]:
 
 
 @app.route("/party", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_PARTY, methods=["POST"])
 def party() -> Any:
     """
     Handle party selection.
@@ -574,6 +581,7 @@ def encounter_selection() -> str:
 
 
 @app.route("/encounter/custom", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_ENCOUNTER, methods=["POST"])
 def encounter_custom() -> Any:
     """
     Handle custom encounter creation.
@@ -616,6 +624,7 @@ def encounter_custom() -> Any:
 
 
 @app.route("/encounter/prebuilt", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_ENCOUNTER, methods=["POST"])
 def encounter_prebuilt() -> Any:
     """
     Handle prebuilt encounter selection.
@@ -655,6 +664,7 @@ def encounter_prebuilt() -> Any:
 
 
 @app.route("/encounter/arena", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_ENCOUNTER, methods=["POST"])
 def encounter_arena() -> Tuple[Any, int]:
     """
     Choose the arena (battle map) for the next simulations: a map name, ENCOUNTER_MAP for each
@@ -958,6 +968,7 @@ def api_current_party() -> Any:
 
 
 @app.route("/simulate", methods=["GET"])
+@limiter.limit(RATE_LIMIT_SIMULATE)
 def simulate() -> Any:
     """
     Start or display combat simulation.
@@ -1060,6 +1071,7 @@ def batch_simulation() -> str:
 
 
 @app.route("/batch/start", methods=["POST"])
+@limiter.limit(RATE_LIMIT_BATCH_START)
 def batch_simulation_start() -> Tuple[Any, int]:
     """
     Start a batch simulation.
@@ -1112,6 +1124,8 @@ def batch_simulation_start() -> Tuple[Any, int]:
             )
         except ValueError as e:  # the controller's input checks, e.g. an unknown map
             raise ValidationError(str(e))
+        except TooManyBatches as e:
+            return jsonify({"error": str(e)}), 429
 
         logger.info(f"Started batch simulation {batch_id} with {num_runs} runs")
         return (
@@ -1432,6 +1446,20 @@ def _wants_json() -> bool:
             and not request.accept_mimetypes.accept_html
         )
     )
+
+
+@app.errorhandler(429)
+def handle_rate_limit(error: HTTPException) -> Tuple[Any, int]:
+    """
+    Over a rate limit: say so in words, as JSON for the pages' fetch calls. (Flask-Limiter's
+    own response is a bare HTML line, which the pages can't read.)
+    """
+    message = (
+        f"Too many requests: the limit is {error.description}. Wait a little and try again."
+    )
+    if _wants_json():
+        return jsonify({"error": message}), 429
+    return render_template("error.html", error=message), 429
 
 
 @app.errorhandler(AppError)

@@ -132,6 +132,19 @@ Every request reaches the app from Fly.io's proxy, which adds the visitor's addr
 limits apply to each visitor rather than to everyone at once. Behind other proxies, set
 `TRUSTED_PROXIES` to how many there are.
 
+### Limits
+
+Simulations are CPU work on one machine, so a public server limits who can start how much:
+
+- **Batches running at once:** 2 per visitor and 4 in all (`MAX_RUNNING_BATCHES_PER_USER` and
+  `MAX_RUNNING_BATCHES` in `controllers/batch_simulation_controller.py`). Past either, the batch
+  page says so and asks to try again later. Raise the server-wide one on a bigger machine.
+- **Runs per batch:** 1 to 1000 (`MAX_BATCH_RUNS` in `app.py`).
+- **Rate limits per visitor's address** (`RATE_LIMIT_*` in `app.py`): starting batches 10 a minute
+  and 60 an hour, starting fights 10 a minute, choosing a party 30 a minute and an encounter 60.
+  Other routes, progress polls included, have the defaults of 10,000 an hour and 100,000 a day.
+  The counts are kept in memory, so a restart clears them.
+
 ### 6. Configure Custom Domain (Optional)
 
 ```bash
