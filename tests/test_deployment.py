@@ -15,10 +15,12 @@ IMAGE = "dnd5e-combat-sim:test"
 def test_docker_build():
     """
     The Docker image builds with none of the local files left out of it, and its HEALTHCHECK
-    passes against the running app. Skipped without Docker.
+    passes against the running app. Skipped without Docker, or without access to its daemon.
     """
     if not shutil.which("docker"):
         pytest.skip("Docker not available")
+    if docker("info", check=False).returncode != 0:
+        pytest.skip("Can't reach the Docker daemon (not in the docker group?)")
     result = subprocess.run(
         ["docker", "build", "--no-cache", "-t", IMAGE, "."],
         capture_output=True,

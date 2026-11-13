@@ -9,7 +9,8 @@
   Does the DMG's rating of an encounter predict how the fight goes? Each dot is one of your batches, placed by the
   DMG's rating of its encounter for its party and by how often the party won. The DMG gives no win rates, but its
   ratings are an order: if CR and XP measured danger well, win rates would fall from Easy to Deadly, and batches
-  with the same rating would land close together.
+  with the same rating would land close together. TPK, for encounters at twice the Deadly XP or more, is this
+  app's addition above the DMG's scale.
 </p>
 
 <form method="get" class="d-flex flex-wrap gap-2 align-items-end mb-3" id="findingsFilters">
@@ -120,7 +121,7 @@ document.querySelectorAll('#findingsFilters select').forEach(select => {
   const data = JSON.parse(document.getElementById('findingsData').textContent);
   const pct = v => `${Math.round(v)}%`;
   const range = d => `95% CI ${Math.round(d.low)}–${Math.round(d.high)}%`;
-  const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const label = key => data.ratings.find(r => r.key === key)?.label ?? key;
   Charts.dots(document.getElementById('findingsChart'), data, {
     poolLabel: p => `${pct(p.rate)} of ${p.runs}`,
     describeBatch: b => [
@@ -128,11 +129,11 @@ document.querySelectorAll('#findingsFilters select').forEach(select => {
       {text: `${b.wins} of ${b.runs} fights · ${range(b)}`},
       {text: b.name},
       {text: `${b.encounter || 'Encounter not recorded'} · ${b.battlefield}`},
-      {text: `${b.party ? b.party + ', ' : ''}level ${b.level} · ${capitalize(b.rating)}`}
+      {text: `${b.party ? b.party + ', ' : ''}level ${b.level} · ${label(b.rating)}`}
     ],
     describePooled: p => [
       {value: `Party won ${pct(p.rate)}`},
-      {text: `All ${p.runs} ${capitalize(p.rating)} fights, from ${p.batches} batch${p.batches === 1 ? '' : 'es'}`},
+      {text: `All ${p.runs} ${label(p.rating)} fights, from ${p.batches} batch${p.batches === 1 ? '' : 'es'}`},
       {text: range(p)}
     ]
   });

@@ -30,7 +30,7 @@
     <label for="historyRating" class="form-label small mb-1">DMG rating</label>
     <select id="historyRating" class="form-select form-select-sm">
       <option value="">All ratings</option>
-      {% for rating in DIFFICULTIES %}<option value="{{ rating }}">{{ rating|capitalize }}</option>{% endfor %}
+      {% for rating in DIFFICULTIES %}<option value="{{ rating }}">{{ DIFFICULTY_LABELS[rating] }}</option>{% endfor %}
       <option value="none">Not recorded</option>
     </select>
   </div>

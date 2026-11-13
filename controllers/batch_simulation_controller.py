@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Optional
 from models.arena_library import get_arena
 from models.combat import Combat
 from models.db import DatabaseManager
-from models.encounter_builder import DIFFICULTIES
+from models.encounter_builder import DIFFICULTIES, DIFFICULTY_LABELS
 from models.spell_manager import SpellManager
 from models.character_builder import build_party
 from models.monster_builder import build_monsters
@@ -504,7 +504,7 @@ class BatchSimulationController:
                 }
             )
         chart = {
-            "ratings": [{"key": r, "label": r.capitalize()} for r in DIFFICULTIES],
+            "ratings": [{"key": r, "label": DIFFICULTY_LABELS[r]} for r in DIFFICULTIES],
             "batches": [
                 {
                     "rating": b["predicted_difficulty"],

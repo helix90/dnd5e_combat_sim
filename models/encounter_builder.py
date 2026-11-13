@@ -7,8 +7,15 @@ MONSTERS_FILE = data_path("monsters.json")
 
 # Standard 5e XP thresholds for 4 characters (per character: easy/med/hard/deadly)
 # The ratings calculate_encounter_difficulty gives, easiest first. "trivial" is below the DMG's
-# Easy threshold; the DMG has no name for it.
-DIFFICULTIES = ["trivial", "easy", "medium", "hard", "deadly"]
+# Easy threshold and "tpk" (Total Party Kill) at least TPK_MULTIPLE times its Deadly one; the DMG
+# has no name for either.
+DIFFICULTIES = ["trivial", "easy", "medium", "hard", "deadly", "tpk"]
+TPK_MULTIPLE = 2
+
+# How each rating is written
+DIFFICULTY_LABELS = {rating: rating.capitalize() for rating in DIFFICULTIES} | {
+    "tpk": "TPK"
+}
 
 # What the DMG says each rating means for the party, in short. It gives no win rates.
 DIFFICULTY_MEANINGS = {
@@ -17,6 +24,8 @@ DIFFICULTY_MEANINGS = {
     "medium": "A scary moment or two, but the party should win with no one dying.",
     "hard": "Could go badly: weaker characters may go down, with a slim chance of a death.",
     "deadly": "Could be lethal for one or more characters.",
+    "tpk": "Beyond the DMG's scale, at twice its Deadly XP or more: the whole party could die if"
+    " it engages without an escape route.",
 }
 
 XP_THRESHOLDS = {
@@ -123,7 +132,9 @@ class EncounterBuilder:
         total_xp = int(base_xp * multiplier)
         thresholds = XP_THRESHOLDS.get(party_level, [0, 0, 0, 0])
         difficulty = "trivial"
-        if total_xp >= thresholds[3] * party_size:
+        if thresholds[3] and total_xp >= TPK_MULTIPLE * thresholds[3] * party_size:
+            difficulty = "tpk"
+        elif total_xp >= thresholds[3] * party_size:
             difficulty = "deadly"
         elif total_xp >= thresholds[2] * party_size:
             difficulty = "hard"
@@ -142,7 +153,7 @@ class EncounterBuilder:
         self, monsters: List[Dict[str, Any]], party_level: int, party_size: int = 4
     ) -> bool:
         """
-        Return True if encounter is not deadly or trivial.
+        Return True if encounter is not trivial, deadly or worse.
         """
         result = self.calculate_encounter_difficulty(monsters, party_level, party_size)
         return result["difficulty"] in ("easy", "medium", "hard")
@@ -154,6 +165,8 @@ class EncounterBuilder:
         Return a warning string if the encounter is imbalanced.
         """
         result = self.calculate_encounter_difficulty(monsters, party_level, party_size)
+        if result["difficulty"] == "tpk":
+            return "Warning: This encounter could kill the whole party."
         if result["difficulty"] == "deadly":
             return "Warning: This encounter is deadly for the party."
         elif result["difficulty"] == "trivial":
