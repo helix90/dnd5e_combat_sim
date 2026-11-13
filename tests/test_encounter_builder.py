@@ -1,5 +1,7 @@
+from unittest.mock import patch
+
 import pytest
-from models.encounter_builder import EncounterBuilder
+from models.encounter_builder import CR_XP, EncounterBuilder
 from utils.paths import data_path
 
 
@@ -56,9 +58,22 @@ def test_generate_encounter_warning(builder):
         next(m for m in builder.monster_data if m["name"] == "Kobold")
         for _ in range(20)
     ]
+    # 20 kobolds: 500 XP x 4 = 2,000, five times the 400 Deadly needs for four 1st-level characters
     warning = builder.generate_encounter_warning(kobolds, party_level=1, party_size=4)
-    assert (
-        warning == "Warning: This encounter is deadly for the party."
-    )  # 20 kobolds for four 1st-level characters
+    assert warning == "Warning: This encounter could kill the whole party."
+    # 8 kobolds: 200 XP x 2.5 = 500, Deadly but short of twice it
+    deadly = builder.generate_encounter_warning(kobolds[:8], party_level=1, party_size=4)
+    assert deadly == "Warning: This encounter is deadly for the party."
     one = builder.generate_encounter_warning(kobolds[:4], party_level=1, party_size=4)
     assert one == "Encounter is balanced."
+
+
+@pytest.mark.parametrize(
+    "xp, rating",
+    [(1099 * 4, "hard"), (1100 * 4, "deadly"), (2199 * 4, "deadly"), (2200 * 4, "tpk")],
+)
+def test_tpk_starts_at_twice_the_deadly_threshold(builder, xp, rating):
+    # Level 5's Deadly threshold is 1,100 XP a character; one monster, so no multiplier
+    with patch.dict(CR_XP, {"test": xp}):
+        result = builder.calculate_encounter_difficulty([{"cr": "test"}], 5, 4)
+    assert result["difficulty"] == rating

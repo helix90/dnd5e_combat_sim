@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS simulations (
     replay BLOB,  -- zlib-compressed JSON battle-map replay (fights on an arena only)
     encounter_name TEXT,  -- the pre-built encounter's name, or a custom encounter's monsters
     party_name TEXT,
-    predicted_difficulty TEXT,  -- the DMG's rating of the encounter for the party: trivial to deadly
+    predicted_difficulty TEXT,  -- the DMG's rating of the encounter for the party: trivial to deadly, or tpk
     encounter_xp INTEGER,  -- the adjusted XP that rating is based on
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS batch_simulations (
     baseline_batch_id INTEGER,  -- the same encounter run without the arena, for comparison
     encounter_name TEXT,  -- the pre-built encounter's name, or a custom encounter's monsters
     party_name TEXT,
-    predicted_difficulty TEXT,  -- the DMG's rating of the encounter for the party: trivial to deadly
+    predicted_difficulty TEXT,  -- the DMG's rating of the encounter for the party: trivial to deadly, or tpk
     encounter_xp INTEGER,  -- the adjusted XP that rating is based on
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

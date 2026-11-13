@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import time
 from models.arena import describe_area
 from models.class_features import feature_notes
+from models.encounter_builder import TPK_MULTIPLE, XP_THRESHOLDS
 from models.log_text import rider_text
 from utils.exceptions import DatabaseError
 from utils.logging import log_exception
@@ -78,6 +79,7 @@ class DatabaseManager:
                 with open(SCHEMA_PATH, "r") as f:
                     conn.executescript(f.read())
                 self._add_missing_columns(conn)
+                self._rate_tpk(conn)
         except Exception as e:
             log_exception(e)
             raise DatabaseError(f"Failed to initialize database: {e}")
@@ -114,6 +116,24 @@ class DatabaseManager:
             }
             if column not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
+        conn.commit()
+
+    # Every party has four characters, so a saved rating can be redone from its XP and level
+    RATED_PARTY_SIZE = 4
+
+    def _rate_tpk(self, conn: sqlite3.Connection) -> None:
+        """
+        Fights and batches saved before the TPK rating was added were rated Deadly however far
+        over the Deadly threshold they were: re-rate those at TPK_MULTIPLE times it or more.
+        """
+        for table in ("simulations", "batch_simulations"):
+            for level, thresholds in XP_THRESHOLDS.items():
+                conn.execute(
+                    f"UPDATE {table} SET predicted_difficulty = 'tpk' "
+                    "WHERE predicted_difficulty = 'deadly' AND party_level = ? "
+                    "AND encounter_xp >= ?",
+                    (level, TPK_MULTIPLE * thresholds[3] * self.RATED_PARTY_SIZE),
+                )
         conn.commit()
 
     def _create_indexes(self):

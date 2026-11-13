@@ -46,7 +46,11 @@ from models.arena_library import (
     resolve_arena_choice,
 )
 from models.db import DatabaseManager
-from models.encounter_builder import DIFFICULTIES, DIFFICULTY_MEANINGS
+from models.encounter_builder import (
+    DIFFICULTIES,
+    DIFFICULTY_LABELS,
+    DIFFICULTY_MEANINGS,
+)
 from utils.exceptions import AppError, ValidationError
 from utils.logging import log_exception
 from utils.party_loader import PartyLoader
@@ -85,7 +89,9 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 # For the pages that show DMG ratings
 app.jinja_env.globals.update(
-    DIFFICULTIES=DIFFICULTIES, DIFFICULTY_MEANINGS=DIFFICULTY_MEANINGS
+    DIFFICULTIES=DIFFICULTIES,
+    DIFFICULTY_LABELS=DIFFICULTY_LABELS,
+    DIFFICULTY_MEANINGS=DIFFICULTY_MEANINGS,
 )
 
 

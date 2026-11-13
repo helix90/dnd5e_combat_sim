@@ -112,7 +112,8 @@ function setContinueButton(id, onClickHandler) {
 }
 
 const TYPE_BADGES = { mob: 'bg-secondary', mixed: 'bg-info text-dark', elite: 'bg-warning text-dark', boss: 'bg-danger' };
-const DIFFICULTY_BADGES = { trivial: 'bg-secondary', easy: 'bg-success', medium: 'bg-info text-dark', hard: 'bg-warning text-dark', deadly: 'bg-danger' };
+const DIFFICULTY_BADGES = { trivial: 'bg-secondary', easy: 'bg-success', medium: 'bg-info text-dark', hard: 'bg-warning text-dark', deadly: 'bg-danger', tpk: 'badge-tpk' };
+const DIFFICULTY_LABELS = {{ DIFFICULTY_LABELS|tojson }};
 let prebuiltEncounters = [];
 let selectedPrebuiltName = null;
 
@@ -320,7 +321,7 @@ function renderPrebuiltDetails(name, result) {
   if (result.balance) {
     const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
     html += `<div class="mb-2">
-      <span class="badge fs-6 ${DIFFICULTY_BADGES[difficulty] || 'bg-secondary'}">${escapeHtml(capitalize(difficulty))}</span>`;
+      <span class="badge fs-6 ${DIFFICULTY_BADGES[difficulty] || 'bg-secondary'}">${escapeHtml(DIFFICULTY_LABELS[difficulty] || capitalize(difficulty))}</span>`;
     if (typeof result.balance === 'object') {
       html += ` <small class="text-muted ms-1">${escapeHtml(result.balance.total_xp)} XP (base ${escapeHtml(result.balance.base_xp)})</small>`;
     }
@@ -526,7 +527,7 @@ function updateCustomBalance() {
     let html = `<div class="small text-muted mb-1">For your party: level ${escapeHtml(currentParty.party_level)}, ${escapeHtml(currentParty.party_size)} characters</div>`;
     if (result.balance) {
       const difficulty = typeof result.balance === 'object' ? result.balance.difficulty : result.balance;
-      html += `<span class="badge fs-6 ${DIFFICULTY_BADGES[difficulty] || 'bg-secondary'}">${escapeHtml(capitalize(difficulty))}</span>`;
+      html += `<span class="badge fs-6 ${DIFFICULTY_BADGES[difficulty] || 'bg-secondary'}">${escapeHtml(DIFFICULTY_LABELS[difficulty] || capitalize(difficulty))}</span>`;
       if (typeof result.balance === 'object') {
         html += ` <small class="text-muted ms-1">${escapeHtml(result.balance.total_xp)} XP (base ${escapeHtml(result.balance.base_xp)})</small>`;
       }

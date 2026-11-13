@@ -141,7 +141,9 @@ def test_short_batches_have_no_page_links(goblin_batch):
 # Findings
 
 
-def rated_batch(db, owner, rating, wins, runs, level=1, arena=None, rounds=4.0):
+def rated_batch(
+    db, owner, rating, wins, runs, level=1, arena=None, rounds=4.0, xp=100
+):
     batch_id = db.create_batch_simulation(
         owner,
         f"{rating} {wins}/{runs}",
@@ -152,11 +154,29 @@ def rated_batch(db, owner, rating, wins, runs, level=1, arena=None, rounds=4.0):
             "encounter_name": "Test",
             "party_name": "Classic Adventurers",
             "predicted_difficulty": rating,
-            "encounter_xp": 100,
+            "encounter_xp": xp,
         },
     )
     db.update_batch_statistics(batch_id, runs, wins, runs - wins, rounds, 10.0)
     return batch_id
+
+
+def test_saved_deadly_batches_at_twice_the_threshold_are_re_rated_tpk(client):
+    client.get("/")
+    owner, db = session_id(client), DatabaseManager()
+    # Level 1: Deadly is 100 XP a character, 400 for the party; TPK from 800
+    tpk = rated_batch(db, owner, "deadly", 1, 4, xp=800)
+    deadly = rated_batch(db, owner, "deadly", 3, 4, xp=799)
+    level_5 = rated_batch(db, owner, "deadly", 3, 4, level=5, xp=800)
+    db._init_database()  # what starting the app does
+    rating = lambda b: db.get_batch_simulation(b)["predicted_difficulty"]
+    assert (rating(tpk), rating(deadly), rating(level_5)) == ("tpk", "deadly", "deadly")
+
+    page = client.get("/findings").get_data(as_text=True)
+    assert '<span class="badge badge-tpk">TPK</span>' in page
+    assert "the whole party could die" in page
+    history = client.get("/batch/history").get_data(as_text=True)
+    assert '<option value="tpk">TPK</option>' in history
 
 
 def test_findings_pool_each_ratings_fights(client):
@@ -176,7 +196,9 @@ def test_findings_pool_each_ratings_fights(client):
         "medium",
         "hard",
         "deadly",
+        "tpk",
     ]
+    assert chart["ratings"][-1]["label"] == "TPK"
     assert len(chart["batches"]) == 3  # not the other session's, nor the unfinished
     pooled = {p["rating"]: p for p in chart["pooled"]}
     assert (pooled["deadly"]["wins"], pooled["deadly"]["runs"]) == (20, 30)

@@ -11,6 +11,7 @@ with open(data_path("encounter_templates.json")) as f:
     TEMPLATES = json.load(f)["encounters"]
 
 WARNINGS = {
+    "tpk": "Warning: This encounter could kill the whole party.",
     "deadly": "Warning: This encounter is deadly for the party.",
     "trivial": "Warning: This encounter is trivial for the party.",
 }
@@ -29,7 +30,7 @@ def test_encounter_templates_build_and_are_rated(builder, template):
     difficulty = builder.calculate_encounter_difficulty(
         encounter, template["level"], 4
     )["difficulty"]
-    assert difficulty in ("trivial", "easy", "medium", "hard", "deadly")
+    assert difficulty in ("trivial", "easy", "medium", "hard", "deadly", "tpk")
     assert builder.generate_encounter_warning(
         encounter, template["level"], 4
     ) == WARNINGS.get(difficulty, "Encounter is balanced.")
