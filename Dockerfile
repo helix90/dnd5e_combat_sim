@@ -33,8 +33,9 @@ RUN chown -R appuser:appuser /app
 # Expose Flask port
 EXPOSE 5000
 
-# Healthcheck endpoint
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 CMD curl -f http://localhost:5000/healthz || exit 1
+# Healthcheck endpoint. The slim image has no curl; urlopen raises (exit 1) unless /healthz answers 2xx
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz', timeout=4)"]
 
 # Switch to non-root user
 USER appuser
