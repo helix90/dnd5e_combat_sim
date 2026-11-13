@@ -540,23 +540,46 @@ class _Planner:
                     self.best(options, [preferred] + rest, preferred) if rest else found
                 )
             if found:
-                option, target, square = found
-                if square == self.here:
-                    return self._advance_after(
-                        option.plan(target), option, options, target
-                    )
-                return self.with_move(option.plan(target), square)
+                return self._settle(found, options)
         others = sorted(
             (t for t in others if t is not preferred),
             key=lambda t: self.bf.distance(self.creature, t),
         )
         found = self.best(options, others, None) if others else None
         if found:
-            option, target, square = found
-            if square == self.here:
-                return self._advance_after(option.plan(target), option, options, target)
-            return self.with_move(option.plan(target), square)
+            return self._settle(found, options)
         return None
+
+    def _settle(
+        self, found: Tuple[Any, Any, Square], options: List[Any]
+    ) -> Dict[str, Any]:
+        """
+        The plan for the best (option, target, square). A creature that has to make do with a
+        weaker attack this turn (an ogre's javelin) doesn't step aside for a better shot: it
+        attacks from where it stands and then advances, or, if it can't attack from here, it
+        advances as far as it can and attacks from there, so it can use its best attack next turn.
+        """
+        option, target, square = found
+        if square == self.here:
+            return self._advance_after(option.plan(target), option, options, target)
+        best = max(options, key=lambda o: self._ideal_value(o, target))
+        if self._ideal_value(best, target) > self._ideal_value(option, target) + 1e-9:
+            if self.evaluate(option, target, self.here) is not None:
+                return self._advance_after(option.plan(target), option, options, target)
+            route = self._route_toward(target, [best], self.speed)
+            if route is not None:
+                end = route[-1]
+                usable = [
+                    (value, o)
+                    for o in options
+                    if (value := self.evaluate(o, target, end)) is not None
+                ]
+                if usable:
+                    _, chosen = max(usable, key=lambda u: u[0])
+                    plan = self.with_move(chosen.plan(target), end)
+                    plan["path"] = route
+                    return plan
+        return self.with_move(option.plan(target), square)
 
     def _advance_after(
         self, plan: Dict[str, Any], used: Any, options: List[Any], target: Any
