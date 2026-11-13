@@ -553,6 +553,34 @@ def test_fighter_out_of_reach_shoots_then_advances():
     ) == (6, 0)
 
 
+def test_out_of_reach_with_a_weaker_attack_advances_rather_than_stepping_for_a_clear_shot():
+    # An ogre with a javelin in a forest: a step aside would clear the tree from its throw, but
+    # stepping aside would cost it the move that gets its greatclub into reach next turn
+    crossbow = AttackAction(
+        "Light Crossbow",
+        "",
+        "Light Crossbow",
+        "1d8",
+        "piercing",
+        hit_bonus=2,
+        weapon_type="ranged",
+        range=[80, 320],
+    )
+    tree = {(5, 5): Terrain(impassable=True, cover="three_quarters")}
+    fighter, target = hero(actions=[sword(), crossbow]), monster()
+    combat = Combat([fighter, target], arena=Arena(30, 20, tree, name="Tree"))
+    put(combat, fighter, 0, 5)
+    put(combat, target, 11, 5)  # 55 ft, behind the tree
+    plan = plan_for(
+        combat,
+        fighter,
+        {"type": "attack", "action": fighter.actions[0], "target": target},
+    )
+    assert plan["action"] is crossbow
+    combat._take_turn(fighter, plan)
+    assert combat.battlefield.distance(fighter, target) <= 30
+
+
 def test_healer_moves_into_touch_range():
     cleric, wounded, enemy = (
         hero("Cleric", character_class="Cleric"),
