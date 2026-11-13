@@ -32,6 +32,7 @@ from flask import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Local imports
 from controllers.batch_simulation_controller import BatchSimulationController
@@ -113,6 +114,11 @@ def configure_app(app: Flask) -> None:
 
     # Warn if using default secret key
     if app.secret_key == DEFAULT_SECRET_KEY:
+        if os.environ.get("FLY_APP_NAME"):
+            # On Fly.io the app is public: anyone could forge a session with the known key
+            raise RuntimeError(
+                "Set SECRET_KEY with `fly secrets set SECRET_KEY=...` before deploying"
+            )
         if not app.debug:
             logger.error(
                 "CRITICAL SECURITY WARNING: Using default secret key! "
@@ -133,9 +139,25 @@ def configure_app(app: Flask) -> None:
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=SESSION_LIFETIME_HOURS)
 
+    # Behind a proxy, such as Fly.io's, every request comes from the proxy's address: the
+    # visitor's is in X-Forwarded-For, which only the proxies in front of the app may be
+    # trusted to set. Without this, rate limits would be shared by every visitor.
+    proxies = trusted_proxy_count()
+    if proxies:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies)
+
     logger.info(
         f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}, session_cookie_secure={app.config['SESSION_COOKIE_SECURE']}"
     )
+
+
+def trusted_proxy_count() -> int:
+    """
+    How many proxies in front of the app add to X-Forwarded-For: TRUSTED_PROXIES, or one on
+    Fly.io (which sets FLY_APP_NAME), else none.
+    """
+    default = "1" if os.environ.get("FLY_APP_NAME") else "0"
+    return int(os.environ.get("TRUSTED_PROXIES", default))
 
 
 configure_app(app)

@@ -83,29 +83,31 @@ curl -L https://fly.io/install.sh | sh
 fly auth login
 ```
 
-### 3. Create a New App
+### 3. Create the App and Its Volume
+
+`fly.toml` in the repository holds the configuration. Change `app` to a name of your own (app
+names are unique across Fly.io) and `primary_region` to a region near you (`fly platform regions`).
 
 ```bash
-# Create a new app (replace 'your-app-name' with desired name)
 fly apps create your-app-name
 
-# Or use the existing fly.toml configuration
-fly launch
+# The SQLite database lives on this volume, mounted at /data, so it survives deploys and restarts
+fly volumes create data --size 1 --region ord
 ```
 
-### 4. Set Environment Variables
+### 4. Set the Secret Key
 
 ```bash
-# Set production environment variables
-fly secrets set FLASK_ENV=production
-fly secrets set SECRET_KEY=your-production-secret-key
-fly secrets set DATABASE_URL=sqlite:////data/app.db
+fly secrets set SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
 ```
+
+On Fly.io the app refuses to start without it. `fly.toml` sets the rest: `DATABASE_URL`
+(`sqlite:////data/app.db`, on the volume), `FLASK_SESSION_COOKIE_SECURE=true` and
+`FLASK_ENV=production`.
 
 ### 5. Deploy the Application
 
 ```bash
-# Deploy to Fly.io
 fly deploy
 
 # Check deployment status
@@ -114,6 +116,21 @@ fly status
 # View logs
 fly logs
 ```
+
+### One Machine, Always Running
+
+A running batch's progress lives in the memory of the machine running it, so `fly.toml` keeps
+exactly one machine and never stops it (`auto_stop_machines = "off"`, `min_machines_running = 1`).
+Don't `fly scale count` above 1: a second machine couldn't report the first one's batches, and
+the volume belongs to one machine anyway. A deploy or restart cuts off any batch still running;
+its page then says it was interrupted.
+
+### Visitors' Addresses
+
+Every request reaches the app from Fly.io's proxy, which adds the visitor's address to
+`X-Forwarded-For`. On Fly.io (where `FLY_APP_NAME` is set) the app trusts that one proxy, so rate
+limits apply to each visitor rather than to everyone at once. Behind other proxies, set
+`TRUSTED_PROXIES` to how many there are.
 
 ### 6. Configure Custom Domain (Optional)
 
@@ -129,32 +146,11 @@ fly certs show your-domain.com
 
 ### Dockerfile
 
-The application uses a multi-stage Docker build for optimization:
-
-```dockerfile
-# Builder stage
-FROM python:3.11-slim AS builder
-WORKDIR /app
-RUN apt-get update && apt-get install -y build-essential gcc
-COPY requirements.txt .
-RUN pip install --prefix=/install -r requirements.txt
-COPY . .
-
-# Final stage
-FROM python:3.11-slim
-WORKDIR /app
-RUN useradd -m appuser
-COPY --from=builder /install /usr/local
-COPY --from=builder /app /app
-RUN chown -R appuser:appuser /app
-EXPOSE 5000
-HEALTHCHECK --interval=30s --timeout=5s CMD curl -f http://localhost:5000/healthz || exit 1
-USER appuser
-ENV FLASK_ENV=production
-# One worker: running simulations and batches report progress from that process's memory,
-# so every status poll has to reach it. Threads serve requests concurrently.
-CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "8"]
-```
+The image is a two-stage build on `python:3.11-slim`, serving the app with gunicorn on port
+5000: one worker, since running simulations and batches report progress from that process's
+memory, and 8 threads. Its `HEALTHCHECK` fetches `/healthz` with Python, as the slim image has no
+curl. `docker-entrypoint.sh` starts the app as the unprivileged `appuser`, first giving it the
+database's folder when that's a volume owned by root, as Fly.io mounts them.
 
 ### Docker Compose
 
@@ -193,6 +189,7 @@ services:
 - **FLASK_ENV**: production
 - **DATABASE_URL**: sqlite:////data/app.db
 - **SECRET_KEY**: [generate secure random key]
+- **FLASK_SESSION_COOKIE_SECURE**: true
 - **PYTHONUNBUFFERED**: 1
 
 ### Environment Variable Reference
@@ -204,6 +201,8 @@ services:
 | DATABASE_URL | Database connection string | sqlite:///data/app.db | No |
 | SECRET_KEY | Flask secret key | dev-secret-key | Yes |
 | PYTHONUNBUFFERED | Python output buffering | 1 | No |
+| FLASK_SESSION_COOKIE_SECURE | Send the session cookie over HTTPS only | false | Yes, behind HTTPS |
+| TRUSTED_PROXIES | Proxies in front of the app that add to X-Forwarded-For | 1 on Fly.io, else 0 | No |
 
 ## Monitoring and Health Checks
 
@@ -222,14 +221,12 @@ curl http://localhost:5000/healthz
 Configured in `fly.toml`:
 
 ```toml
-[checks]
-  [checks.http]
-    interval = "30s"
-    timeout = "5s"
-    grace_period = "10s"
-    method = "get"
-    path = "/healthz"
-    protocol = "http"
+[[http_service.checks]]
+  interval = "30s"
+  timeout = "5s"
+  grace_period = "10s"
+  method = "GET"
+  path = "/healthz"
 ```
 
 ### Monitoring Endpoints
@@ -252,6 +249,21 @@ docker-compose exec web sqlite3 /app/data/app.db ".backup /app/data/backup.db"
 
 # Restore database
 docker-compose exec web sqlite3 /app/data/app.db ".restore /app/data/backup.db"
+```
+
+On Fly.io, the volume is snapshotted daily and the snapshots are kept for 5 days:
+
+```bash
+fly volumes list                       # the volume's id
+fly volumes snapshots list <volume-id>
+```
+
+To copy the database down, take a consistent copy with Python's SQLite (the image has no
+`sqlite3` command) and fetch it:
+
+```bash
+fly ssh console -C "python -c \"import sqlite3; sqlite3.connect('/data/app.db').backup(sqlite3.connect('/data/backup.db'))\""
+fly ssh sftp get /data/backup.db
 ```
 
 ### Database Initialization
@@ -364,19 +376,14 @@ fly ssh console
 
 ### Horizontal Scaling (Fly.io)
 
-```bash
-# Scale to multiple instances
-fly scale count 3
-
-# Scale with specific resources
-fly scale vm shared-cpu-1x --memory 512
-```
+Not yet: the app runs on one machine (see "One Machine, Always Running"). Scale it up instead.
 
 ### Vertical Scaling
 
 ```bash
 # Scale to larger VM
-fly scale vm shared-cpu-2x --memory 1024
+fly scale vm shared-cpu-2x
+fly scale memory 1024
 ```
 
 ## Maintenance

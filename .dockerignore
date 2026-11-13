@@ -31,7 +31,8 @@ htmlcov
 logs
 **/*.log
 
-# Docker files themselves
+# Docker and Fly.io files themselves
 Dockerfile
 .dockerignore
 docker-compose*.yml
+fly.toml
