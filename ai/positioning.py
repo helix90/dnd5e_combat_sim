@@ -19,6 +19,7 @@ into something the creature can actually do this turn:
 - Area effects are aimed (ai/aiming.py) to catch the most enemies and spare allies. If the best
   aim is worth less than an ordinary attack, the creature attacks instead and keeps its spell
   slot or breath weapon.
+- A creature shakes a sleeping or hypnotized ally awake if it can get next to it this turn.
 - Leaving an enemy's reach provokes an opportunity attack, so a square is worth less by the
   damage those attacks are expected to do. A creature that can Disengage as a bonus action
   (Cunning Action, Nimble Escape) does so when it moves out of reach, and a rogue can Dash as a
@@ -95,7 +96,7 @@ class _Weapon:
     def __init__(self, creature: Any, action: AttackAction) -> None:
         self.action = action
         self.count = (
-            creature.attacks_per_action()
+            creature.attacks_per_action(action)
             if hasattr(creature, "attacks_per_action")
             else 1
         )
@@ -655,6 +656,27 @@ def _fit_attack(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[st
     return {"type": "defend"}
 
 
+def wake_square(bf: Battlefield, creature: Any, ally: Any) -> Optional[Square]:
+    """
+    A square within 5 ft of a sleeping ally the creature can reach this turn and still act,
+    provoking as few opportunity attacks as it can, then the shortest move. None if there's none.
+    """
+    planner = _Planner(bf, creature)
+    found = [
+        (planner.opportunity_cost(square, cost), cost, square)
+        for square, cost in planner.squares().items()
+        if planner.distance(ally, square) <= SQUARE_FEET
+    ]
+    return min(found)[2] if found else None
+
+
+def _fit_wake(bf: Battlefield, creature: Any, plan: Dict[str, Any]) -> Dict[str, Any]:
+    square = wake_square(bf, creature, plan["target"])
+    if square is None:
+        return _fit_attack(bf, creature, {"type": "attack", "target": None})
+    return _Planner(bf, creature).with_move(plan, square)
+
+
 def _cantrip_options(creature: Any) -> List[Any]:
     """Damaging cantrips, to fall back on instead of an area spell that isn't worth its slot."""
     return [
@@ -771,4 +793,6 @@ def fit_plan(
         return _fit_attack(bf, creature, plan)
     if kind == "cast_spell":
         return _fit_spell(bf, creature, plan)
+    if kind == "wake":
+        return _fit_wake(bf, creature, plan)
     return plan

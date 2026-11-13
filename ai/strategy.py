@@ -4,9 +4,10 @@ import logging
 import random
 
 from ai import errors
+from ai.positioning import wake_square
 from models import class_features as feature_rules
 from models import concentration, spell_effects
-from models.buffs import cannot_regain_hp, is_spellbound
+from models.buffs import can_be_shaken_awake, cannot_regain_hp, is_spellbound
 from models.rolls import has_magic_resistance
 from models.spells import SpellAction
 from models.actions import AttackAction
@@ -241,6 +242,30 @@ class AIStrategy(ABC):
         """
         pass
 
+    def _try_wake_ally(
+        self, combatant: Any, combat_state: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Shake an ally out of magical sleep or Hypnotic Pattern: it's back in the fight for every
+        round to come, which beats one attack. On an arena, only an ally the combatant can get
+        next to this turn; the most threatening one if there are several.
+        """
+        sleepers = [
+            a
+            for a in combat_state.get("allies", [])
+            if a is not combatant and a.is_alive() and can_be_shaken_awake(a)
+        ]
+        bf = combat_state.get("battlefield")
+        if bf is not None and combatant in bf.placements:
+            sleepers = [
+                a for a in sleepers if wake_square(bf, combatant, a) is not None
+            ]
+        if not sleepers:
+            return None
+        ally = max(sleepers, key=lambda a: self.threat_assessment(a, combat_state))
+        logger.debug(f"{combatant.name} wakes {ally.name}")
+        return {"type": "wake", "target": ally}
+
     def _validate_combat_state(self, combat_state: Dict[str, Any]) -> None:
         """
         Validate that combat_state is valid (base implementation).
@@ -311,6 +336,7 @@ class PartyAIStrategy(AIStrategy):
         Priority order:
         1. Heal critical allies (below 15% HP)
         2. Heal low-HP allies (below 25% HP)
+        2.4. Wake an ally from magical sleep or Hypnotic Pattern
         3. Attack most dangerous enemy with best available action
         4. Default to defend/dodge
 
@@ -377,6 +403,11 @@ class PartyAIStrategy(AIStrategy):
                 )
                 if healing_action:
                     return healing_action
+
+            # Priority 2.4: Shake an ally out of magical sleep or Hypnotic Pattern
+            wake_action = self._try_wake_ally(combatant, combat_state)
+            if wake_action:
+                return wake_action
 
             # Priority 2.5: Turn Undead (a cleric's Channel Divinity)
             turn_action = self._try_turn_undead(combatant, enemies, combat_state)
@@ -1296,6 +1327,11 @@ class MonsterAIStrategy(AIStrategy):
                     f"[MonsterAI] {combatant.name} uses {area_attacks[0].name}"
                 )
                 return {"type": "attack", "action": area_attacks[0], "target": enemies}
+
+            # Priority 1.5: shake an ally out of magical sleep or Hypnotic Pattern
+            wake_action = self._try_wake_ally(combatant, combat_state)
+            if wake_action:
+                return wake_action
 
             # Use special abilities if available
             specials = [

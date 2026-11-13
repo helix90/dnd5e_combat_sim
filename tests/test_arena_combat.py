@@ -10,7 +10,7 @@ from models.actions import Action, AttackAction
 from models.arena import Arena, Placement, Terrain, COVER_TOTAL
 from models.arena_library import arena_choices, get_arena, load_arena_definitions
 from models.battlefield import MONSTERS, PARTY
-from models.buffs import create_paralyzed_condition
+from models.buffs import create_paralyzed_condition, create_unconscious_condition
 from models.character import Character
 from models.combat import Combat
 from models.db import DatabaseManager
@@ -793,3 +793,22 @@ def test_old_databases_get_the_arena_column(tmp_path):
         )["arena"]
         == "Open Field"
     )
+
+
+def test_a_monster_moves_next_to_a_sleeping_ally_to_wake_it_if_it_can_get_there():
+    near, far, orc, target = monster("Near"), monster("Far"), monster(), hero()
+    for sleeper in (near, far):
+        sleeper.buffs.add_buff(create_unconscious_condition("Wizard"))
+    combat = fight(near, far, orc, target)
+    put(combat, orc, 5, 5)
+    put(combat, near, 10, 5)  # 25 ft: one move away
+    put(combat, far, 25, 5)  # 100 ft: out of reach this turn
+    put(combat, target, 0, 15)
+    state = combat._build_combat_state(orc)
+    plan = fit_plan(orc, combat.ai_strategy_map[orc].choose_action(orc, state), state)
+    assert plan["type"] == "wake" and plan["target"] is near
+    combat._take_turn(orc, plan)
+    assert combat.battlefield.distance(orc, near) <= 5
+    assert not near.buffs.has_condition("unconscious")
+    assert far.buffs.has_condition("unconscious")
+
