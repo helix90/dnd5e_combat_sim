@@ -64,6 +64,8 @@ def format_log(entries: List[Dict[str, Any]]) -> list:
                 continue
             if result.get("type") == "disengage":
                 lines.append(f"{actor} disengages.")
+            elif result.get("type") == "wake":
+                lines.append(f"{actor} {result['description']}.")
             elif result.get("reason") in (
                 "out of range",
                 "no one in the area",

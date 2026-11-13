@@ -9,7 +9,7 @@ from unittest.mock import patch
 from ai.strategy import PartyAIStrategy, combat_spells
 from models import concentration, spell_effects
 from models.actions import AttackAction
-from models.buffs import is_incapacitated, is_spellbound
+from models.buffs import create_turned_condition, is_incapacitated, is_spellbound
 from models.character import Character
 from models.combat import Combat
 from models.damage import apply_damage
@@ -217,6 +217,38 @@ def test_a_sleeping_creature_is_easy_to_hit_and_wakes_when_hurt():
         result = weapon().execute(hero, goblin)
     assert result["critical"]  # a melee hit from within 5 ft
     assert not goblin.buffs.has_condition("unconscious") and not is_spellbound(goblin)
+
+
+def test_an_ally_shakes_a_sleeping_or_hypnotized_creature_awake():
+    hero = caster(hp=100)
+    asleep, dazed, orc = foe("Asleep"), foe("Dazed"), foe("Orc")
+    asleep.buffs.add_buff(spell_effects.create_unconscious_condition("Wizard"))
+    dazed.buffs.add_buff(spell_effects.create_hypnotized_condition("Bard"))
+    combat = Combat([hero, asleep, dazed, orc])
+    for sleeper in (asleep, dazed):
+        plan = combat.ai_strategy_map[orc].choose_action(
+            orc, combat._build_combat_state(orc)
+        )
+        assert plan == {"type": "wake", "target": plan["target"]}
+        result = combat._take_turn(orc, plan)
+        assert result["type"] == "wake" and not is_incapacitated(plan["target"])
+    assert not is_incapacitated(asleep) and not is_incapacitated(dazed)
+    # Nothing left to wake: the orc attacks
+    plan = combat.ai_strategy_map[orc].choose_action(
+        orc, combat._build_combat_state(orc)
+    )
+    assert plan["type"] == "attack"
+
+
+def test_turned_undead_cant_be_shaken_out_of_it():
+    hero = caster(hp=100)
+    fleeing, zombie = foe("Zombie", kind="undead"), foe("Zombie 2", kind="undead")
+    fleeing.buffs.add_buff(create_turned_condition("Cleric"))
+    combat = Combat([hero, fleeing, zombie])
+    plan = combat.ai_strategy_map[zombie].choose_action(
+        zombie, combat._build_combat_state(zombie)
+    )
+    assert plan["type"] != "wake"
 
 
 def test_a_sleeping_monster_loses_its_turn():

@@ -18,6 +18,7 @@ from models.buffs import (
     is_spellbound,
     is_stunned,
     is_turned,
+    shake_awake,
 )
 from models.actions import AttackAction
 from models.arena import COVER_AC_BONUS, COVER_NONE, COVER_TOTAL, SQUARE_FEET
@@ -1123,6 +1124,26 @@ class Combat(TurnEffects):
                 }
             result = feature_rules.turn_undead(participant, undead)
             return result
+        elif action_type == "wake":
+            ally = action_plan["target"]
+            if (
+                self.battlefield is not None
+                and self.battlefield.distance(participant, ally) > SQUARE_FEET
+            ):
+                return {
+                    "action": "Wake",
+                    "type": "wait",
+                    "success": False,
+                    "reason": "out of range",
+                    "description": f"can't reach {ally.name} to wake it",
+                }
+            return {
+                "action": "Wake",
+                "type": "wake",
+                "target": ally.name,
+                "ended": shake_awake(ally),
+                "description": f"shakes {ally.name} awake",
+            }
         elif action_type == "defend":
             return {
                 "action": "Defend",
@@ -1169,7 +1190,7 @@ class Combat(TurnEffects):
                 participant
             )  # called on its own, outside _take_turn
         attacks = []
-        count = participant.attacks_per_action() if count is None else count
+        count = participant.attacks_per_action(action) if count is None else count
         for i in range(count):
             if (i > 0 or not first_where_aimed) and not target.is_alive():
                 enemies = [

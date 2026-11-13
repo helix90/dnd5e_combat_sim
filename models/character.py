@@ -12,6 +12,7 @@ from models.spells import Spell, SpellAction
 from models.buffs import BuffManager, metadata_total
 from models import class_features as feature_rules
 from models.arena import normalize_speed, size_in_squares
+from models.weapons import LOADING_WEAPONS
 
 
 def normalize_spell_slots(spell_slots: Optional[Dict[Any, Any]]) -> Dict[int, int]:
@@ -320,8 +321,13 @@ class Character:
         """Return the first class feature starting with prefix, e.g. 'Sneak Attack (3d6)'."""
         return next((f for f in self.class_features if f.startswith(prefix)), None)
 
-    def attacks_per_action(self) -> int:
-        """Weapon attacks made with the Attack action: Extra Attack gives 2, 'Extra Attack (2)' gives 3."""
+    def attacks_per_action(self, weapon: Optional[Any] = None) -> int:
+        """
+        Weapon attacks made with the Attack action: Extra Attack gives 2, 'Extra Attack (2)' gives 3.
+        A weapon with the Loading property (a crossbow) fires once per action regardless.
+        """
+        if getattr(weapon, "weapon_name", None) in LOADING_WEAPONS:
+            return 1
         feature = self._feature("Extra Attack")
         if not feature:
             return 1

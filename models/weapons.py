@@ -40,6 +40,9 @@ THROWN_WEAPONS = {
     "Trident",
 }
 
+# Loading: one shot per action whatever the number of attacks (no Extra Attack with these)
+LOADING_WEAPONS = {"Light Crossbow", "Hand Crossbow", "Heavy Crossbow", "Blowgun"}
+
 # Martial Arts lets monks use DEX with unarmed strikes and simple melee weapons
 MONK_WEAPONS = {
     "Unarmed Strike",

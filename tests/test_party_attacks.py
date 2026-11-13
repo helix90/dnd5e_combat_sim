@@ -86,6 +86,16 @@ def test_attacks_per_action(features, expected):
     assert make_character(features=features).attacks_per_action() == expected
 
 
+def test_a_crossbow_fires_once_per_action_even_with_extra_attack():
+    fighter = make_character(features=["Extra Attack"], dex=16)
+    crossbow = weapon("Light Crossbow", "1d8", "ranged")
+    assert fighter.attacks_per_action(crossbow) == 1
+    assert fighter.attacks_per_action(weapon("Longbow", "1d8", "ranged")) == 2
+    goblin = make_goblin()
+    result = attack(Combat([fighter, goblin]), fighter, crossbow, goblin)
+    assert "attacks" not in result  # one attack, not an Extra Attack pair
+
+
 def test_sneak_attack_dice():
     assert make_character(features=["Sneak Attack (3d6)"]).sneak_attack_dice() == "3d6"
     assert (

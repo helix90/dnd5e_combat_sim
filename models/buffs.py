@@ -344,7 +344,8 @@ def create_turned_condition(source: str, duration: int = 10) -> Buff:
 
 def create_unconscious_condition(source: str, duration: int = 10) -> Buff:
     """
-    Unconscious from Sleep, for 1 minute or until it takes damage: incapacitated, automatically
+    Unconscious from Sleep, for 1 minute or until it takes damage or someone uses an action to
+    shake it awake: incapacitated, automatically
     fails STR and DEX saves, attacks against it have advantage and hits from within 5 ft are
     critical hits.
     """
@@ -358,6 +359,7 @@ def create_unconscious_condition(source: str, duration: int = 10) -> Buff:
             "fails_str_dex": True,
             "melee_crits": True,
             "ends_on_damage": True,
+            "shaken_awake": True,
             "advantage": ["attacks_against"],
         },
     )
@@ -390,7 +392,7 @@ def create_restrained_condition(
 def create_hypnotized_condition(source: str, duration: int = 10) -> Buff:
     """
     Hypnotic Pattern, while the caster concentrates: charmed and incapacitated with a speed of 0,
-    until it takes damage.
+    until it takes damage or someone uses an action to shake it out of its stupor.
     """
     return Buff(
         name="Hypnotized",
@@ -403,6 +405,7 @@ def create_hypnotized_condition(source: str, duration: int = 10) -> Buff:
             "incapacitated": True,
             "speed_zero": True,
             "ends_on_damage": True,
+            "shaken_awake": True,
         },
     )
 
@@ -574,6 +577,26 @@ def end_on_damage(creature: Any) -> List[str]:
     if ended:
         buffs.active_buffs = [
             b for b in buffs.active_buffs if not b.metadata.get("ends_on_damage")
+        ]
+    return ended
+
+
+def can_be_shaken_awake(creature: Any) -> bool:
+    """Asleep (Sleep) or hypnotized (Hypnotic Pattern): another creature can use its action to
+    shake it out of it."""
+    return has_flag(creature, "shaken_awake")
+
+
+def shake_awake(creature: Any) -> List[str]:
+    """Another creature's action ends magical sleep and Hypnotic Pattern on this one. Returns the
+    names of the effects ended."""
+    buffs = getattr(creature, "buffs", None)
+    if not isinstance(buffs, BuffManager):
+        return []
+    ended = [b.name for b in buffs.active_buffs if b.metadata.get("shaken_awake")]
+    if ended:
+        buffs.active_buffs = [
+            b for b in buffs.active_buffs if not b.metadata.get("shaken_awake")
         ]
     return ended
 
