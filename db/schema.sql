@@ -8,6 +8,16 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Accounts. A signed-in visitor's history is saved under "user:<id>" in the session_id
+-- columns below, in place of an anonymous session's id.
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP
+);
+
 -- session_id is intentionally not a foreign key: sessions are upserted, and pruned by
 -- purge_expired only once they have no history left, neither of which should disturb
 -- saved simulation history.

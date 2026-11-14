@@ -48,6 +48,20 @@
         </li>
         {% endfor %}
       </ul>
+      <div class="d-flex flex-wrap align-items-center gap-2 me-lg-2 mb-2 mb-lg-0" id="accountNav">
+        {% if current_user %}
+        <a class="nav-link text-truncate account-link{% if request.endpoint == 'account' %} active{% endif %}"
+           href="{{ url_for('account') }}" title="Your account"
+           {% if request.endpoint == 'account' %}aria-current="page"{% endif %}>{{ current_user.email }}</a>
+        <form method="post" action="{{ url_for('logout') }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-sm btn-outline-light">Sign out</button>
+        </form>
+        {% else %}
+        <a class="nav-link{% if request.endpoint in ('login', 'signup') %} active{% endif %}"
+           href="{{ url_for('login', next=request.full_path.rstrip('?') if request.endpoint not in ('login', 'signup') and request.method == 'GET' else None) }}">Sign in</a>
+        {% endif %}
+      </div>
       <button type="button" class="btn btn-sm theme-toggle mb-2 mb-lg-0" id="themeToggle" aria-pressed="false">
         Dark mode
       </button>

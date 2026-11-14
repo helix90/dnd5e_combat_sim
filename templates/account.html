@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% from '_macros.html' import when %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8 col-lg-6">
+    <h2>Your account</h2>
+    <p>Signed in as <strong>{{ current_user.email }}</strong>
+      <span class="text-body-secondary">· since {{ when(current_user.created_at) }}</span></p>
+    {% if RETENTION_DAYS %}
+    <p class="text-body-secondary">Your fights and batches are kept for {{ RETENTION_DAYS }} days after they're run,
+      as everyone's are.</p>
+    {% endif %}
+
+    <div class="card mb-4">
+      <div class="card-header"><h5 class="mb-0">Change your password</h5></div>
+      <div class="card-body">
+        <p class="small text-body-secondary">Any other browsers signed in to your account are signed out.</p>
+        {% if password_error %}
+        <div class="alert alert-danger" role="alert" id="passwordError">{{ password_error }}</div>
+        {% endif %}
+        <form method="post" action="{{ url_for('account_password') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label for="password" class="form-label">Current password</label>
+            <input type="password" class="form-control" id="password" name="password" required
+                   maxlength="128" autocomplete="current-password">
+          </div>
+          <div class="mb-3">
+            <label for="new_password" class="form-label">New password</label>
+            <input type="password" class="form-control" id="new_password" name="new_password" required
+                   minlength="8" maxlength="128" autocomplete="new-password" aria-describedby="newPasswordHelp">
+            <div id="newPasswordHelp" class="form-text">At least 8 characters.</div>
+          </div>
+          <div class="mb-3">
+            <label for="confirm_password" class="form-label">New password again</label>
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required
+                   maxlength="128" autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn btn-primary">Change password</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card mb-4 border-danger">
+      <div class="card-header"><h5 class="mb-0">Delete your account</h5></div>
+      <div class="card-body">
+        <p>This deletes your account and every fight and batch in it, and can't be undone. Download the CSV of any
+          batch you want to keep first.</p>
+        {% if delete_error %}
+        <div class="alert alert-danger" role="alert" id="deleteError">{{ delete_error }}</div>
+        {% endif %}
+        <form method="post" action="{{ url_for('account_delete') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label for="delete_password" class="form-label">Your password, to confirm</label>
+            <input type="password" class="form-control" id="delete_password" name="password" required
+                   maxlength="128" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-outline-danger">Delete my account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

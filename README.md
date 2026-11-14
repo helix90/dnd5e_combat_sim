@@ -37,8 +37,11 @@ A comprehensive web-based combat simulator for Dungeons & Dragons 5th Edition, f
 - **Load testing** capabilities
 
 ### Security & Production Ready
+- **Accounts** with an email and password (optional: without one, a visitor's history stays
+  in their browser, and moves into their account when they sign in)
 - **Input validation** and sanitization
-- **CSRF protection** for all forms
+- **CSRF tokens** on the account forms (the rest post JSON, which another site's page can't
+  send with the visitor's cookie)
 - **Rate limiting** to prevent abuse
 - **Security headers** (HSTS, CSP, XSS protection)
 - **Non-root Docker containers**

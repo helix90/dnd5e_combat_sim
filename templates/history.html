@@ -6,6 +6,11 @@
 <p class="text-muted mb-0">Fights and batches are deleted {{ RETENTION_DAYS }} days after they're run.
   Download a batch's CSV from its results page to keep it.</p>
 {% endif %}
+{% if not current_user %}
+<p class="text-muted mb-0">This history is only in this browser.
+  <a href="{{ url_for('login', next=url_for('history')) }}">Sign in</a> or
+  <a href="{{ url_for('signup', next=url_for('history')) }}">create an account</a> to keep it on any device.</p>
+{% endif %}
 
 <ul class="nav nav-tabs mt-3" role="tablist">
   <li class="nav-item" role="presentation">
