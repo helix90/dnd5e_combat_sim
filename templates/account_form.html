@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% set signing_up = mode == 'signup' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-5">
+    <h2>{{ 'Create an account' if signing_up else 'Sign in' }}</h2>
+    <p class="text-body-secondary">
+      {% if signing_up %}
+      With an account, your fights and batches are yours on any device. The ones you've run in this browser
+      move into it.
+      {% else %}
+      Your fights and batches from this browser move into your account when you sign in.
+      {% endif %}
+    </p>
+    {% if error %}
+    <div class="alert alert-danger" role="alert" id="formError">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="{{ url_for(mode) }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if next_page %}<input type="hidden" name="next" value="{{ next_page }}">{% endif %}
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="email" name="email" value="{{ email or '' }}"
+               autocomplete="email" required autofocus maxlength="254"
+               {% if error %}aria-describedby="formError"{% endif %}>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password" required maxlength="128"
+               autocomplete="{{ 'new-password' if signing_up else 'current-password' }}"
+               {% if signing_up %}minlength="8" aria-describedby="passwordHelp"{% endif %}>
+        {% if signing_up %}<div id="passwordHelp" class="form-text">At least 8 characters.</div>{% endif %}
+      </div>
+      {% if signing_up %}
+      <div class="mb-3">
+        <label for="confirm_password" class="form-label">Password again</label>
+        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required
+               maxlength="128" autocomplete="new-password">
+      </div>
+      {% endif %}
+      <button type="submit" class="btn btn-primary">{{ 'Create account' if signing_up else 'Sign in' }}</button>
+    </form>
+    <p class="mt-3">
+      {% if signing_up %}
+      Already have an account? <a href="{{ url_for('login', next=next_page) }}">Sign in</a>
+      {% else %}
+      No account yet? <a href="{{ url_for('signup', next=next_page) }}">Create one</a>
+      {% endif %}
+    </p>
+    {% if not signing_up %}
+    <p class="small text-body-secondary">Forgotten your password? There's no reset by email yet, so it can't be
+      recovered: create a new account instead.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

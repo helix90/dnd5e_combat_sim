@@ -294,7 +294,9 @@ docker-compose exec web python scripts/init_db.py
 
 ### Production Security
 
-1. **Secret Key**: Generate a secure random secret key
+1. **Secret Key**: Generate a secure random secret key. Changing it signs everyone out, and
+   anonymous visitors lose the link to their history, so keep it stable.
+   Passwords are stored as scrypt hashes; there is no password reset by email yet.
 2. **HTTPS**: Always use HTTPS in production
 3. **Rate Limiting**: Configured to prevent abuse
 4. **Input Validation**: All inputs are validated and sanitized

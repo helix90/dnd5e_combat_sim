@@ -586,7 +586,14 @@ class DatabaseManager:
         try:
             start_time = time.time()
             with self._get_connection() as conn:
-                sim_id = self._insert_simulation_result(conn, session_id, result)
+                # The batch's owner now, which is session_id unless its visitor has since
+                # signed in, moving their history into their account
+                owner = conn.execute(
+                    "SELECT session_id FROM batch_simulations WHERE id = ?", (batch_id,)
+                ).fetchone()
+                sim_id = self._insert_simulation_result(
+                    conn, owner["session_id"] if owner else session_id, result
+                )
                 conn.execute(
                     """
                     INSERT INTO batch_simulation_runs (batch_id, simulation_id, run_number, result, rounds, party_hp_remaining)
@@ -880,6 +887,90 @@ class DatabaseManager:
         except Exception as e:
             log_exception(e)
             raise DatabaseError(f"Failed to get batch run damage: {e}")
+
+    # Accounts
+
+    def create_user(self, email: str, password_hash: str) -> int:
+        """Add an account. DatabaseError if the email already has one."""
+        try:
+            with self._get_connection() as conn:
+                user_id = conn.execute(
+                    "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+                    (email, password_hash),
+                ).lastrowid
+                conn.commit()
+            return user_id
+        except sqlite3.IntegrityError:
+            raise DatabaseError("An account with that email already exists")
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to create user: {e}")
+
+    def get_user(self, user_id: int) -> Optional[Dict[str, Any]]:
+        return self._get_user("id = ?", user_id)
+
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        return self._get_user("email = ?", email)  # the column is COLLATE NOCASE
+
+    def _get_user(self, where: str, value: Any) -> Optional[Dict[str, Any]]:
+        try:
+            with self._get_connection() as conn:
+                row = conn.execute(f"SELECT * FROM users WHERE {where}", (value,)).fetchone()
+            return dict(row) if row else None
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to get user: {e}")
+
+    def update_user(self, user_id: int, **fields: Any) -> None:
+        """Set password_hash and/or last_login_at ('now' for the current time)."""
+        allowed = {"password_hash", "last_login_at"}
+        assert fields and set(fields) <= allowed, fields
+        sets = ", ".join(
+            f"{k} = CURRENT_TIMESTAMP" if v == "now" else f"{k} = ?" for k, v in fields.items()
+        )
+        values = [v for v in fields.values() if v != "now"]
+        try:
+            with self._get_connection() as conn:
+                conn.execute(f"UPDATE users SET {sets} WHERE id = ?", (*values, user_id))
+                conn.commit()
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to update user: {e}")
+
+    def move_history(self, from_owner: str, to_owner: str) -> int:
+        """
+        Give to_owner the fights and batches saved under from_owner, as when a visitor signs
+        in. Returns how many fights and batches moved.
+        """
+        try:
+            with self._get_connection() as conn:
+                moved = sum(
+                    conn.execute(
+                        f"UPDATE {table} SET session_id = ? WHERE session_id = ?",
+                        (to_owner, from_owner),
+                    ).rowcount
+                    for table in ("batch_simulations", "simulations")
+                )
+                conn.execute("DELETE FROM sessions WHERE session_id = ?", (from_owner,))
+                conn.commit()
+            return moved
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to move history: {e}")
+
+    def delete_user(self, user_id: int, owner: str) -> None:
+        """Delete an account and the history saved under its owner key."""
+        try:
+            with self._get_connection() as conn:
+                # Deleting a fight deletes its combat log and batch run rows
+                conn.execute("DELETE FROM simulations WHERE session_id = ?", (owner,))
+                conn.execute("DELETE FROM batch_simulations WHERE session_id = ?", (owner,))
+                conn.execute("DELETE FROM sessions WHERE session_id = ?", (owner,))
+                conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                conn.commit()
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to delete user: {e}")
 
     def purge_expired(self, days: int) -> Dict[str, int]:
         """

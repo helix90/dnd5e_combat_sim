@@ -7,6 +7,8 @@ between characters and monsters.
 
 # Standard library imports
 import functools
+import hmac
+import secrets
 from collections import Counter
 import json
 import logging
@@ -29,6 +31,7 @@ from flask import (
     session,
     jsonify,
     flash,
+    g,
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -43,6 +46,16 @@ from controllers.batch_simulation_controller import (
 from controllers.encounter_controller import EncounterController
 from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
+from models.accounts import (
+    DUMMY_HASH,
+    email_problem,
+    hash_password,
+    normalize_email,
+    owner_key,
+    password_matches,
+    password_problem,
+    session_token,
+)
 from models.arena_library import (
     DEFAULT_MAP,
     ENCOUNTER_MAP,
@@ -81,6 +94,9 @@ RATE_LIMIT_PARTY = "30 per minute"
 RATE_LIMIT_ENCOUNTER = "60 per minute"
 RATE_LIMIT_SIMULATE = "10 per minute"
 RATE_LIMIT_BATCH_START = "10 per minute;60 per hour"
+# Signing in is limited more tightly, against guessing passwords
+RATE_LIMIT_SIGN_IN = "10 per minute;50 per hour"
+RATE_LIMIT_SIGN_UP = "5 per minute;20 per hour"
 RATE_LIMIT_API_MONSTERS = "100 per minute"
 RATE_LIMIT_API_BALANCE = "50 per minute"
 RATE_LIMIT_RESULTS_EXPORT = "20 per minute"
@@ -481,6 +497,80 @@ def ensure_session() -> None:
             log_exception(e)
     else:
         session.permanent = True  # Ensure existing sessions are also permanent
+
+
+@app.before_request
+def load_user() -> None:
+    """
+    g.user: the signed-in visitor's account, or None. A session whose account has been
+    deleted, or whose password has changed since it signed in, is signed out.
+    """
+    g.user = None
+    user_id = session.get("user_id")
+    if not user_id:
+        return
+    user = db.get_user(user_id)
+    if user and hmac.compare_digest(
+        session.get("user_token", ""),
+        session_token(app.secret_key, user["id"], user["password_hash"]),
+    ):
+        g.user = user
+        return
+    session.clear()
+    ensure_session()
+
+
+@app.context_processor
+def account_context() -> Dict[str, Any]:
+    return {"current_user": g.get("user"), "csrf_token": csrf_token}
+
+
+def csrf_token() -> str:
+    """This session's token for the account forms, which a page on another site can't know."""
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_urlsafe(32)
+    return session["csrf_token"]
+
+
+def csrf_ok() -> bool:
+    expected = session.get("csrf_token")
+    return bool(expected) and hmac.compare_digest(
+        request.form.get("csrf_token", ""), expected
+    )
+
+
+def sign_in(user: Dict[str, Any]) -> bool:
+    """
+    Sign the session in as user: its fights and batches move into the account, and from now
+    on it saves under the account's key. The party and encounter chosen are kept. Returns
+    whether there was any history to move.
+    """
+    old_owner = session.get("session_id")
+    owner = owner_key(user["id"])
+    moved = db.move_history(old_owner, owner) if old_owner and old_owner != owner else 0
+    kept = {
+        key: value
+        for key, value in session.items()
+        if key not in ("session_id", "user_id", "user_token", "csrf_token")
+    }
+    session.clear()
+    session.update(kept)
+    session.permanent = True
+    session["session_id"] = owner
+    session["user_id"] = user["id"]
+    session["user_token"] = session_token(
+        app.secret_key, user["id"], user["password_hash"]
+    )
+    db.update_user(user["id"], last_login_at="now")
+    g.user = user
+    return bool(moved)
+
+
+def safe_next(target: Optional[str]) -> str:
+    """Where to go after signing in: a path on this site, never another site."""
+    if target and target.startswith("/") and not target.startswith("//") and "\\" not in target:
+        return target
+    return url_for("index")
 
 
 def _session_owns(record: Optional[Dict[str, Any]]) -> bool:
@@ -1099,6 +1189,152 @@ def simulate_results() -> Response:
         # No simulation found, redirect to results page which will handle the error
         logger.warning("No simulation ID found for results redirect")
         return redirect(url_for("results"))
+
+
+# Account Routes
+
+
+@app.route("/signup", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_SIGN_UP, methods=["POST"])
+def signup() -> Any:
+    """Create an account with an email and password, and sign in to it."""
+    next_page = request.values.get("next")
+    if g.user:
+        return redirect(safe_next(next_page))
+    if request.method == "GET":
+        return render_template("account_form.html", mode="signup", next_page=next_page)
+    if not csrf_ok():
+        return _account_form_error("signup", "The form expired. Please try again.")
+    email = normalize_email(request.form.get("email"))
+    password = request.form.get("password", "")
+    problem = (
+        email_problem(email)
+        or password_problem(password, email)
+        or (
+            "The passwords don't match."
+            if password != request.form.get("confirm_password", "")
+            else None
+        )
+    )
+    if problem:
+        return _account_form_error("signup", problem, email)
+    if db.get_user_by_email(email):
+        return _account_form_error(
+            "signup", "An account with that email already exists. Sign in instead?", email
+        )
+    user = db.get_user(db.create_user(email, hash_password(password)))
+    moved = sign_in(user)
+    logger.info(f"Created account {user['id']}")
+    flash(
+        "Your account is ready."
+        + (" Your fights and batches from this browser are in it." if moved else ""),
+        "success",
+    )
+    return redirect(safe_next(next_page))
+
+
+@app.route("/login", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_SIGN_IN, methods=["POST"])
+def login() -> Any:
+    """Sign in with an email and password."""
+    next_page = request.values.get("next")
+    if g.user:
+        return redirect(safe_next(next_page))
+    if request.method == "GET":
+        return render_template("account_form.html", mode="login", next_page=next_page)
+    if not csrf_ok():
+        return _account_form_error("login", "The form expired. Please try again.")
+    email = normalize_email(request.form.get("email"))
+    password = request.form.get("password", "")
+    user = db.get_user_by_email(email) if email else None
+    # An unknown email takes as long to check as a wrong password
+    matches = password_matches(user["password_hash"] if user else DUMMY_HASH, password)
+    if not user or not matches:
+        return _account_form_error("login", "That email and password don't match.", email)
+    moved = sign_in(user)
+    flash(
+        f"Signed in as {user['email']}."
+        + (" Your fights and batches from this browser are now in your account." if moved else ""),
+        "success",
+    )
+    return redirect(safe_next(next_page))
+
+
+def _account_form_error(mode: str, message: str, email: str = "") -> Tuple[str, int]:
+    return (
+        render_template(
+            "account_form.html",
+            mode=mode,
+            error=message,
+            email=email,
+            next_page=request.values.get("next"),
+        ),
+        400,
+    )
+
+
+@app.route("/logout", methods=["POST"])
+def logout() -> Any:
+    """Sign out. The browser starts again as a new anonymous visitor."""
+    if csrf_ok():
+        session.clear()
+        flash("Signed out.", "info")
+    return redirect(url_for("index"))
+
+
+@app.route("/account", methods=["GET"])
+def account() -> Any:
+    if not g.user:
+        return redirect(url_for("login", next=url_for("account")))
+    return render_template("account.html")
+
+
+@app.route("/account/password", methods=["POST"])
+@limiter.limit(RATE_LIMIT_SIGN_IN)
+def account_password() -> Any:
+    """Change the password, which signs out every other browser signed in to the account."""
+    if not g.user:
+        return redirect(url_for("login", next=url_for("account")))
+    password = request.form.get("new_password", "")
+    if not csrf_ok():
+        problem = "The form expired. Please try again."
+    elif not password_matches(g.user["password_hash"], request.form.get("password", "")):
+        problem = "Your current password isn't right."
+    else:
+        problem = password_problem(password, g.user["email"]) or (
+            "The new passwords don't match."
+            if password != request.form.get("confirm_password", "")
+            else None
+        )
+    if problem:
+        return render_template("account.html", password_error=problem), 400
+    password_hash = hash_password(password)
+    db.update_user(g.user["id"], password_hash=password_hash)
+    # This browser stays signed in, with a token for the new password
+    session["user_token"] = session_token(app.secret_key, g.user["id"], password_hash)
+    flash("Password changed. Any other browsers signed in to your account are signed out.", "success")
+    return redirect(url_for("account"))
+
+
+@app.route("/account/delete", methods=["POST"])
+@limiter.limit(RATE_LIMIT_SIGN_IN)
+def account_delete() -> Any:
+    """Delete the account and all its fights and batches."""
+    if not g.user:
+        return redirect(url_for("login", next=url_for("account")))
+    if not csrf_ok():
+        problem = "The form expired. Please try again."
+    elif not password_matches(g.user["password_hash"], request.form.get("password", "")):
+        problem = "That password isn't right."
+    else:
+        problem = None
+    if problem:
+        return render_template("account.html", delete_error=problem), 400
+    db.delete_user(g.user["id"], owner_key(g.user["id"]))
+    logger.info(f"Deleted account {g.user['id']}")
+    session.clear()
+    flash("Your account and its history are deleted.", "info")
+    return redirect(url_for("index"))
 
 
 # Batch Simulation Routes
