@@ -137,9 +137,6 @@ Thumbs.db
 *.prof
 *.bench
 
-# Fly.io
-fly.toml
-
 # Deployment scripts output
 scripts/*.log
 
