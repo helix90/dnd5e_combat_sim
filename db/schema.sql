@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS sessions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- session_id is intentionally not a foreign key: sessions are upserted with
--- INSERT OR REPLACE and pruned by cleanup_old_sessions, neither of which
--- should disturb saved simulation history.
+-- session_id is intentionally not a foreign key: sessions are upserted, and pruned by
+-- purge_expired only once they have no history left, neither of which should disturb
+-- saved simulation history.
 CREATE TABLE IF NOT EXISTS simulations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,

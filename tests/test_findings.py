@@ -1,6 +1,8 @@
 """The batch results page's headline, charts and run pages, and the Findings page: the DMG's
 ratings against how the fights went."""
 
+import csv
+import io
 import json
 import re
 import time
@@ -8,7 +10,12 @@ from unittest.mock import patch
 
 import pytest
 
-from controllers.batch_simulation_controller import damage_rows, histogram, win_rate
+from controllers.batch_simulation_controller import (
+    csv_cell,
+    damage_rows,
+    histogram,
+    win_rate,
+)
 from models.db import DatabaseManager
 from tests.helpers import session_id
 from utils.stats import wilson_interval
@@ -136,6 +143,73 @@ def test_short_batches_have_no_page_links(goblin_batch):
     client, batch_id = goblin_batch
     page = client.get(f"/batch/results/{batch_id}").get_data(as_text=True)
     assert "pagination" not in page and page.count("View Details") == 5
+
+
+def test_batch_runs_download_as_csv(goblin_batch):
+    client, batch_id = goblin_batch
+    db = DatabaseManager()
+    page = client.get(f"/batch/results/{batch_id}").get_data(as_text=True)
+    assert f'href="/batch/results/{batch_id}/csv"' in page
+
+    response = client.get(f"/batch/results/{batch_id}/csv")
+    assert response.status_code == 200 and response.mimetype == "text/csv"
+    assert response.headers["Content-Disposition"] == (
+        f'attachment; filename="batch-{batch_id}-goblin-ambush.csv"'
+    )
+    rows = list(csv.DictReader(io.StringIO(response.get_data(as_text=True))))
+    header = list(rows[0])
+    assert header[:11] == [
+        "Batch",
+        "Encounter",
+        "Party",
+        "Party Level",
+        "Battlefield",
+        "DMG Rating",
+        "Encounter XP",
+        "Run",
+        "Winner",
+        "Rounds",
+        "Party HP Left",
+    ]
+    # The party in its own order, then the monsters, Goblin 2 before Goblin 10 would be
+    assert header[11:15] == [f"{n} Damage" for n in ("Aldric", "Branwen", "Calyra", "Dax")]
+    assert header[15:] == sorted(header[15:], key=lambda h: int(h.split()[1]))
+
+    runs = db.get_batch_runs(batch_id)
+    assert len(rows) == len(runs) == 5
+    for row, run in zip(rows, runs):
+        assert row["Batch"] == "Goblin Ambush" and row["DMG Rating"] == "Deadly"
+        assert row["Party"] == "Classic Adventurers" and row["Party Level"] == "1"
+        assert row["Battlefield"] == "No map"
+        assert int(row["Run"]) == run["run_number"]
+        assert row["Winner"] == {"party": "Party", "monsters": "Monsters"}[run["result"]]
+        assert int(row["Rounds"]) == run["rounds"]
+        assert int(row["Party HP Left"]) == run["party_hp_remaining"]
+    # Each creature's damage over the runs adds up to the batch's, as the damage chart counts it
+    totals = {h[: -len(" Damage")]: sum(int(r[h]) for r in rows) for h in header[11:]}
+    assert {k: v for k, v in totals.items() if v} == db.get_batch_damage(batch_id)
+
+
+def test_only_the_batchs_own_session_can_download_it(goblin_batch):
+    from app import app
+
+    _, batch_id = goblin_batch
+    assert app.test_client().get(f"/batch/results/{batch_id}/csv").status_code == 404
+
+
+def test_csv_cells_cant_be_read_as_formulas():
+    assert csv_cell("=HYPERLINK(1)") == "'=HYPERLINK(1)"
+    assert [csv_cell(v) for v in ("+1", "-1", "@SUM", "\tx")] == [
+        "'+1",
+        "'-1",
+        "'@SUM",
+        "'\tx",
+    ]
+    assert (csv_cell("Goblin Ambush"), csv_cell(-3), csv_cell(None)) == (
+        "Goblin Ambush",
+        -3,
+        None,
+    )
 
 
 # Findings

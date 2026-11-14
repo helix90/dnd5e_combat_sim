@@ -206,17 +206,21 @@ dnd5e_combat_sim/
    curl -L https://fly.io/install.sh | sh
    ```
 
-2. **Authenticate and deploy**
+2. **Create the app, its volume and its secret key** (set `app` in `fly.toml` to your app's name first)
    ```bash
    fly auth login
+   fly apps create your-app-name
+   fly volumes create data --size 1
+   fly secrets set SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+   ```
+
+3. **Deploy**
+   ```bash
    fly deploy
    ```
 
-3. **Set environment variables**
-   ```bash
-   fly secrets set SECRET_KEY=your-production-secret-key
-   fly secrets set DATABASE_URL=sqlite:////data/app.db
-   ```
+   `fly.toml` keeps the SQLite database on the volume and one machine always running. See the
+   [Deployment Guide](docs/DEPLOYMENT.md) for why, and for backups.
 
 ### Docker Production
 
@@ -236,6 +240,9 @@ docker run -p 5000:5000 -e FLASK_ENV=production dnd5e-combat-sim
 | `SECRET_KEY` | Flask secret key | `dev-secret-key` |
 | `DATABASE_URL` | Database connection | `sqlite:///data/app.db` |
 | `PYTHONUNBUFFERED` | Python output buffering | `1` |
+| `FLASK_SESSION_COOKIE_SECURE` | Send the session cookie over HTTPS only | `false` (`true` in `fly.toml`) |
+| `TRUSTED_PROXIES` | Proxies in front of the app that add to `X-Forwarded-For` | `1` on Fly.io, else `0` |
+| `RETENTION_DAYS` | Days fights and batches are kept before they're deleted (`0` keeps them all) | `30` |
 
 ## 🧪 Testing
 

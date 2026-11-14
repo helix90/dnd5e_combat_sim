@@ -1,4 +1,6 @@
 import copy
+import csv
+import io
 import re
 import threading
 from collections import Counter, defaultdict
@@ -17,6 +19,33 @@ from utils.stats import wilson_interval
 
 # Bin widths for the results page's histograms
 NICE_WIDTHS = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000]
+
+# Batches running at once, for one visitor and for the whole server. Every batch shares the
+# server's one process (see the Dockerfile), so each one more slows them all.
+MAX_RUNNING_BATCHES_PER_USER = 2
+MAX_RUNNING_BATCHES = 4
+
+
+WINNERS = {"party": "Party", "monsters": "Monsters"}
+
+
+def csv_cell(value: Any) -> Any:
+    """
+    A value for a CSV cell. Text a spreadsheet would read as a formula (=, +, -, @, or a tab or
+    carriage return first) gets a leading apostrophe, so a batch or creature name can't run one.
+    """
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
+def natural_key(name: str) -> List[Any]:
+    """Sorts "Goblin 2" before "Goblin 10"."""
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", name)]
+
+
+class TooManyBatches(Exception):
+    """A batch can't start until one already running finishes."""
 
 
 def win_rate(wins: int, runs: int) -> Dict[str, Any]:
@@ -99,6 +128,7 @@ class BatchSimulationController:
         self.batch_threads = {}  # batch_id -> thread
         self.batch_states = {}  # batch_id -> state dict
         self.state_lock = threading.Lock()  # Thread safety for shared state
+        self.running = Counter()  # session_id -> its batches running now
 
     def execute_batch_simulation(
         self,
@@ -143,6 +173,58 @@ class BatchSimulationController:
         arena = get_arena(arena_name)  # ValueError for an unknown map
 
         logger.debug("Input validation passed")
+
+        self._claim_batch_slot(session_id)
+        try:
+            return self._start_batch(
+                party,
+                monsters,
+                num_runs,
+                batch_name,
+                session_id,
+                arena_name,
+                arena,
+                compare_without_arena,
+                details,
+            )
+        except BaseException:
+            self._release_batch_slot(session_id)
+            raise
+
+    def _claim_batch_slot(self, session_id: str) -> None:
+        """Count a batch as running for session_id, or raise TooManyBatches."""
+        with self.state_lock:
+            if self.running[session_id] >= MAX_RUNNING_BATCHES_PER_USER:
+                raise TooManyBatches(
+                    f"You already have {MAX_RUNNING_BATCHES_PER_USER} batches running. "
+                    "Start another when one finishes."
+                )
+            if sum(self.running.values()) >= MAX_RUNNING_BATCHES:
+                raise TooManyBatches(
+                    "The server is busy running other batches. Try again in a few minutes."
+                )
+            self.running[session_id] += 1
+
+    def _release_batch_slot(self, session_id: str) -> None:
+        with self.state_lock:
+            self.running[session_id] -= 1
+            if self.running[session_id] <= 0:
+                del self.running[session_id]
+
+    def _start_batch(
+        self,
+        party,
+        monsters,
+        num_runs: int,
+        batch_name: str,
+        session_id: str,
+        arena_name: Optional[str],
+        arena,
+        compare_without_arena: bool,
+        details: Optional[Dict[str, Any]],
+    ) -> int:
+        """Save the batch's records and start its thread, which frees its slot when done."""
+        from utils.logging import logger
 
         # Create batch simulation record first
         party_level = max(
@@ -340,6 +422,8 @@ class BatchSimulationController:
                         "failed_runs": 0,
                         "total_runs": num_runs,
                     }
+            finally:
+                self._release_batch_slot(session_id)
 
         logger.debug(f"Batch {batch_id}: Starting background thread")
         t = threading.Thread(target=run)
@@ -403,6 +487,71 @@ class BatchSimulationController:
         except Exception as e:
             log_exception(e)
             raise BatchSimulationError(f"Failed to get batch results: {e}")
+
+    def batch_csv(self, batch_id: int) -> str:
+        """
+        A batch's runs as CSV, one row per run: what was fought (the same on every row, so
+        several batches' files can be pasted together), how the run went, and the damage each
+        creature dealt in it, party members first in their party's order, then the monsters.
+        """
+        batch = self.db.get_batch_simulation(batch_id)
+        if not batch:
+            raise BatchSimulationError(f"Batch simulation {batch_id} not found")
+        runs = self.db.get_batch_runs(batch_id)
+        damage = self.db.get_batch_run_damage(batch_id)
+
+        roster = next(
+            (
+                [c["name"] for c in party.get("characters", [])]
+                for party in PartyLoader.load_parties()
+                if party.get("name") == batch.get("party_name")
+            ),
+            [],
+        )
+        dealt = {name for run in damage.values() for name in run}
+        names = roster + sorted(dealt - set(roster), key=natural_key)
+
+        rating = batch.get("predicted_difficulty")
+        fight = [
+            batch.get("batch_name"),
+            batch.get("encounter_name"),
+            batch.get("party_name"),
+            batch.get("party_level"),
+            batch.get("arena") or "No map",
+            DIFFICULTY_LABELS.get(rating, rating),
+            batch.get("encounter_xp"),
+        ]
+        out = io.StringIO()
+        writer = csv.writer(out)
+        writer.writerow(
+            [
+                "Batch",
+                "Encounter",
+                "Party",
+                "Party Level",
+                "Battlefield",
+                "DMG Rating",
+                "Encounter XP",
+                "Run",
+                "Winner",
+                "Rounds",
+                "Party HP Left",
+            ]
+            + [csv_cell(f"{name} Damage") for name in names]
+        )
+        for run in runs:
+            dealt_in_run = damage.get(run["run_number"], {})
+            row = fight + [
+                run["run_number"],
+                WINNERS.get(run["result"], "None"),
+                run["rounds"],
+                run["party_hp_remaining"],
+            ]
+            writer.writerow(
+                [csv_cell(v) for v in row]
+                + [dealt_in_run.get(name, 0) for name in names]
+            )
+        return out.getvalue()
 
     @staticmethod
     def _statistics(batch: Dict[str, Any]) -> Dict[str, float]:

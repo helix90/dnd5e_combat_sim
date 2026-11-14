@@ -150,9 +150,7 @@ deploy_fly() {
         fly secrets set SECRET_KEY="$SECRET_KEY" --app "$APP_NAME"
     fi
     
-    if [ -n "$DATABASE_URL" ]; then
-        fly secrets set DATABASE_URL="$DATABASE_URL" --app "$APP_NAME"
-    fi
+    # Not DATABASE_URL: fly.toml puts the database on the volume, and a secret would override it
     
     # Deploy
     fly deploy --app "$APP_NAME"

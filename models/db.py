@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 import sqlite3
 import os
 import zlib
@@ -853,6 +854,83 @@ class DatabaseManager:
         except Exception as e:
             log_exception(e)
             raise DatabaseError(f"Failed to get batch damage: {e}")
+
+    def get_batch_run_damage(self, batch_id: int) -> Dict[int, Dict[str, int]]:
+        """
+        Damage dealt by each creature in each of a batch's runs, counted as get_batch_damage
+        counts it: {run_number: {name: damage}}.
+        """
+        try:
+            with self._get_connection() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT bsr.run_number, cl.character_name AS name, SUM(cl.damage) AS total
+                    FROM combat_logs cl
+                    JOIN batch_simulation_runs bsr ON bsr.simulation_id = cl.simulation_id
+                    WHERE bsr.batch_id = ? AND cl.damage > 0
+                      AND cl.action_type IN ('attack', 'spell', 'special')
+                    GROUP BY bsr.run_number, cl.character_name
+                    """,
+                    (batch_id,),
+                ).fetchall()
+            damage = defaultdict(dict)
+            for row in rows:
+                damage[row["run_number"]][row["name"]] = row["total"]
+            return dict(damage)
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to get batch run damage: {e}")
+
+    def purge_expired(self, days: int) -> Dict[str, int]:
+        """
+        Delete the fights and batches run more than `days` days ago: each batch with its runs'
+        fights, each single fight, and their combat logs (deleting a fight cascades to its log
+        and batch run rows). Sessions that old with nothing left go too. Returns what went.
+        """
+        age = f"-{int(days)} days"
+        try:
+            with self._get_connection() as conn:
+                expired = "SELECT id FROM batch_simulations WHERE created_at < datetime('now', ?)"
+                batch_fights = conn.execute(
+                    f"""
+                    DELETE FROM simulations WHERE id IN (
+                        SELECT simulation_id FROM batch_simulation_runs
+                        WHERE batch_id IN ({expired}))
+                    """,
+                    (age,),
+                ).rowcount
+                batches = conn.execute(
+                    "DELETE FROM batch_simulations WHERE created_at < datetime('now', ?)",
+                    (age,),
+                ).rowcount
+                fights = conn.execute(
+                    """
+                    DELETE FROM simulations WHERE created_at < datetime('now', ?)
+                      AND NOT EXISTS (SELECT 1 FROM batch_simulation_runs bsr
+                                      WHERE bsr.simulation_id = simulations.id)
+                    """,
+                    (age,),
+                ).rowcount
+                sessions = conn.execute(
+                    """
+                    DELETE FROM sessions WHERE created_at < datetime('now', ?)
+                      AND NOT EXISTS (SELECT 1 FROM simulations s
+                                      WHERE s.session_id = sessions.session_id)
+                      AND NOT EXISTS (SELECT 1 FROM batch_simulations b
+                                      WHERE b.session_id = sessions.session_id)
+                    """,
+                    (age,),
+                ).rowcount
+                conn.commit()
+            return {
+                "batches": batches,
+                "batch_fights": batch_fights,
+                "fights": fights,
+                "sessions": sessions,
+            }
+        except Exception as e:
+            log_exception(e)
+            raise DatabaseError(f"Failed to purge expired history: {e}")
 
     def get_rated_batches(self, session_id: str) -> List[Dict[str, Any]]:
         """A session's finished batches that have a DMG rating, for the Findings page."""

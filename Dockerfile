@@ -37,8 +37,10 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz', timeout=4)"]
 
-# Switch to non-root user
-USER appuser
+# Runs the app as appuser, after giving it the database's folder (see the script)
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod 755 /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["docker-entrypoint.sh"]
 
 # Environment variables (can be overridden)
 ENV FLASK_ENV=production

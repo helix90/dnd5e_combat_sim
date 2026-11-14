@@ -5,7 +5,8 @@ Test-wide setup:
 - errors in the AI fail tests rather than quietly fall back to Defend or Wait;
 - each test gets the random generator back as it found it, so seeding in one test doesn't
   decide the dice of the tests after it;
-- `client` is a test client for the app.
+- `client` is a test client for the app, with the rate limits' counts cleared, since every
+  test's requests come from the same address.
 """
 
 import os
@@ -35,8 +36,9 @@ def restore_random_state():
 
 @pytest.fixture
 def client():
-    from app import app as flask_app
+    from app import app as flask_app, limiter
 
     flask_app.config["TESTING"] = True
+    limiter.reset()
     with flask_app.test_client() as client:
         yield client

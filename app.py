@@ -12,8 +12,9 @@ import json
 import logging
 import os
 import re
+import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict, Any, Tuple, List, Optional
 from uuid import uuid4
 
@@ -32,9 +33,13 @@ from flask import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Local imports
-from controllers.batch_simulation_controller import BatchSimulationController
+from controllers.batch_simulation_controller import (
+    BatchSimulationController,
+    TooManyBatches,
+)
 from controllers.encounter_controller import EncounterController
 from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
@@ -57,15 +62,25 @@ from utils.party_loader import PartyLoader
 
 # Constants - Application Configuration
 DEFAULT_SECRET_KEY = "dev-secret-key"
-SESSION_LIFETIME_HOURS = 24
+
+# Constants - Storage
+# Fights and batches are deleted this many days after they're run (0 keeps them all). The
+# session cookie, which is what ties a visitor to their history, lasts as long after their
+# last visit.
+RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "30"))
+SESSION_LIFETIME_DAYS = RETENTION_DAYS or 365
+PURGE_INTERVAL_SECONDS = 3600  # how often the expired history is looked for
 
 # Constants - Rate Limiting
 RATE_LIMIT_PER_DAY = "100000 per day"
 RATE_LIMIT_PER_HOUR = "10000 per hour"
-RATE_LIMIT_PARTY = "10 per minute"
-RATE_LIMIT_ENCOUNTER = "20 per minute"
+# Per visitor's address, on each route. Starting fights and batches costs the server's CPU;
+# choosing a party or an encounter is cheap, but limited too, as nobody needs to do it faster.
+# The pages' progress polls only have the defaults.
+RATE_LIMIT_PARTY = "30 per minute"
+RATE_LIMIT_ENCOUNTER = "60 per minute"
 RATE_LIMIT_SIMULATE = "10 per minute"
-RATE_LIMIT_STATUS = "30 per minute"
+RATE_LIMIT_BATCH_START = "10 per minute;60 per hour"
 RATE_LIMIT_API_MONSTERS = "100 per minute"
 RATE_LIMIT_API_BALANCE = "50 per minute"
 RATE_LIMIT_RESULTS_EXPORT = "20 per minute"
@@ -92,7 +107,17 @@ app.jinja_env.globals.update(
     DIFFICULTIES=DIFFICULTIES,
     DIFFICULTY_LABELS=DIFFICULTY_LABELS,
     DIFFICULTY_MEANINGS=DIFFICULTY_MEANINGS,
+    RETENTION_DAYS=RETENTION_DAYS,
 )
+
+
+@app.template_filter("expires")
+def expires(created_at: Any) -> Optional[str]:
+    """When a fight or batch saved at created_at (UTC, as SQLite writes it) will be deleted."""
+    if not RETENTION_DAYS or not created_at:
+        return None
+    saved = datetime.strptime(str(created_at)[:19], "%Y-%m-%d %H:%M:%S")
+    return (saved + timedelta(days=RETENTION_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
 
 
 # Configure application
@@ -113,6 +138,11 @@ def configure_app(app: Flask) -> None:
 
     # Warn if using default secret key
     if app.secret_key == DEFAULT_SECRET_KEY:
+        if os.environ.get("FLY_APP_NAME"):
+            # On Fly.io the app is public: anyone could forge a session with the known key
+            raise RuntimeError(
+                "Set SECRET_KEY with `fly secrets set SECRET_KEY=...` before deploying"
+            )
         if not app.debug:
             logger.error(
                 "CRITICAL SECURITY WARNING: Using default secret key! "
@@ -131,11 +161,27 @@ def configure_app(app: Flask) -> None:
     )
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent JavaScript access
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=SESSION_LIFETIME_HOURS)
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=SESSION_LIFETIME_DAYS)
+
+    # Behind a proxy, such as Fly.io's, every request comes from the proxy's address: the
+    # visitor's is in X-Forwarded-For, which only the proxies in front of the app may be
+    # trusted to set. Without this, rate limits would be shared by every visitor.
+    proxies = trusted_proxy_count()
+    if proxies:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxies, x_proto=proxies)
 
     logger.info(
         f"Application configured: debug={app.debug}, testing={app.config.get('TESTING', False)}, session_cookie_secure={app.config['SESSION_COOKIE_SECURE']}"
     )
+
+
+def trusted_proxy_count() -> int:
+    """
+    How many proxies in front of the app add to X-Forwarded-For: TRUSTED_PROXIES, or one on
+    Fly.io (which sets FLY_APP_NAME), else none.
+    """
+    default = "1" if os.environ.get("FLY_APP_NAME") else "0"
+    return int(os.environ.get("TRUSTED_PROXIES", default))
 
 
 configure_app(app)
@@ -386,6 +432,37 @@ def add_security_headers(response: Response) -> Response:
 # Session Management
 
 
+_last_purge: Optional[float] = None
+_purge_lock = threading.Lock()
+
+
+@app.before_request
+def purge_expired_history() -> None:
+    """
+    At most once every PURGE_INTERVAL_SECONDS, delete the fights and batches older than
+    RETENTION_DAYS, in the background so no request waits for it. (Not while testing, where
+    tests call db.purge_expired themselves.)
+    """
+    global _last_purge
+    if not RETENTION_DAYS or app.config.get("TESTING"):
+        return
+    with _purge_lock:
+        now = time.monotonic()
+        if _last_purge is not None and now - _last_purge < PURGE_INTERVAL_SECONDS:
+            return
+        _last_purge = now
+    threading.Thread(target=_purge, daemon=True).start()
+
+
+def _purge() -> None:
+    try:
+        purged = db.purge_expired(RETENTION_DAYS)
+        if any(purged.values()):
+            logger.info(f"Deleted history older than {RETENTION_DAYS} days: {purged}")
+    except Exception as e:
+        log_exception(e)
+
+
 @app.before_request
 def ensure_session() -> None:
     """
@@ -495,6 +572,7 @@ def render_party_page(status: int = 200) -> Tuple[str, int]:
 
 
 @app.route("/party", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_PARTY, methods=["POST"])
 def party() -> Any:
     """
     Handle party selection.
@@ -552,6 +630,7 @@ def encounter_selection() -> str:
 
 
 @app.route("/encounter/custom", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_ENCOUNTER, methods=["POST"])
 def encounter_custom() -> Any:
     """
     Handle custom encounter creation.
@@ -594,6 +673,7 @@ def encounter_custom() -> Any:
 
 
 @app.route("/encounter/prebuilt", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_ENCOUNTER, methods=["POST"])
 def encounter_prebuilt() -> Any:
     """
     Handle prebuilt encounter selection.
@@ -633,6 +713,7 @@ def encounter_prebuilt() -> Any:
 
 
 @app.route("/encounter/arena", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_ENCOUNTER, methods=["POST"])
 def encounter_arena() -> Tuple[Any, int]:
     """
     Choose the arena (battle map) for the next simulations: a map name, ENCOUNTER_MAP for each
@@ -936,6 +1017,7 @@ def api_current_party() -> Any:
 
 
 @app.route("/simulate", methods=["GET"])
+@limiter.limit(RATE_LIMIT_SIMULATE)
 def simulate() -> Any:
     """
     Start or display combat simulation.
@@ -1038,6 +1120,7 @@ def batch_simulation() -> str:
 
 
 @app.route("/batch/start", methods=["POST"])
+@limiter.limit(RATE_LIMIT_BATCH_START)
 def batch_simulation_start() -> Tuple[Any, int]:
     """
     Start a batch simulation.
@@ -1090,6 +1173,8 @@ def batch_simulation_start() -> Tuple[Any, int]:
             )
         except ValueError as e:  # the controller's input checks, e.g. an unknown map
             raise ValidationError(str(e))
+        except TooManyBatches as e:
+            return jsonify({"error": str(e)}), 429
 
         logger.info(f"Started batch simulation {batch_id} with {num_runs} runs")
         return (
@@ -1199,6 +1284,27 @@ def batch_simulation_results(batch_id: int) -> Tuple[str, int]:
             pages=pages,
         ),
         200,
+    )
+
+
+@app.route("/batch/results/<int:batch_id>/csv", methods=["GET"])
+@limiter.limit(RATE_LIMIT_RESULTS_EXPORT)
+def batch_results_csv(batch_id: int) -> Any:
+    """Download a batch's runs as CSV. 404 unless the batch belongs to this session."""
+    batch = db.get_batch_simulation(batch_id)
+    if not _session_owns(batch):
+        return (
+            render_template(
+                "error.html", error=f"Batch simulation {batch_id} not found"
+            ),
+            404,
+        )
+    name = re.sub(r"[^A-Za-z0-9]+", "-", batch["batch_name"] or "").strip("-").lower()
+    filename = f"batch-{batch_id}{'-' + name[:60] if name else ''}.csv"
+    return Response(
+        batch_simulation_controller.batch_csv(batch_id),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -1410,6 +1516,20 @@ def _wants_json() -> bool:
             and not request.accept_mimetypes.accept_html
         )
     )
+
+
+@app.errorhandler(429)
+def handle_rate_limit(error: HTTPException) -> Tuple[Any, int]:
+    """
+    Over a rate limit: say so in words, as JSON for the pages' fetch calls. (Flask-Limiter's
+    own response is a bare HTML line, which the pages can't read.)
+    """
+    message = (
+        f"Too many requests: the limit is {error.description}. Wait a little and try again."
+    )
+    if _wants_json():
+        return jsonify({"error": message}), 429
+    return render_template("error.html", error=message), 429
 
 
 @app.errorhandler(AppError)
