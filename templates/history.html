@@ -2,6 +2,10 @@
 {% from '_macros.html' import difficulty_badge, outcome_badge, encounter_label, party_label, when %}
 {% block content %}
 <h2>History</h2>
+{% if RETENTION_DAYS %}
+<p class="text-muted mb-0">Fights and batches are deleted {{ RETENTION_DAYS }} days after they're run.
+  Download a batch's CSV from its results page to keep it.</p>
+{% endif %}
 
 <ul class="nav nav-tabs mt-3" role="tablist">
   <li class="nav-item" role="presentation">

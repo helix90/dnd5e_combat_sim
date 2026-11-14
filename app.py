@@ -12,8 +12,9 @@ import json
 import logging
 import os
 import re
+import threading
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict, Any, Tuple, List, Optional
 from uuid import uuid4
 
@@ -61,7 +62,14 @@ from utils.party_loader import PartyLoader
 
 # Constants - Application Configuration
 DEFAULT_SECRET_KEY = "dev-secret-key"
-SESSION_LIFETIME_HOURS = 24
+
+# Constants - Storage
+# Fights and batches are deleted this many days after they're run (0 keeps them all). The
+# session cookie, which is what ties a visitor to their history, lasts as long after their
+# last visit.
+RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "30"))
+SESSION_LIFETIME_DAYS = RETENTION_DAYS or 365
+PURGE_INTERVAL_SECONDS = 3600  # how often the expired history is looked for
 
 # Constants - Rate Limiting
 RATE_LIMIT_PER_DAY = "100000 per day"
@@ -99,7 +107,17 @@ app.jinja_env.globals.update(
     DIFFICULTIES=DIFFICULTIES,
     DIFFICULTY_LABELS=DIFFICULTY_LABELS,
     DIFFICULTY_MEANINGS=DIFFICULTY_MEANINGS,
+    RETENTION_DAYS=RETENTION_DAYS,
 )
+
+
+@app.template_filter("expires")
+def expires(created_at: Any) -> Optional[str]:
+    """When a fight or batch saved at created_at (UTC, as SQLite writes it) will be deleted."""
+    if not RETENTION_DAYS or not created_at:
+        return None
+    saved = datetime.strptime(str(created_at)[:19], "%Y-%m-%d %H:%M:%S")
+    return (saved + timedelta(days=RETENTION_DAYS)).strftime("%Y-%m-%d %H:%M:%S")
 
 
 # Configure application
@@ -143,7 +161,7 @@ def configure_app(app: Flask) -> None:
     )
     app.config["SESSION_COOKIE_HTTPONLY"] = True  # Prevent JavaScript access
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # CSRF protection
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=SESSION_LIFETIME_HOURS)
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=SESSION_LIFETIME_DAYS)
 
     # Behind a proxy, such as Fly.io's, every request comes from the proxy's address: the
     # visitor's is in X-Forwarded-For, which only the proxies in front of the app may be
@@ -412,6 +430,37 @@ def add_security_headers(response: Response) -> Response:
 
 
 # Session Management
+
+
+_last_purge: Optional[float] = None
+_purge_lock = threading.Lock()
+
+
+@app.before_request
+def purge_expired_history() -> None:
+    """
+    At most once every PURGE_INTERVAL_SECONDS, delete the fights and batches older than
+    RETENTION_DAYS, in the background so no request waits for it. (Not while testing, where
+    tests call db.purge_expired themselves.)
+    """
+    global _last_purge
+    if not RETENTION_DAYS or app.config.get("TESTING"):
+        return
+    with _purge_lock:
+        now = time.monotonic()
+        if _last_purge is not None and now - _last_purge < PURGE_INTERVAL_SECONDS:
+            return
+        _last_purge = now
+    threading.Thread(target=_purge, daemon=True).start()
+
+
+def _purge() -> None:
+    try:
+        purged = db.purge_expired(RETENTION_DAYS)
+        if any(purged.values()):
+            logger.info(f"Deleted history older than {RETENTION_DAYS} days: {purged}")
+    except Exception as e:
+        log_exception(e)
 
 
 @app.before_request

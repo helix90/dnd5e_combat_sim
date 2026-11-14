@@ -14,7 +14,8 @@
         <h2 class="mb-1 text-{{ outcome_class(summary.result) }}" id="win-loss">{{ outcome_headline(summary.result, summary.rounds) }}</h2>
         <div class="text-muted">{{ encounter_label(summary) }} against {{ party_label(summary) }}</div>
       </div>
-      <div class="text-end small text-muted">Simulation #{{ sim_id }}<br>{{ when(summary.created_at) }}</div>
+      <div class="text-end small text-muted">Simulation #{{ sim_id }}<br>{{ when(summary.created_at) }}
+        {%- if summary.created_at|expires %}<br>Kept until {{ when(summary.created_at|expires) }}{% endif %}</div>
     </div>
     <div class="row row-cols-2 row-cols-md-4 g-3 mt-1">
       <div class="col">

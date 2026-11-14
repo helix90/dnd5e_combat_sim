@@ -216,6 +216,7 @@ services:
 | PYTHONUNBUFFERED | Python output buffering | 1 | No |
 | FLASK_SESSION_COOKIE_SECURE | Send the session cookie over HTTPS only | false | Yes, behind HTTPS |
 | TRUSTED_PROXIES | Proxies in front of the app that add to X-Forwarded-For | 1 on Fly.io, else 0 | No |
+| RETENTION_DAYS | Days fights and batches are kept (0 keeps them all) | 30 | No |
 
 ## Monitoring and Health Checks
 
@@ -403,7 +404,10 @@ fly scale memory 1024
 
 ### Regular Maintenance Tasks
 
-1. **Database Cleanup**: Remove old sessions and simulations
+1. **Database Cleanup**: Automatic. Fights and batches are deleted `RETENTION_DAYS` (30) days
+   after they're run; the app looks for them at most once an hour. The visitor's session cookie
+   lasts that long after their last visit. SQLite reuses the freed space rather than shrinking
+   the file; `VACUUM` shrinks it, but rewrites the whole database while it runs.
 2. **Log Rotation**: Monitor log file sizes
 3. **Security Updates**: Keep dependencies updated
 4. **Backup**: Regular database backups

@@ -12,6 +12,7 @@
 <p class="text-muted">
   {{ batch.batch_name }} · {{ encounter_label(batch) }} against {{ party_label(batch) }}
   · {{ batch.arena or 'No map' }} · {{ when(batch.created_at) }}
+  {%- if batch.created_at|expires %} · kept until {{ when(batch.created_at|expires) }}{% endif %}
 </p>
 
 <div class="card mb-4" id="verdict">

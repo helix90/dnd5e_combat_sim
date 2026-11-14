@@ -242,6 +242,7 @@ docker run -p 5000:5000 -e FLASK_ENV=production dnd5e-combat-sim
 | `PYTHONUNBUFFERED` | Python output buffering | `1` |
 | `FLASK_SESSION_COOKIE_SECURE` | Send the session cookie over HTTPS only | `false` (`true` in `fly.toml`) |
 | `TRUSTED_PROXIES` | Proxies in front of the app that add to `X-Forwarded-For` | `1` on Fly.io, else `0` |
+| `RETENTION_DAYS` | Days fights and batches are kept before they're deleted (`0` keeps them all) | `30` |
 
 ## 🧪 Testing
 
