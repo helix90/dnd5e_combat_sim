@@ -1,0 +1,51 @@
+# Fly.io configuration. Set `app` to your app's name (or let `fly launch` do it), and
+# primary_region to the region nearest you (`fly platform regions`). See docs/DEPLOYMENT.md.
+
+app = "dnd5e-combat-sim"
+primary_region = "ord"
+
+# gunicorn stops gracefully on SIGTERM, finishing the requests it has in hand
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  FLASK_ENV = "production"
+  # The SQLite database lives on the volume below, so it survives deploys and restarts
+  DATABASE_URL = "sqlite:////data/app.db"
+  # Fly.io serves the app over HTTPS, so the session cookie is only ever sent over it
+  FLASK_SESSION_COOKIE_SECURE = "true"
+  # SECRET_KEY is a secret: fly secrets set SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(32))')
+
+[[mounts]]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  # One machine that never stops: a running batch's progress lives in that machine's
+  # memory, so stopping it would cut batches off, and a second machine couldn't report them.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    # gunicorn runs one worker with 8 threads
+    soft_limit = 8
+    hard_limit = 25
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/healthz"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
