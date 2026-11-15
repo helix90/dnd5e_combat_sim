@@ -14,7 +14,7 @@ import copy
 import random
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from models import concentration
+from models import concentration, spell_slots
 from models.buffs import (
     Buff,
     BuffManager,
@@ -676,10 +676,10 @@ def prepare(character: Any) -> Optional[Dict[str, Any]]:
         or character.buffs.has_buff("Mage Armor")
     ):
         return None
-    slots = getattr(character, "spell_slots_remaining", {})
-    if 13 + character.ability_modifier("dex") <= character.ac or not slots.get(1):
+    if 13 + character.ability_modifier("dex") <= character.ac or not spell_slots.spend(
+        character, 1
+    ):
         return None
-    slots[1] -= 1
     return {
         "action": "Cast Mage Armor",
         "spell": "Mage Armor",

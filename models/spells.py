@@ -9,7 +9,7 @@ import copy
 import random
 import re
 
-from models import concentration, spell_effects
+from models import concentration, spell_effects, spell_slots
 from models.actions import Action
 from models.arena import Area
 from models.buffs import cannot_regain_hp
@@ -364,62 +364,12 @@ class SpellAction(Action):
         self.free = free
 
     def check_spell_slot_availability(self, caster: Any) -> bool:
-        """
-        Check if the caster has the required spell slot available.
-        """
-        # Cantrips don't use spell slots
-        if self.spell.level == 0:
-            return True
-        required_level = self.spell_slot_level or self.spell.level
-        # Prefer spell_slots_remaining, fallback to spell_slots
-        slots = None
-        if hasattr(caster, "spell_slots_remaining"):
-            slots = getattr(caster, "spell_slots_remaining")
-        elif hasattr(caster, "spell_slots"):
-            slots = getattr(caster, "spell_slots")
-        if slots is not None:
-            # Try both int and str keys for compatibility with JSON data
-            value = slots.get(required_level, 0) or slots.get(str(required_level), 0)
-            # If value is a MagicMock, treat as 0
-            try:
-                from unittest.mock import MagicMock
-
-                if isinstance(value, MagicMock):
-                    value = 0
-            except ImportError:
-                pass
-            return value > 0
-        return False
+        """Whether the caster has a slot left of the level chosen, which is the spell's or above."""
+        return spell_slots.can_spend(caster, self.spell.level, self.spell_slot_level)
 
     def consume_spell_slot(self, caster: Any) -> bool:
-        """
-        Consume a spell slot from the caster.
-        """
-        if self.spell.level == 0:
-            return True
-        required_level = self.spell_slot_level or self.spell.level
-        slots = None
-        if hasattr(caster, "spell_slots_remaining"):
-            slots = getattr(caster, "spell_slots_remaining")
-        elif hasattr(caster, "spell_slots"):
-            slots = getattr(caster, "spell_slots")
-        if slots is not None:
-            # Try both int and str keys for compatibility with JSON data
-            key_to_use = (
-                required_level if required_level in slots else str(required_level)
-            )
-            value = slots.get(key_to_use, 0)
-            try:
-                from unittest.mock import MagicMock
-
-                if isinstance(value, MagicMock):
-                    value = 0
-            except ImportError:
-                pass
-            if value > 0:
-                slots[key_to_use] = value - 1
-                return True
-        return False
+        """Spend that slot; returns whether there was one."""
+        return spell_slots.spend(caster, self.spell.level, self.spell_slot_level)
 
     def _touch(self) -> bool:
         """A touch or self-range spell attack is made from within 5 ft (a prone target gives

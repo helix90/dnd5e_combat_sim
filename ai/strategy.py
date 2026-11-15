@@ -7,6 +7,7 @@ from ai import errors
 from ai.positioning import wake_square
 from models import class_features as feature_rules
 from models import concentration, spell_effects
+from models.spell_slots import lowest_slot
 from models.buffs import can_be_shaken_awake, cannot_regain_hp, is_spellbound
 from models.rolls import has_magic_resistance
 from models.spells import SpellAction
@@ -75,17 +76,6 @@ def combat_spells(combatant: Any) -> List[Any]:
         for s in getattr(combatant, "spells", {}).values()
         if getattr(s, "combat", True) and not getattr(s, "effect", None)
     ]
-
-
-def lowest_slot(combatant: Any, level: int) -> Optional[int]:
-    """The lowest spell slot of at least this level the combatant has left."""
-    slots = getattr(combatant, "spell_slots_remaining", None)
-    if not isinstance(slots, dict):
-        return None
-    return min(
-        (int(lvl) for lvl, count in slots.items() if int(lvl) >= level and count > 0),
-        default=None,
-    )
 
 
 def _save_fails(target: Any, save_type: str, dc: int) -> float:
