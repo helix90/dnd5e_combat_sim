@@ -1,13 +1,14 @@
 """
-Accounts: checking emails and passwords, hashing passwords, and the keys that tie a signed-in
+Accounts: checking emails and passwords, hashing passwords, password reset links, and the keys that tie a signed-in
 visitor's session and history to their account.
 """
 
 import hashlib
 import hmac
 import re
-from typing import Optional
+from typing import Any, Callable, Dict, Optional
 
+from itsdangerous import BadData, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
 MAX_EMAIL_LENGTH = 254
@@ -66,3 +67,39 @@ def session_token(secret_key: str, user_id: int, password_hash: str) -> str:
     """
     message = f"{user_id}:{password_hash}".encode()
     return hmac.new(secret_key.encode(), message, hashlib.sha256).hexdigest()
+
+
+RESET_LINK_MAX_AGE_SECONDS = 3600
+RESET_SALT = "password-reset"
+
+
+def reset_token(secret_key: str, user: Dict[str, Any]) -> str:
+    """
+    The token in a password reset link: signed, and good for an hour and one reset, as it
+    names the password it replaces, which the reset changes.
+    """
+    return URLSafeTimedSerializer(secret_key, salt=RESET_SALT).dumps(
+        [user["id"], _reset_fingerprint(secret_key, user)]
+    )
+
+
+def reset_user(
+    secret_key: str, token: str, get_user: Callable[[int], Any]
+) -> Optional[Dict[str, Any]]:
+    """The account a reset link's token is for, or None if it's forged, expired or used."""
+    try:
+        user_id, fingerprint = URLSafeTimedSerializer(secret_key, salt=RESET_SALT).loads(
+            token, max_age=RESET_LINK_MAX_AGE_SECONDS
+        )
+    except (BadData, TypeError, ValueError):
+        return None
+    user = get_user(user_id) if isinstance(user_id, int) else None
+    if user and hmac.compare_digest(str(fingerprint), _reset_fingerprint(secret_key, user)):
+        return user
+    return None
+
+
+def _reset_fingerprint(secret_key: str, user: Dict[str, Any]) -> str:
+    # Unlike session_token's, so a reset link can't stand in for a session's token
+    message = f"reset:{user['id']}:{user['password_hash']}".encode()
+    return hmac.new(secret_key.encode(), message, hashlib.sha256).hexdigest()[:32]

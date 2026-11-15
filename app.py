@@ -32,6 +32,7 @@ from flask import (
     jsonify,
     flash,
     g,
+    make_response,
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -48,14 +49,18 @@ from controllers.results_controller import ResultsController
 from controllers.simulation_controller import SimulationController
 from models.accounts import (
     DUMMY_HASH,
+    RESET_LINK_MAX_AGE_SECONDS,
     email_problem,
     hash_password,
     normalize_email,
     owner_key,
     password_matches,
     password_problem,
+    reset_token,
+    reset_user,
     session_token,
 )
+from models import mailer
 from models.arena_library import (
     DEFAULT_MAP,
     ENCOUNTER_MAP,
@@ -97,6 +102,9 @@ RATE_LIMIT_BATCH_START = "10 per minute;60 per hour"
 # Signing in is limited more tightly, against guessing passwords
 RATE_LIMIT_SIGN_IN = "10 per minute;50 per hour"
 RATE_LIMIT_SIGN_UP = "5 per minute;20 per hour"
+# Asking for a password reset email: per address, and per email so no one is flooded with them
+RATE_LIMIT_RESET_REQUEST = "3 per minute;10 per hour"
+RATE_LIMIT_RESET_PER_EMAIL = "3 per hour"
 RATE_LIMIT_API_MONSTERS = "100 per minute"
 RATE_LIMIT_API_BALANCE = "50 per minute"
 RATE_LIMIT_RESULTS_EXPORT = "20 per minute"
@@ -1335,6 +1343,105 @@ def account_delete() -> Any:
     session.clear()
     flash("Your account and its history are deleted.", "info")
     return redirect(url_for("index"))
+
+
+@app.route("/password/forgot", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_RESET_REQUEST, methods=["POST"])
+@limiter.limit(
+    RATE_LIMIT_RESET_PER_EMAIL,
+    methods=["POST"],
+    key_func=lambda: "reset:" + normalize_email(request.form.get("email")),
+)
+def password_forgot() -> Any:
+    """Email a link for choosing a new password to the account with the email given."""
+    if request.method == "GET":
+        return render_template("password_forgot.html", email=request.args.get("email", ""))
+    email = normalize_email(request.form.get("email"))
+    problem = (
+        "The form expired. Please try again." if not csrf_ok() else email_problem(email)
+    )
+    if problem:
+        return render_template("password_forgot.html", error=problem, email=email), 400
+    user = db.get_user_by_email(email)
+    if user:
+        # Sent off the request thread, so the answer is as quick whether or not the email has
+        # an account, and doesn't tell which emails do
+        link = public_url_for("password_reset", token=reset_token(app.secret_key, user))
+        threading.Thread(
+            target=send_reset_email, args=(user["email"], link), daemon=True
+        ).start()
+    return render_template("password_forgot.html", sent_to=email)
+
+
+def send_reset_email(email: str, link: str) -> None:
+    minutes = RESET_LINK_MAX_AGE_SECONDS // 60
+    body = (
+        "Someone, hopefully you, asked to reset the password of your D&D 5e Combat Simulator "
+        f"account.\n\nTo choose a new password, open this link within {minutes} minutes:\n\n"
+        f"{link}\n\nIt works once. If you didn't ask, ignore this email: your password stays "
+        "as it is.\n"
+    )
+    try:
+        mailer.send(email, "Reset your password", body)
+    except Exception as e:
+        logger.error(f"Failed to send a password reset email: {e}")
+        log_exception(e)
+
+
+def public_url_for(endpoint: str, **values: Any) -> str:
+    """
+    A full link to a page, for an email: on PUBLIC_URL, or the app's fly.dev address, rather
+    than the request's Host, which a visitor could set to another site's.
+    """
+    base = os.environ.get("PUBLIC_URL") or (
+        f"https://{os.environ['FLY_APP_NAME']}.fly.dev" if os.environ.get("FLY_APP_NAME") else ""
+    )
+    if not base:
+        return url_for(endpoint, _external=True, **values)
+    return base.rstrip("/") + url_for(endpoint, **values)
+
+
+@app.route("/password/reset/<token>", methods=["GET", "POST"])
+@limiter.limit(RATE_LIMIT_SIGN_IN, methods=["POST"])
+def password_reset(token: str) -> Any:
+    """Choose a new password from an emailed link, and sign in with it."""
+    user = reset_user(app.secret_key, token, db.get_user)
+    if not user:
+        response = make_response(render_template("password_reset.html", invalid=True), 400)
+    elif request.method == "GET":
+        response = make_response(render_template("password_reset.html", email=user["email"]))
+    else:
+        password = request.form.get("password", "")
+        problem = (
+            "The form expired. Please try again."
+            if not csrf_ok()
+            else password_problem(password, user["email"])
+            or (
+                "The passwords don't match."
+                if password != request.form.get("confirm_password", "")
+                else None
+            )
+        )
+        if problem:
+            response = make_response(
+                render_template("password_reset.html", email=user["email"], error=problem), 400
+            )
+        else:
+            db.update_user(user["id"], password_hash=hash_password(password))
+            user = db.get_user(user["id"])
+            # Signs out every browser signed in with the old password, and this one in
+            moved = sign_in(user)
+            logger.info(f"Reset the password of account {user['id']}")
+            flash(
+                "Password changed, and you're signed in. Any other browsers signed in to your "
+                "account are signed out."
+                + (" Your fights and batches from this browser are now in your account." if moved else ""),
+                "success",
+            )
+            response = redirect(url_for("account"))
+    # The link's token mustn't reach another site in a Referer
+    response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
 # Batch Simulation Routes

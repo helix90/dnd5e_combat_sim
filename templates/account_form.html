@@ -48,8 +48,7 @@
       {% endif %}
     </p>
     {% if not signing_up %}
-    <p class="small text-body-secondary">Forgotten your password? There's no reset by email yet, so it can't be
-      recovered: create a new account instead.</p>
+    <p><a href="{{ url_for('password_forgot', email=email or None) }}">Forgotten your password?</a></p>
     {% endif %}
   </div>
 </div>
