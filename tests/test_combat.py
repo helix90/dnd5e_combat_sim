@@ -450,9 +450,6 @@ def test_combat_log_includes_spell_name(monkeypatch):
         def threat_assessment(self, *a, **k):
             return 0
 
-        def opportunity_cost_analysis(self, *a, **k):
-            return 0
-
     combat = Combat([cleric, goblin])
     combat.ai_strategy_map[cleric] = AlwaysHealStrategy()
 

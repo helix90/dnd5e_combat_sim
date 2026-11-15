@@ -18,10 +18,6 @@ LOW_HP_THRESHOLD = 0.25  # Heal allies below 25% HP
 CRITICAL_HP_THRESHOLD = 0.15  # Prioritize healing below 15% HP
 SPECIAL_ABILITY_THREAT_BONUS = 2.0
 CLASS_FEATURES_THREAT_BONUS = 2.0
-HIGH_OPPORTUNITY_COST = 2.0
-DEFAULT_OPPORTUNITY_COST = 1.0
-LOW_OPPORTUNITY_COST = 0.5
-MANY_ENCOUNTERS_THRESHOLD = 2  # Conserve spell slots if more than 2 encounters remain
 
 # Monster targeting strategy probabilities
 SPREAD_DAMAGE_PROBABILITY = 0.40  # 40% chance to spread damage
@@ -211,26 +207,6 @@ class AIStrategy(ABC):
                 f"Error in threat_assessment for {getattr(combatant, 'name', 'Unknown')}"
             )
             return 1.0  # Default low threat
-
-    @abstractmethod
-    def opportunity_cost_analysis(
-        self, combatant: Any, action: Any, combat_state: Dict[str, Any]
-    ) -> float:
-        """
-        Analyze the opportunity cost of taking a given action.
-
-        Args:
-            combatant: The combatant considering the action
-            action: The action being considered
-            combat_state: Current state of combat
-
-        Returns:
-            Opportunity cost score (higher = higher cost)
-
-        Raises:
-            ValueError: If inputs are invalid
-        """
-        pass
 
     def _try_wake_ally(
         self, combatant: Any, combat_state: Dict[str, Any]
@@ -1215,35 +1191,6 @@ class PartyAIStrategy(AIStrategy):
             reverse=True,
         )
 
-    def opportunity_cost_analysis(
-        self, combatant: Any, action: Any, combat_state: Dict[str, Any]
-    ) -> float:
-        """
-        Estimate opportunity cost for spell slot usage vs. encounter length.
-
-        Args:
-            combatant: The combatant considering the action
-            action: The action being considered
-            combat_state: Current combat state
-
-        Returns:
-            Opportunity cost (higher = should avoid using this action)
-
-        Raises:
-            ValueError: If inputs are invalid
-        """
-        self._validate_combatant(combatant)
-        # Note: combat_state validation not needed - only uses 'encounters_remaining'
-
-        # High cost for leveled spells when many encounters remain
-        if hasattr(action, "level") and action.level > 0:
-            encounters_remaining = combat_state.get("encounters_remaining", 1)
-            if encounters_remaining > MANY_ENCOUNTERS_THRESHOLD:
-                return HIGH_OPPORTUNITY_COST
-
-        return DEFAULT_OPPORTUNITY_COST
-
-
 class MonsterAIStrategy(AIStrategy):
     """
     AI strategy for monsters.
@@ -1501,29 +1448,3 @@ class MonsterAIStrategy(AIStrategy):
             key=lambda t: self.threat_assessment(t, combat_state),
             reverse=True,
         )
-
-    def opportunity_cost_analysis(
-        self, combatant: Any, action: Any, combat_state: Dict[str, Any]
-    ) -> float:
-        """
-        Estimate opportunity cost for monsters (e.g., recharge abilities).
-
-        Args:
-            combatant: The monster considering the action
-            action: The action being considered
-            combat_state: Current combat state
-
-        Returns:
-            Opportunity cost (lower = prefer this action)
-
-        Raises:
-            ValueError: If inputs are invalid
-        """
-        self._validate_combatant(combatant)
-        # Note: combat_state validation not needed - doesn't use combat_state fields
-
-        # Lower cost for special abilities when available
-        if getattr(action, "action_type", "") == "special":
-            return LOW_OPPORTUNITY_COST
-
-        return DEFAULT_OPPORTUNITY_COST
