@@ -11,6 +11,7 @@ from models.actions import AttackAction
 from models.spells import Spell, SpellAction
 from models.buffs import BuffManager, metadata_total
 from models import class_features as feature_rules
+from models import spell_slots
 from models.arena import normalize_speed, size_in_squares
 from models.weapons import LOADING_WEAPONS
 
@@ -418,13 +419,7 @@ class Character:
         if not spell:
             return False
 
-        # Cantrips don't use spell slots
-        if spell.level == 0:
-            return True
-
-        # Check if we have the required spell slot
-        required_level = spell_slot_level or spell.level
-        return self.spell_slots_remaining.get(required_level, 0) > 0
+        return spell_slots.can_spend(self, spell.level, spell_slot_level)
 
     def cast_spell(
         self, spell_name: str, target: Any, spell_slot_level: Optional[int] = None

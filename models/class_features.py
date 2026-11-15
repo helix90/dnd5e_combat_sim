@@ -23,6 +23,7 @@ from models.buffs import (
     is_stunned,
     is_turned,
 )
+from models import spell_slots
 from models.damage import apply_damage, regain_hp
 from models.rolls import roll_saving_throw
 from models.spells import Spell, SpellAction
@@ -270,9 +271,7 @@ def smite_slot(creature: Any) -> Optional[int]:
     """The lowest spell slot the paladin has left, or None."""
     if not has_feature(creature, "Divine Smite"):
         return None
-    slots = getattr(creature, "spell_slots_remaining", None) or {}
-    levels = sorted(int(level) for level, left in slots.items() if left > 0)
-    return levels[0] if levels else None
+    return spell_slots.lowest_slot(creature, 1)
 
 
 def wants_smite(creature: Any, attack: Dict[str, Any], target: Any) -> Optional[int]:
@@ -295,9 +294,8 @@ def wants_smite(creature: Any, attack: Dict[str, Any], target: Any) -> Optional[
 
 def divine_smite(creature: Any, attack: Dict[str, Any], target: Any, slot: int) -> None:
     """Spend the slot and add the smite's radiant damage to the attack."""
-    slots = creature.spell_slots_remaining
-    key = slot if slot in slots else str(slot)
-    slots[key] -= 1
+    if not spell_slots.spend(creature, 1, slot):
+        raise ValueError(f"{creature.name} has no level {slot} slot to smite with")
     dice = smite_dice(slot, target) * (2 if attack.get("critical") else 1)
     dealt = apply_damage(
         target,
