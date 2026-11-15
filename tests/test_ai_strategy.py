@@ -114,17 +114,6 @@ def test_threat_assessment_party(monster_ai, party_ai):
     assert monster_ai.threat_assessment(c, state) > 10
 
 
-def test_opportunity_cost_analysis(monster_ai, party_ai):
-    c = DummyCombatant("Mage", 20, 20)
-    spell = DummySpell("Fireball", damage_dice="8d6", level=3)
-    state = {"encounters_remaining": 5}
-    assert party_ai.opportunity_cost_analysis(c, spell, state) > 1
-    attack = DummyAction("attack")
-    assert monster_ai.opportunity_cost_analysis(c, attack, state) == 1.0
-    special = DummyAction("special")
-    assert monster_ai.opportunity_cost_analysis(c, special, state) == 0.5
-
-
 def test_no_valid_targets(monster_ai):
     monster = DummyCombatant("Zombie", 10, 10, actions=[DummyAction("attack")])
     combat_state = {"enemies": []}

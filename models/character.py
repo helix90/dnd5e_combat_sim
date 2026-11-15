@@ -410,7 +410,8 @@ class Character:
 
         Args:
             spell_name: The name of the spell
-            spell_slot_level: The level of spell slot to use (None for cantrips)
+            spell_slot_level: The level of spell slot to use (None: any of the spell's level
+                or higher)
 
         Returns:
             bool: True if the spell can be cast
@@ -418,7 +419,10 @@ class Character:
         spell = self.get_spell(spell_name)
         if not spell:
             return False
-
+        if spell_slot_level is None and spell.level:
+            spell_slot_level = spell_slots.lowest_slot(self, spell.level)
+            if spell_slot_level is None:
+                return False
         return spell_slots.can_spend(self, spell.level, spell_slot_level)
 
     def cast_spell(

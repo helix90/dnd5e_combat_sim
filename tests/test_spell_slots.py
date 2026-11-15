@@ -47,10 +47,13 @@ def test_a_higher_slot_can_cast_a_lower_spell():
     wizard = caster({1: 0, 2: 1}, spells=["Magic Missile"])
     missile = SpellAction(SPELLS.get_spell("Magic Missile"), spell_slot_level=2)
     assert wizard.can_cast_spell("Magic Missile", spell_slot_level=2)
-    assert not wizard.can_cast_spell("Magic Missile")  # no 1st-level slot left
+    assert wizard.can_cast_spell("Magic Missile")  # with the 2nd-level slot
+    wizard.spell_list = ["Magic Missile"]
+    assert wizard.get_available_spells() == ["Magic Missile"]
     assert missile.consume_spell_slot(wizard)
     assert wizard.spell_slots_remaining == {1: 0, 2: 0}
     assert not missile.consume_spell_slot(wizard)  # never below zero
+    assert not wizard.can_cast_spell("Magic Missile")
     assert wizard.spell_slots_remaining[2] == 0
 
 
