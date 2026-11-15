@@ -1668,15 +1668,44 @@ def findings() -> str:
     The DMG's ratings against how the fights went: this session's batches with a rating,
     optionally narrowed to one party level (?level=) and battlefield (?battlefield=none|map).
     """
-    level = request.args.get("level", type=int)
-    battlefield = request.args.get("battlefield")
-    if battlefield not in ("none", "map"):
-        battlefield = None
+    level, battlefield = findings_filters()
     data = batch_simulation_controller.get_findings(
         session["session_id"], party_level=level, battlefield=battlefield
     )
     return render_template(
         "findings.html", **data, level=level, battlefield=battlefield or ""
+    )
+
+
+def findings_filters() -> Tuple[Optional[int], Optional[str]]:
+    """The Findings page's filters: ?level= and ?battlefield=none|map."""
+    battlefield = request.args.get("battlefield")
+    return (
+        request.args.get("level", type=int),
+        battlefield if battlefield in ("none", "map") else None,
+    )
+
+
+@app.route("/findings/csv", methods=["GET"])
+@limiter.limit(RATE_LIMIT_RESULTS_EXPORT)
+def findings_csv() -> Any:
+    """
+    Download one of the Findings page's tables as CSV, with its filters: ?table=batches (each
+    batch) or ?table=ratings (each rating's fights together).
+    """
+    table = "ratings" if request.args.get("table") == "ratings" else "batches"
+    level, battlefield = findings_filters()
+    filename = "-".join(
+        ["findings", table]
+        + ([f"level-{level}"] if level is not None else [])
+        + ({"none": ["no-map"], "map": ["on-a-map"]}.get(battlefield, []))
+    )
+    return Response(
+        batch_simulation_controller.findings_csv(
+            session["session_id"], table, party_level=level, battlefield=battlefield
+        ),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.csv"'},
     )
 
 

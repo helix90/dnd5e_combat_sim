@@ -317,3 +317,101 @@ def test_findings_with_filters_matching_nothing_say_so(client):
     rated_batch(DatabaseManager(), session_id(client), "deadly", 1, 2, level=1)
     page = client.get("/findings?level=7").get_data(as_text=True)
     assert "No batches match these filters." in page
+
+
+def read_csv(response):
+    return list(csv.DictReader(io.StringIO(response.get_data(as_text=True))))
+
+
+def test_findings_tables_download_as_csv(client):
+    client.get("/")
+    owner, db = session_id(client), DatabaseManager()
+    rated_batch(db, owner, "deadly", 15, 20, rounds=5.0, xp=450)
+    rated_batch(db, owner, "deadly", 5, 10, level=5, arena="Forest Road", rounds=2.0)
+    rated_batch(db, owner, "easy", 10, 10)
+    rated_batch(db, "someone else", "easy", 0, 10)
+
+    page = client.get("/findings").get_data(as_text=True)
+    assert 'href="/findings/csv?table=batches"' in page
+    assert 'href="/findings/csv?table=ratings"' in page
+
+    response = client.get("/findings/csv?table=batches")
+    assert response.status_code == 200 and response.mimetype == "text/csv"
+    assert 'filename="findings-batches.csv"' in response.headers["Content-Disposition"]
+    rows = read_csv(response)
+    # In the page's order: by rating, then by win rate
+    assert [(r["DMG Rating"], r["Fights"]) for r in rows] == [
+        ("Easy", "10"),
+        ("Deadly", "10"),
+        ("Deadly", "20"),
+    ]
+    deadly = rows[2]
+    low, high = wilson_interval(15, 20)
+    assert deadly["Batch"] == "deadly 15/20" and deadly["Party Wins"] == "15"
+    assert deadly["Encounter"] == "Test" and deadly["Party"] == "Classic Adventurers"
+    assert deadly["Encounter XP"] == "450" and deadly["Battlefield"] == "No map"
+    assert deadly["Party Won (%)"] == "75.0"
+    assert (deadly["95% CI Low (%)"], deadly["95% CI High (%)"]) == (
+        f"{low:.1f}",
+        f"{high:.1f}",
+    )
+    assert deadly["Average Rounds"] == "5.0" and deadly["Run At (UTC)"]
+    assert rows[1]["Battlefield"] == "Forest Road" and rows[1]["Party Level"] == "5"
+
+    ratings = read_csv(client.get("/findings/csv?table=ratings"))
+    assert [r["DMG Rating"] for r in ratings] == [
+        "Trivial",
+        "Easy",
+        "Medium",
+        "Hard",
+        "Deadly",
+        "TPK",
+    ]
+    pooled = {r["DMG Rating"]: r for r in ratings}
+    assert (pooled["Deadly"]["Batches"], pooled["Deadly"]["Fights"]) == ("2", "30")
+    assert pooled["Deadly"]["Party Wins"] == "20" and pooled["Deadly"]["Average Rounds"] == "4.0"
+    assert pooled["Deadly"]["What the DMG Says"]
+    # A rating with no batches has counts but no rates
+    assert pooled["Hard"]["Fights"] == "0" and pooled["Hard"]["Party Won (%)"] == ""
+
+
+def test_findings_csv_follows_the_filters(client):
+    client.get("/")
+    owner, db = session_id(client), DatabaseManager()
+    rated_batch(db, owner, "deadly", 1, 2, level=1)
+    rated_batch(db, owner, "deadly", 1, 4, level=5, arena="Forest Road")
+    rated_batch(db, owner, "hard", 1, 8, level=5)
+
+    page = client.get("/findings?level=5&battlefield=map").get_data(as_text=True)
+    assert 'href="/findings/csv?table=batches&amp;level=5&amp;battlefield=map"' in page
+
+    response = client.get("/findings/csv?table=batches&level=5&battlefield=map")
+    disposition = response.headers["Content-Disposition"]
+    assert 'filename="findings-batches-level-5-on-a-map.csv"' in disposition
+    assert [r["Fights"] for r in read_csv(response)] == ["4"]
+    response = client.get("/findings/csv?table=ratings&battlefield=none")
+    assert 'filename="findings-ratings-no-map.csv"' in response.headers["Content-Disposition"]
+    assert {r["DMG Rating"]: r["Fights"] for r in read_csv(response)}["Deadly"] == "2"
+
+
+def test_findings_csv_names_cant_run_formulas(client):
+    client.get("/")
+    owner, db = session_id(client), DatabaseManager()
+    batch = rated_batch(db, owner, "easy", 1, 2)
+    with db._get_connection() as conn:
+        conn.execute(
+            "UPDATE batch_simulations SET batch_name = ? WHERE id = ?",
+            ("=HYPERLINK(\"http://evil.example\")", batch),
+        )
+        conn.commit()
+    rows = read_csv(client.get("/findings/csv"))
+    assert rows[0]["Batch"].startswith("'=")
+
+
+def test_findings_csv_has_only_this_visitors_batches(client):
+    client.get("/")
+    rated_batch(DatabaseManager(), "someone else", "easy", 3, 4)
+    rows = read_csv(client.get("/findings/csv?table=batches"))
+    assert rows == []
+    page = client.get("/findings").get_data(as_text=True)
+    assert "findingsDownloads" not in page

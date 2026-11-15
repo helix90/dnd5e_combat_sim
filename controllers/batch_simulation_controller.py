@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 from models.arena_library import get_arena
 from models.combat import Combat
 from models.db import DatabaseManager
-from models.encounter_builder import DIFFICULTIES, DIFFICULTY_LABELS
+from models.encounter_builder import DIFFICULTIES, DIFFICULTY_LABELS, DIFFICULTY_MEANINGS
 from models.spell_manager import SpellManager
 from models.character_builder import build_party
 from models.monster_builder import build_monsters
@@ -677,6 +677,94 @@ class BatchSimulationController:
             "levels": levels,
             "chart": chart,
         }
+
+    def findings_csv(
+        self,
+        session_id: str,
+        table: str = "batches",
+        party_level: Optional[int] = None,
+        battlefield: Optional[str] = None,
+    ) -> str:
+        """
+        One of the Findings page's tables as CSV, with the page's filters: "batches", a row per
+        batch in the page's order, or "ratings", a row per DMG rating with all of its fights
+        together. Rates and their 95% confidence intervals are percentages.
+        """
+        findings = self.get_findings(session_id, party_level, battlefield)
+        out = io.StringIO()
+        writer = csv.writer(out)
+        rate_columns = ["Party Won (%)", "95% CI Low (%)", "95% CI High (%)"]
+
+        def rates(rate: Dict[str, Any]) -> List[float]:
+            return [round(rate[key], 1) for key in ("rate", "low", "high")]
+
+        if table == "ratings":
+            writer.writerow(
+                ["DMG Rating", "What the DMG Says", "Batches", "Fights", "Party Wins"]
+                + rate_columns
+                + ["Average Rounds"]
+            )
+            for row in findings["summary"]:
+                rate = row["win_rate"]
+                writer.writerow(
+                    [
+                        DIFFICULTY_LABELS[row["rating"]],
+                        DIFFICULTY_MEANINGS[row["rating"]],
+                        row["batches"],
+                        rate["runs"],
+                        rate["wins"],
+                    ]
+                    + (rates(rate) if row["batches"] else ["", "", ""])
+                    + [
+                        round(row["average_rounds"], 2)
+                        if row["average_rounds"] is not None
+                        else ""
+                    ]
+                )
+            return out.getvalue()
+
+        writer.writerow(
+            [
+                "Batch ID",
+                "Batch",
+                "Encounter",
+                "Party",
+                "Party Level",
+                "Battlefield",
+                "DMG Rating",
+                "Encounter XP",
+                "Fights",
+                "Party Wins",
+            ]
+            + rate_columns
+            + ["Average Rounds", "Average Party HP Left", "Run At (UTC)"]
+        )
+        for b in findings["batches"]:
+            rating = b["predicted_difficulty"]
+            writer.writerow(
+                [
+                    csv_cell(v)
+                    for v in (
+                        b["id"],
+                        b["batch_name"],
+                        b["encounter_name"],
+                        b["party_name"],
+                        b["party_level"],
+                        b["arena"] or "No map",
+                        DIFFICULTY_LABELS.get(rating, rating),
+                        b["encounter_xp"],
+                        b["total_runs"],
+                        b["party_wins"],
+                    )
+                ]
+                + rates(b["win_rate"])
+                + [
+                    round(b["average_rounds"], 2),
+                    round(b["average_party_hp_remaining"], 2),
+                    b["created_at"],
+                ]
+            )
+        return out.getvalue()
 
     def get_batch_history(self, session_id: str) -> List[Dict[str, Any]]:
         """
