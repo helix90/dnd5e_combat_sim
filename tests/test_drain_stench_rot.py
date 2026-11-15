@@ -85,7 +85,7 @@ def on_arena(*placed):
 def test_wight_drains_the_hit_point_maximum_on_a_failed_save():
     wight, target = monster("Wight"), hero(hp=60)
     with patch("models.actions.roll_saving_throw", return_value=FAIL):
-        result = hits(action(wight, "Longsword"), wight, target)
+        result = hits(action(wight, "Life Drain"), wight, target)
     assert result["hit"] and result["hp_drained"] == result["damage"] > 0
     assert target.max_hp == 60 - result["damage"] == result["target_max_hp_after"]
 
@@ -104,15 +104,15 @@ def test_drain_is_the_damage_taken_after_resistance():
         result = hits(
             action(wraith, "Life Drain"), wraith, target
         )  # every die rolls 15
-    assert result["damage"] == (15 + 15 + 3) // 2 == result["hp_drained"]
+    assert result["damage"] == (4 * 15 + 3) // 2 == result["hp_drained"]
 
 
 def test_drain_still_applies_when_the_hit_drops_the_target():
-    wraith, target = monster("Wraith"), hero(hp=60)
+    wraith, target = monster("Wraith"), hero(hp=100)
     target.hp = 3
     with patch("models.actions.roll_saving_throw", return_value=FAIL):
         result = hits(action(wraith, "Life Drain"), wraith, target)
-    assert target.hp <= 0 and target.max_hp == 60 - result["damage"]
+    assert target.hp <= 0 and target.max_hp == 100 - result["damage"]
 
 
 def test_healing_stops_at_the_reduced_maximum():
@@ -140,14 +140,33 @@ def test_vampire_spawn_bite_drains_without_a_save_and_heals_the_spawn():
     with patch("models.actions.roll_saving_throw") as save:
         result = hits(action(spawn, "Bite"), spawn, target)
     save.assert_not_called()
-    assert (
-        result["hp_drained"] == result["damage"]
-        and target.max_hp == 60 - result["damage"]
-    )
-    assert (
-        result["attacker_healed"] == result["damage"]
-        and spawn.hp == 20 + result["damage"]
-    )
+    # By the bite's necrotic damage, not its piercing
+    necrotic = result["extra_damage"]
+    assert result["extra_damage_type"] == "necrotic" and 0 < necrotic < result["damage"]
+    assert result["hp_drained"] == necrotic and target.max_hp == 60 - necrotic
+    assert result["attacker_healed"] == necrotic and spawn.hp == 20 + necrotic
+
+
+def test_wight_uses_life_drain_in_place_of_a_longsword_attack():
+    wight = monster("Wight")
+    attacks = [a for a in wight.actions if isinstance(a, AttackAction)]
+    multiattack = action(wight, "Multiattack").description
+    assert [a.name for a in parse_multiattack(multiattack, attacks)] == [
+        "Longsword",
+        "Life Drain",
+    ]
+    ranged = lambda a: a.weapon_type == "ranged"
+    assert [a.name for a in parse_multiattack(multiattack, attacks, ranged)] == [
+        "Longbow",
+        "Longbow",
+    ]
+
+
+def test_wight_longsword_does_not_drain():
+    wight, target = monster("Wight"), hero(hp=60)
+    with patch("models.actions.roll_saving_throw", return_value=FAIL):
+        result = hits(action(wight, "Longsword"), wight, target)
+    assert result["hit"] and "hp_drained" not in result and target.max_hp == 60
 
 
 def test_vampire_spawn_bites_only_a_grappled_incapacitated_or_restrained_target():
@@ -210,6 +229,7 @@ def test_mummy_fist_curses_with_mummy_rot_on_a_failed_save():
     assert result["condition_applied"] == "Mummy Rot" and target.buffs.has_condition(
         "mummy_rot"
     )
+    assert result["extra_damage_type"] == "necrotic" and result["extra_damage"] > 0
 
 
 def test_mummy_rot_is_not_rolled_for_again():

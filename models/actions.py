@@ -330,8 +330,9 @@ class AttackAction(Action):
     ) -> Dict[str, Any]:
         """
         Life Drain (wight, wraith): unless the target succeeds on its save, its hit point maximum
-        drops by the damage it took, even if the hit dropped it. A vampire spawn's bite has no save
-        and heals the spawn by the same amount (heals_attacker).
+        drops by the damage it took, even if the hit dropped it. A vampire spawn's bite has no save,
+        drains by its necrotic damage alone (drains: extra_damage) and heals the spawn by the same
+        amount (heals_attacker).
         """
         if damage <= 0:
             return {}
@@ -559,8 +560,14 @@ class AttackAction(Action):
                 damage += extra.get("extra_damage", 0)
 
             if hit and self.on_hit:
+                # A vampire spawn's bite drains by its necrotic damage only
+                drained = (
+                    extra.get("extra_damage", 0)
+                    if self.on_hit.get("drains") == "extra_damage"
+                    else damage
+                )
                 result.update(
-                    self._apply_on_hit_effect(attacker, attack_target, damage)
+                    self._apply_on_hit_effect(attacker, attack_target, drained)
                 )
 
             result.update(

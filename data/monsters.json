@@ -9,14 +9,15 @@
       "hp": 5,
       "ac": 12,
       "ability_scores": {"str": 7, "dex": 15, "con": 9, "int": 8, "wis": 7, "cha": 8},
-      "special_abilities": ["Pack Tactics"],
+      "special_abilities": ["Pack Tactics", "Sunlight Sensitivity"],
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
       "condition_immunities": [],
       "multiattack": false,
       "actions": [
-        {"name": "Dagger", "type": "attack", "damage_dice": "1d4+2", "damage_type": "piercing", "weapon_type": "finesse", "reach": 5}
+        {"name": "Dagger", "type": "attack", "damage_dice": "1d4+2", "damage_type": "piercing", "weapon_type": "finesse", "reach": 5},
+        {"name": "Sling", "type": "attack", "damage_dice": "1d4+2", "damage_type": "bludgeoning", "weapon_type": "ranged", "range": [30, 120]}
       ]
     },
     {
@@ -110,13 +111,13 @@
       "ability_scores": {"str": 13, "dex": 15, "con": 10, "int": 7, "wis": 10, "cha": 6},
       "special_abilities": [],
       "legendary_actions": [],
-      "damage_resistances": ["cold", "necrotic"],
+      "damage_resistances": [],
       "damage_immunities": ["poison"],
       "condition_immunities": ["charmed", "exhaustion", "poisoned"],
       "multiattack": false,
       "actions": [
-        {"name": "Bite", "type": "attack", "damage_dice": "1d6+1", "damage_type": "piercing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}, "reach": 5},
-        {"name": "Claws", "type": "attack", "damage_dice": "2d4+1", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"]}, "reach": 5}
+        {"name": "Bite", "type": "attack", "damage_dice": "2d6+2", "damage_type": "piercing", "weapon_type": "melee", "hit_bonus": 2, "reach": 5},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d4+2", "damage_type": "slashing", "weapon_type": "melee", "hit_bonus": 4, "special": "If the target is a creature other than an elf or undead, it must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_races": ["Elf"], "immune_types": ["undead"]}, "reach": 5}
       ]
     },
     {
@@ -191,13 +192,14 @@
       "ability_scores": {"str": 15, "dex": 14, "con": 16, "int": 10, "wis": 13, "cha": 15},
       "special_abilities": ["Sunlight Sensitivity"],
       "legendary_actions": [],
-      "damage_resistances": ["necrotic", "poison"],
+      "damage_resistances": ["necrotic", "bludgeoning", "piercing", "slashing"],
       "damage_immunities": ["poison"],
       "condition_immunities": ["exhaustion", "poisoned"],
       "multiattack": true,
       "actions": [
-        {"name": "Multiattack", "type": "special", "description": "The wight makes two longsword attacks or two longbow attacks."},
-        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+2", "damage_type": "slashing", "weapon_type": "melee", "special": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5, "on_hit": {"condition": "hp_drain", "save_type": "con", "save_dc": 13}},
+        {"name": "Multiattack", "type": "special", "description": "The wight makes two attacks: one with its longsword and one with its life drain, or two longbow attacks."},
+        {"name": "Longsword", "type": "attack", "damage_dice": "1d8+2", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
+        {"name": "Life Drain", "type": "attack", "damage_dice": "1d6+2", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 13 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5, "on_hit": {"condition": "hp_drain", "save_type": "con", "save_dc": 13}},
         {"name": "Longbow", "type": "attack", "damage_dice": "1d8+2", "damage_type": "piercing", "weapon_type": "ranged", "range": [150, 600]}
       ]
     },
@@ -210,7 +212,7 @@
       "hp": 59,
       "ac": 13,
       "ability_scores": {"str": 20, "dex": 12, "con": 17, "int": 3, "wis": 12, "cha": 7},
-      "special_abilities": ["Keen Smell"],
+      "special_abilities": ["Keen Sight and Smell"],
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
@@ -231,7 +233,7 @@
       "hp": 76,
       "ac": 14,
       "ability_scores": {"str": 18, "dex": 11, "con": 16, "int": 6, "wis": 16, "cha": 9},
-      "special_abilities": ["Charge", "Labyrinthine Recall"],
+      "special_abilities": ["Charge", "Labyrinthine Recall", "Reckless"],
       "legendary_actions": [],
       "damage_resistances": [],
       "damage_immunities": [],
@@ -258,7 +260,7 @@
       "condition_immunities": ["charmed", "exhaustion", "grappled", "paralyzed", "petrified", "poisoned", "prone", "restrained"],
       "multiattack": false,
       "actions": [
-        {"name": "Life Drain", "type": "attack", "damage_dice": "2d6+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5, "on_hit": {"condition": "hp_drain", "save_type": "con", "save_dc": 14}}
+        {"name": "Life Drain", "type": "attack", "damage_dice": "4d8+3", "damage_type": "necrotic", "weapon_type": "finesse", "special": "The target must succeed on a DC 14 Constitution saving throw or its hit point maximum is reduced by an amount equal to the damage taken.", "reach": 5, "on_hit": {"condition": "hp_drain", "save_type": "con", "save_dc": 14}}
       ]
     },
     {
@@ -270,7 +272,7 @@
       "hp": 84,
       "ac": 15,
       "ability_scores": {"str": 18, "dex": 13, "con": 20, "int": 7, "wis": 9, "cha": 7},
-      "special_abilities": ["Regeneration"],
+      "special_abilities": ["Keen Smell", "Regeneration"],
       "regeneration": {"hp": 10, "suppressed_by": ["acid", "fire"], "revives_at_zero": true},
       "legendary_actions": [],
       "damage_resistances": [],
@@ -301,7 +303,7 @@
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The giant makes two greatclub attacks."},
         {"name": "Greatclub", "type": "attack", "damage_dice": "3d8+5", "damage_type": "bludgeoning", "weapon_type": "melee", "reach": 10},
-        {"name": "Rock", "type": "attack", "damage_dice": "4d10+5", "damage_type": "bludgeoning", "weapon_type": "thrown", "range": [60, 240]}
+        {"name": "Rock", "type": "attack", "damage_dice": "3d10+5", "damage_type": "bludgeoning", "weapon_type": "thrown", "range": [60, 240]}
       ]
     },
     {
@@ -341,14 +343,14 @@
       "regeneration": {"hp": 10, "suppressed_by": ["radiant"], "revives_at_zero": false},
       "legendary_actions": [],
       "damage_resistances": ["necrotic", "bludgeoning", "piercing", "slashing"],
-      "damage_immunities": ["poison"],
+      "damage_immunities": [],
       "condition_immunities": [],
       "saving_throws": {"dex": 6, "wis": 3},
       "multiattack": true,
       "actions": [
         {"name": "Multiattack", "type": "special", "description": "The vampire spawn makes two attacks, only one of which can be a bite attack."},
         {"name": "Claws", "type": "attack", "damage_dice": "2d4+3", "damage_type": "slashing", "weapon_type": "melee", "reach": 5},
-        {"name": "Bite", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "melee", "special": "The target's hit point maximum is reduced by an amount equal to the damage taken, and the vampire spawn regains hit points equal to that amount. Only against a target that is grappled, incapacitated or restrained.", "reach": 5, "target_condition": ["incapacitated", "restrained"], "on_hit": {"condition": "hp_drain", "heals_attacker": true}}
+        {"name": "Bite", "type": "attack", "damage_dice": "1d6+3", "damage_type": "piercing", "weapon_type": "melee", "special": "Plus 2d6 necrotic damage. The target's hit point maximum is reduced by an amount equal to the necrotic damage taken, and the vampire spawn regains hit points equal to that amount. Only against a target that is grappled, incapacitated or restrained.", "reach": 5, "target_condition": ["incapacitated", "restrained"], "extra_damage": {"dice": "2d6", "type": "necrotic"}, "on_hit": {"condition": "hp_drain", "heals_attacker": true, "drains": "extra_damage"}}
       ]
     },
     {
@@ -360,7 +362,7 @@
       "hp": 58,
       "ac": 11,
       "ability_scores": {"str": 16, "dex": 8, "con": 15, "int": 6, "wis": 10, "cha": 12},
-      "special_abilities": ["Mummy Rot"],
+      "special_abilities": [],
       "legendary_actions": [],
       "damage_resistances": ["bludgeoning", "piercing", "slashing"],
       "damage_vulnerabilities": ["fire"],
@@ -369,7 +371,7 @@
       "saving_throws": {"wis": 2},
       "multiattack": false,
       "actions": [
-        {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "special": "The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot.", "reach": 5, "on_hit": {"condition": "mummy_rot", "save_type": "con", "save_dc": 12}}
+        {"name": "Rotting Fist", "type": "attack", "damage_dice": "2d6+3", "damage_type": "bludgeoning", "weapon_type": "melee", "extra_damage": {"dice": "3d6", "type": "necrotic"}, "special": "Plus 3d6 necrotic damage. The target must succeed on a DC 12 Constitution saving throw or be cursed with mummy rot.", "reach": 5, "on_hit": {"condition": "mummy_rot", "save_type": "con", "save_dc": 12}}
       ]
     },
     {
@@ -401,14 +403,14 @@
       "hp": 36,
       "ac": 13,
       "ability_scores": {"str": 16, "dex": 17, "con": 10, "int": 11, "wis": 10, "cha": 8},
-      "special_abilities": ["Stench", "Turning Defiance"],
+      "special_abilities": ["Stench", "Turn Defiance"],
       "legendary_actions": [],
       "damage_resistances": ["necrotic"],
       "damage_immunities": ["poison"],
       "condition_immunities": ["charmed", "exhaustion", "poisoned"],
       "multiattack": false,
       "actions": [
-        {"name": "Claws", "type": "attack", "damage_dice": "2d6+3", "damage_type": "slashing", "weapon_type": "melee", "reach": 5, "special": "If the target is a creature other than an undead, it must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10}},
+        {"name": "Claws", "type": "attack", "damage_dice": "2d6+3", "damage_type": "slashing", "weapon_type": "melee", "reach": 5, "special": "If the target is a creature other than an undead, it must succeed on a DC 10 Constitution saving throw or be paralyzed for 1 minute.", "on_hit": {"condition": "paralyzed", "save_type": "con", "save_dc": 10, "duration_rounds": 10, "immune_types": ["undead"]}},
         {"name": "Bite", "type": "attack", "damage_dice": "2d8+3", "damage_type": "piercing", "weapon_type": "melee", "hit_bonus": 3, "reach": 5}
       ]
     },
