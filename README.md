@@ -38,7 +38,7 @@ A comprehensive web-based combat simulator for Dungeons & Dragons 5th Edition, f
 
 ### Security & Production Ready
 - **Accounts** with an email and password (optional: without one, a visitor's history stays
-  in their browser, and moves into their account when they sign in)
+  in their browser, and moves into their account when they sign in), and password resets by email
 - **Input validation** and sanitization
 - **CSRF tokens** on the account forms (the rest post JSON, which another site's page can't
   send with the visitor's cookie)
@@ -246,6 +246,8 @@ docker run -p 5000:5000 -e FLASK_ENV=production dnd5e-combat-sim
 | `FLASK_SESSION_COOKIE_SECURE` | Send the session cookie over HTTPS only | `false` (`true` in `fly.toml`) |
 | `TRUSTED_PROXIES` | Proxies in front of the app that add to `X-Forwarded-For` | `1` on Fly.io, else `0` |
 | `RETENTION_DAYS` | Days fights and batches are kept before they're deleted (`0` keeps them all) | `30` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` | Mail server for password reset emails (see the [Deployment Guide](docs/DEPLOYMENT.md#password-reset-emails)) | unset: emails go to the log |
+| `PUBLIC_URL` | The site's address, for links in emails | `https://<app>.fly.dev` on Fly.io |
 
 ## 🧪 Testing
 

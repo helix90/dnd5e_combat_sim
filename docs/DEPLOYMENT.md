@@ -145,6 +145,24 @@ Simulations are CPU work on one machine, so a public server limits who can start
   Other routes, progress polls included, have the defaults of 10,000 an hour and 100,000 a day.
   The counts are kept in memory, so a restart clears them.
 
+### Password Reset Emails
+
+A visitor who forgets their password can ask for a link by email, which works once and for an
+hour. The app sends it over SMTP, which every email service offers (Resend, Postmark, SendGrid,
+Mailgun, Amazon SES, or a Gmail account's app password). Until `SMTP_HOST` is set, the emails
+are written to the log instead (`fly logs`), so nobody receives them.
+
+```bash
+fly secrets set SMTP_HOST=smtp.resend.com SMTP_PORT=587 \
+  SMTP_USERNAME=resend SMTP_PASSWORD=your-api-key \
+  SMTP_FROM="D&D Combat Sim <noreply@your-domain.com>"
+```
+
+The sender's domain has to be one the service has verified. Links point at
+`https://<app>.fly.dev`, never at whatever Host a request names; with a custom domain, set
+`PUBLIC_URL` (below) too. Asking for a link is limited to 3 a minute and 10 an hour per visitor,
+and 3 an hour per email, so nobody's inbox can be flooded.
+
 ### 6. Configure Custom Domain (Optional)
 
 ```bash
@@ -154,6 +172,8 @@ fly certs add your-domain.com
 # Check certificate status
 fly certs show your-domain.com
 ```
+
+Then send password reset links to it: `fly secrets set PUBLIC_URL=https://your-domain.com`.
 
 ## Docker Configuration
 
@@ -217,6 +237,12 @@ services:
 | FLASK_SESSION_COOKIE_SECURE | Send the session cookie over HTTPS only | false | Yes, behind HTTPS |
 | TRUSTED_PROXIES | Proxies in front of the app that add to X-Forwarded-For | 1 on Fly.io, else 0 | No |
 | RETENTION_DAYS | Days fights and batches are kept (0 keeps them all) | 30 | No |
+| SMTP_HOST | Mail server for password reset emails (unset: they're written to the log) | | For password resets |
+| SMTP_PORT | 587 for STARTTLS, 465 for TLS from the start | 587 | No |
+| SMTP_USERNAME, SMTP_PASSWORD | The mail server's login | | If it needs one |
+| SMTP_FROM | Who the emails are from, such as `Combat Sim <noreply@example.com>` | SMTP_USERNAME | Yes, with SMTP_HOST |
+| SMTP_STARTTLS | `false` skips STARTTLS, for a local test server | true | No |
+| PUBLIC_URL | The site's address, for links in emails | `https://<app>.fly.dev` on Fly.io | With a custom domain |
 
 ## Monitoring and Health Checks
 
