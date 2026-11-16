@@ -12,6 +12,7 @@ from models.buffs import can_be_shaken_awake, cannot_regain_hp, is_spellbound
 from models.rolls import has_magic_resistance
 from models.spells import SpellAction
 from models.actions import AttackAction
+from models.multiattack import parse_multiattack
 
 # Constants for AI behavior tuning
 LOW_HP_THRESHOLD = 0.25  # Heal allies below 25% HP
@@ -49,8 +50,10 @@ logger = logging.getLogger(__name__)
 # Sleep is worth a slot if it puts this many enemies to sleep (on average)
 SLEEP_MIN_ENEMIES = 2
 SLEEP_AVERAGE_POOL = 22.5
-# Entangle, Web and Hypnotic Pattern are worth a slot if this many enemies are expected to fail the save
+# Entangle, Web and Hypnotic Pattern are worth a slot if this many enemies are expected to fail the save,
+# or if those expected to fail deal this share of the enemies' damage (a dangerous few among weaker ones)
 CONTROL_MIN_AFFECTED = 1.5
+CONTROL_MIN_DAMAGE_SHARE = 0.3
 # Mass Cure Wounds (or another spell healing several creatures) once this many allies need healing
 MASS_HEAL_MIN_ALLIES = 3
 # Hold Monster is worth a 5th-level slot when the target is at least this likely to fail its WIS save
@@ -83,6 +86,49 @@ def _save_fails(target: Any, save_type: str, dc: int) -> float:
     )
     fail = 1 - min(0.95, max(0.05, (21 + bonus - dc) / 20))
     return fail * fail if has_magic_resistance(target) else fail
+
+
+def _dice_average(dice: Optional[str]) -> float:
+    try:
+        num, die, mod = AttackAction.parse_dice(str(dice))
+        return num * (die + 1) / 2 + mod
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def damage_per_round(creature: Any) -> float:
+    """
+    The damage a creature's attacks deal in a turn if they all hit, extra damage (a vampire spawn's
+    necrotic bite) included: its Multiattack, or its best attack as often as its Attack action
+    allows. At least 1, so a creature with no attacks still counts for something.
+    """
+    attacks = [
+        a
+        for a in getattr(creature, "actions", [])
+        if getattr(a, "action_type", None) == "attack"
+    ]
+
+    def average(attack: Any) -> float:
+        extra = getattr(attack, "extra_damage", None) or {}
+        return _dice_average(attack.damage_dice) + (
+            _dice_average(extra["dice"]) if extra.get("dice") else 0.0
+        )
+
+    best = max((average(a) for a in attacks), default=0.0)
+    if hasattr(creature, "attacks_per_action"):
+        best *= creature.attacks_per_action()
+    multiattack = next(
+        (
+            a
+            for a in getattr(creature, "actions", [])
+            if getattr(a, "name", "").lower() == "multiattack"
+        ),
+        None,
+    )
+    if multiattack is not None and attacks:
+        routine = parse_multiattack(getattr(multiattack, "description", ""), attacks)
+        best = max(best, sum(average(a) for a in routine))
+    return max(1.0, best)
 
 
 def _restrained(target: Any) -> bool:
@@ -809,11 +855,19 @@ class PartyAIStrategy(AIStrategy):
 
         dc = combatant.spell_save_dc() if hasattr(combatant, "spell_save_dc") else 10
         if castable("Hypnotic Pattern"):
-            affected = sum(
-                _save_fails(e, "wis", dc) for e in active if not _immune(e, "charmed")
-            )
-            if affected >= CONTROL_MIN_AFFECTED + 0.5:
-                return self._effect_plan(combatant, spells["Hypnotic Pattern"], active)
+            fails = {
+                e: _save_fails(e, "wis", dc)
+                for e in active
+                if not _immune(e, "charmed")
+            }
+            if sum(
+                fails.values()
+            ) >= CONTROL_MIN_AFFECTED + 0.5 or self._takes_out_enough_damage(
+                fails, active
+            ):
+                return self._effect_plan(
+                    combatant, spells["Hypnotic Pattern"], self._most_dangerous(active)
+                )
         if castable("Sleep"):
             pool, slept = SLEEP_AVERAGE_POOL, 0
             for enemy in sorted(active, key=lambda e: e.hp):
@@ -838,19 +892,22 @@ class PartyAIStrategy(AIStrategy):
         for name in ("Web", "Entangle"):
             if castable(name) and len(active) >= 2 and not blaster:
                 spell = spells[name]
-                ranked = sorted(
-                    (
+                ranked = self._most_dangerous(
+                    [
                         e
                         for e in active
                         if not _immune(e, "restrained") and not _restrained(e)
-                    ),
-                    key=lambda e: -e.hp,
+                    ]
                 )
-                affected = sum(
-                    _save_fails(e, spell.save_type, dc)
+                fails = {
+                    e: _save_fails(e, spell.save_type, dc)
                     for e in ranked[: getattr(spell, "max_targets", 4)]
-                )
-                if affected >= CONTROL_MIN_AFFECTED:
+                }
+                if sum(
+                    fails.values()
+                ) >= CONTROL_MIN_AFFECTED or self._takes_out_enough_damage(
+                    fails, active
+                ):
                     return self._effect_plan(combatant, spell, ranked)
         biggest = max(active, key=lambda e: e.hp, default=None)
         hold = spells.get("Hold Monster")
@@ -890,6 +947,32 @@ class PartyAIStrategy(AIStrategy):
         ):
             return self._effect_plan(combatant, spells["Mirror Image"], combatant)
         return None
+
+    @staticmethod
+    def _most_dangerous(enemies: List[Any]) -> List[Any]:
+        """Enemies by the damage they deal, the most first: those an area spell catches first."""
+        return sorted(enemies, key=lambda e: (-damage_per_round(e), -e.hp))
+
+    @staticmethod
+    def _takes_out_enough_damage(fails: Dict[Any, float], active: List[Any]) -> bool:
+        """
+        Whether the enemies expected to fail a control spell's save (their chances of failing, in
+        `fails`) deal at least CONTROL_MIN_DAMAGE_SHARE of the damage of all the active enemies.
+        Only when there are other enemies to fight meanwhile: the party would wake a lone enemy.
+        """
+        if len(active) < 2:
+            return False
+        total = sum(damage_per_round(e) for e in active)
+        caught = sum(fail * damage_per_round(e) for e, fail in fails.items())
+        return caught >= CONTROL_MIN_DAMAGE_SHARE * total
+
+    def target_priority(self, enemy: Any, combat_state: Dict[str, Any]) -> float:
+        """
+        Focus fire: the damage an enemy deals per round for each hit point it has left. The party
+        drops whatever hurts it most for the least effort first, and keeps hitting a wounded enemy
+        rather than spreading its damage (which a vampire spawn's or troll's regeneration undoes).
+        """
+        return damage_per_round(enemy) / max(1, getattr(enemy, "hp", 1))
 
     @staticmethod
     def _effect_plan(
@@ -988,10 +1071,10 @@ class PartyAIStrategy(AIStrategy):
         Returns:
             Attack action dictionary, or None if no attack available
         """
-        # Select most dangerous enemy, leaving turned, sleeping and hypnotized enemies alone while
+        # Focus fire (see target_priority), leaving turned, sleeping and hypnotized enemies alone while
         # there are others (damage would wake them)
         enemies = [e for e in enemies if not is_spellbound(e)] or enemies
-        dangerous = max(enemies, key=lambda e: self.threat_assessment(e, combat_state))
+        dangerous = max(enemies, key=lambda e: self.target_priority(e, combat_state))
 
         # Check if combatant is a spellcaster
         character_class = getattr(combatant, "character_class", None)
@@ -1187,7 +1270,7 @@ class PartyAIStrategy(AIStrategy):
 
         return sorted(
             potential_targets,
-            key=lambda t: self.threat_assessment(t, combat_state),
+            key=lambda t: self.target_priority(t, combat_state),
             reverse=True,
         )
 

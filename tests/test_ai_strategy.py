@@ -69,18 +69,6 @@ def test_party_ai_heals_low_hp_ally(party_ai):
     assert action["target"] == ally1
 
 
-def test_party_ai_focuses_on_dangerous_enemy(party_ai):
-    attacker = DummyCombatant("Wizard", 30, 30, actions=[DummyAction("attack")])
-    enemy1 = DummyCombatant("Orc", 20, 20, level=2)
-    enemy2 = DummyCombatant(
-        "Dragon", 100, 100, level=10, special_abilities=["Fire Breath"]
-    )
-    combat_state = {"allies": [attacker], "enemies": [enemy1, enemy2]}
-    action = party_ai.choose_action(attacker, combat_state)
-    assert action["type"] == "attack"
-    assert action["target"] == enemy2
-
-
 def test_party_ai_default_defend(party_ai):
     pc = DummyCombatant("Bard", 10, 30)
     combat_state = {"allies": [pc], "enemies": []}
